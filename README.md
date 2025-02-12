@@ -1,1 +1,1 @@
-# MiniMine
+# MiniMine-alpha 0.0.1
