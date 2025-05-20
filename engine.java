@@ -17,14 +17,21 @@ import android.graphics.Bitmap;
 import android.opengl.GLUtils;
 import android.widget.Toast;
 import android.view.MotionEvent;
+import android.graphics.RectF;
+
+class Cor {
+	public static float[] VERMELHO = new float[]{255f, 0f, 0f, 255f};
+	public static float[] VERDE = new float[]{0f, 255f, 0f, 255f};
+	public static float[] AZUL = new float[]{0f, 0f, 255f, 255f};
+}
 
 class GL {
 	public static void limpar() {
 		GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 	}
 	
-	public static void corFundo(float r, float g, float b, float alfa) {
-		GLES30.glClearColor(r, g, b, alfa);
+	public static void corFundo(float... cor) {
+		GLES30.glClearColor(cor[0], cor[1], cor[2], cor[3]);
 	}
 	
 	public static void definirRender(GLSurfaceView tela, GLSurfaceView.Renderer render) {
@@ -138,6 +145,8 @@ class Cena2D {
     public ShaderUtils shader;
     public float[] matrizProj = new float[16];
     public int locProjecao, locTexture;
+	
+	public int larguraTela, alturaTela;
 
     public List<Objeto2D> objetos = new ArrayList<Objeto2D>();
 
@@ -146,7 +155,7 @@ class Cena2D {
 	.order(ByteOrder.nativeOrder())
 	.asFloatBuffer();
 
-    public void iniciar(int largura, int altura) {
+    public void iniciar() {
         shader = new ShaderUtils(ShaderUtils.obterVert2D(), ShaderUtils.obterFrag2D());
         int[] ids = new int[1];
         GLES30.glGenVertexArrays(1, ids, 0);
@@ -164,8 +173,6 @@ class Cena2D {
         GLES30.glEnableVertexAttribArray(1);
 
         GLES30.glBindVertexArray(0);
-
-        Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
 
         locProjecao = GLES30.glGetUniformLocation(shader.id, "uProjecao");
         locTexture = GLES30.glGetUniformLocation(shader.id, "uTextura");
@@ -195,101 +202,103 @@ class Cena2D {
         GLES30.glBindVertexArray(0);
     }
 
-    public void atualizarProjecao(int largura, int altura) {
-        Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
-    }
+		public void atualizarProjecao(int largura, int altura) {
+			this.larguraTela = largura;
+			this.alturaTela = altura;
+			Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
+		}
 
 	public void add(final Objeto2D obj) {
         objetos.add(obj);
     }
 }
 
-class Cena3D {
-	public Camera3D camera = new Camera3D();
-	public ShaderUtils shader;
-	public int vao, vbo;
-	public float[] matrizProj = new float[16];
-	public float[] matrizView = new float[16];
-	public float[] matrizModelo = new float[16];
-	public float[] matrizFinal = new float[16];
-	public int locMVP, locTex;
-	public List<Objeto3D> objetos = new ArrayList<Objeto3D>();
+class Cena3D {  
+	public Camera3D camera = new Camera3D();  
+	public ShaderUtils shader;  
+	public int vao, vbo;  
+	public float[] matrizProj = new float[16];  
+	public float[] matrizView = new float[16];  
+	public float[] matrizModelo = new float[16];  
+	public float[] matrizFinal = new float[16];  
+	public int locMVP, locTex;  
+	public List<Objeto3D> objetos = new ArrayList<Objeto3D>();  
 
-	// buffers:
-	public FloatBuffer bufferVertices = ByteBuffer
-	.allocateDirect(6 * 6 * 5 * 4) // 6 triangulos * 6 vertices * 5 floats * 4 bytes
-	.order(ByteOrder.nativeOrder())
-	.asFloatBuffer();
+	// buffers:  
+	public FloatBuffer bufferVertices = ByteBuffer  
+	.allocateDirect(6 * 6 * 5 * 4) // 6 triangulos * 6 vertices * 5 floats * 4 bytes  
+	.order(ByteOrder.nativeOrder())  
+	.asFloatBuffer();  
 
-	public void iniciar() {
-		shader = new ShaderUtils(ShaderUtils.obterVert3D(), ShaderUtils.obterFrag3D());
+	public void iniciar() {  
+		shader = new ShaderUtils(ShaderUtils.obterVert3D(), ShaderUtils.obterFrag3D());  
 
-		int[] ids = new int[1];
-		GLES30.glGenVertexArrays(1, ids, 0);
-		vao = ids[0];
-		GLES30.glBindVertexArray(vao);
+		int[] ids = new int[1];  
+		GLES30.glGenVertexArrays(1, ids, 0);  
+		vao = ids[0];  
+		GLES30.glBindVertexArray(vao);  
 
-		GLES30.glGenBuffers(1, ids, 0);
-		vbo = ids[0];
-		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);
+		GLES30.glGenBuffers(1, ids, 0);  
+		vbo = ids[0];  
+		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);  
 
-		GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, 6 * 6 * 5 * 4, null, GLES30.GL_STATIC_DRAW);
+		GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, 6 * 6 * 5 * 4, null, GLES30.GL_STATIC_DRAW);  
 
-		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 5 * 4, 0);
-		GLES30.glEnableVertexAttribArray(0);
-		GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, 5 * 4, 3 * 4);
-		GLES30.glEnableVertexAttribArray(1);
+		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 5 * 4, 0);  
+		GLES30.glEnableVertexAttribArray(0);  
+		GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, 5 * 4, 3 * 4);  
+		GLES30.glEnableVertexAttribArray(1);  
 
-		GLES30.glBindVertexArray(0);
+		GLES30.glBindVertexArray(0);  
 
-		locMVP = GLES30.glGetUniformLocation(shader.id, "uMVP");
-		locTex = GLES30.glGetUniformLocation(shader.id, "uTextura");
-	}
+		locMVP = GLES30.glGetUniformLocation(shader.id, "uMVP");  
+		locTex = GLES30.glGetUniformLocation(shader.id, "uTextura");  
+	}  
 
-	public void atualizarProjecao(int largura, int altura) {
-		float ratio = (float) largura / altura;
-		Matrix.perspectiveM(matrizProj, 0, 60, ratio, 1f, 100f);
-	}
+	public void atualizarProjecao(int largura, int altura) {  
+		float ratio = (float) largura / altura;  
+		Matrix.perspectiveM(matrizProj, 0, 60, ratio, 1f, 100f);  
+	}  
 
-	public void render() {
-		shader.usar();
-		GLES30.glBindVertexArray(vao);
+	public void render() {  
+		shader.usar();  
+		GLES30.glBindVertexArray(vao);  
 
-		for(Objeto3D o : objetos) {
-			Matrix.setIdentityM(matrizModelo, 0);
-			Matrix.translateM(matrizModelo, 0, o.x, o.y, o.z);
-			Matrix.rotateM(matrizModelo, 0, o.rX, o.rX, o.rX, 0);
-			Matrix.scaleM(matrizModelo, 0, o.largura, o.altura, o.profundidade);
+		for(Objeto3D o : objetos) {  
+			Matrix.setIdentityM(matrizModelo, 0);  
+			Matrix.translateM(matrizModelo, 0, o.x, o.y, o.z);  
+			Matrix.rotateM(matrizModelo, 0, o.rX, o.rX, o.rX, 0);  
+			Matrix.scaleM(matrizModelo, 0, o.largura, o.altura, o.profundidade);  
 
-			Matrix.multiplyMM(matrizFinal, 0, matrizView, 0, matrizModelo, 0);
-			Matrix.multiplyMM(matrizFinal, 0, matrizProj, 0, matrizFinal, 0);
-			
-			o.rX += 1;
+			Matrix.multiplyMM(matrizFinal, 0, matrizView, 0, matrizModelo, 0);  
+			Matrix.multiplyMM(matrizFinal, 0, matrizProj, 0, matrizFinal, 0);  
 
-			GLES30.glUniformMatrix4fv(locMVP, 1, false, matrizFinal, 0);
-			GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);
-			
-			GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, bufferVertices.capacity() * 4, bufferVertices);
-			GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);
-		}
-		GLES30.glBindVertexArray(0);
-		atualizarCamera();
-	}
-	
-	public void atualizarCamera() {
-		Matrix.setLookAtM(matrizView, 0,
-		camera.posicao[0], camera.posicao[1], camera.posicao[2],
-		camera.posicao[0] + camera.foco[0],
-		camera.posicao[1] + camera.foco[1],
-		camera.posicao[2] + camera.foco[2],
-		camera.up[0], camera.up[1], camera.up[2]);
-	}
+			o.rX += 1;  
 
-	public void add(Objeto3D obj) {
-		objetos.add(obj);
-		bufferVertices.put(obj.vertices);
-		bufferVertices.flip();
-	}
+			GLES30.glUniformMatrix4fv(locMVP, 1, false, matrizFinal, 0);  
+			GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);  
+
+			GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, bufferVertices.capacity() * 4, bufferVertices);  
+			GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);  
+		}  
+		GLES30.glBindVertexArray(0);  
+		atualizarCamera();  
+	}  
+
+	public void atualizarCamera() {  
+		Matrix.setLookAtM(matrizView, 0,  
+						  camera.posicao[0], camera.posicao[1], camera.posicao[2],  
+						  camera.posicao[0] + camera.foco[0],  
+						  camera.posicao[1] + camera.foco[1],  
+						  camera.posicao[2] + camera.foco[2],  
+						  camera.up[0], camera.up[1], camera.up[2]);  
+	}  
+
+	public void add(Objeto3D obj) {  
+		objetos.add(obj);  
+		bufferVertices.put(obj.vertices);  
+		bufferVertices.flip();  
+	}  
 }
 
 class Objeto2D {
@@ -302,6 +311,19 @@ class Objeto2D {
         this.largura = largura;
         this.altura = altura;
         this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
+	}
+	
+	public boolean tocado(float x, float y) {
+		if(
+		x >= this.x &&
+		x <= this.x + this.largura &&
+		y >= this.y &&
+		y <= this.y + this.altura
+		) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -401,23 +423,23 @@ class Objeto3D {
 		-0.5f, -0.5f,  0.5f,  u1, v1,
 	};
 
-	public Objeto3D(float x, float y, float z, float largura, float altura, float profundidade, int textura) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.largura = largura;
-		this.altura = altura;
-		this.profundidade = profundidade;
-		this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
-	}
-	
-	public void definirFaceUV(int face, float... uvs) {
-		int inicio = face * 6 * 5;
-		for(int i = 0; i < 6; i++) {
-			vertices[inicio + i * 5 + 3] = uvs[i * 2];
-			vertices[inicio + i * 5 + 4] = uvs[i * 2 + 1];
+		public Objeto3D(float x, float y, float z, float largura, float altura, float profundidade, int textura) {
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.largura = largura;
+			this.altura = altura;
+			this.profundidade = profundidade;
+			this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
 		}
-	}
+
+		public void definirFaceUV(int face, float... uvs) {
+			int inicio = face * 6 * 5;
+			for(int i = 0; i < 6; i++) {
+				vertices[inicio + i * 5 + 3] = uvs[i * 2];
+				vertices[inicio + i * 5 + 4] = uvs[i * 2 + 1];
+			}
+		}
 }
 
 class Texturas {
@@ -441,7 +463,7 @@ class Texturas {
 			return -1;
 		}
 	}
-
+	
 	public static int texturaBranca() {
         int[] tex = new int[1];
         GLES30.glGenTextures(1, tex, 0);
@@ -456,6 +478,27 @@ class Texturas {
 
         return tex[0];
     }
+	
+	public static int texturaCor(float... c) {
+		int[] tex = new int[1];
+		GLES30.glGenTextures(1, tex, 0);
+		GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[0]);
+
+		byte[] cor = {
+			(byte)(c[0] * 255), (byte)(c[1] * 255), (byte)(c[2] * 255), (byte)(c[3] * 255)
+		};
+
+		ByteBuffer buffer = ByteBuffer.allocateDirect(4);
+		buffer.put(cor).position(0);
+
+		GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA, 1, 1, 0,  
+							GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
+
+		GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
+		GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
+
+		return tex[0];
+	}
 }
 
 class Toque {
@@ -517,6 +560,11 @@ class Debug {
 
 	public static void log(String msg) {
 		if(ctx != null) Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show();
+		else return;
+	}
+	
+	public static void log(String msg, int tempo) {
+		if(ctx != null) Toast.makeText(ctx, msg, tempo).show();
 		else return;
 	}
 }
