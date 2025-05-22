@@ -18,14 +18,22 @@ import android.opengl.GLUtils;
 import android.widget.Toast;
 import android.view.MotionEvent;
 import android.graphics.RectF;
+import android.os.Handler;
+import android.os.Looper;
 
 class Cor {
-	public static float[] VERMELHO = new float[]{255f, 0f, 0f, 255f};
-	public static float[] VERDE = new float[]{0f, 255f, 0f, 255f};
-	public static float[] AZUL = new float[]{0f, 0f, 255f, 255f};
+	public static final float[] VERMELHO = new float[]{1f, 0f, 0f, 1f};
+	public static final float[] VERDE   = new float[]{0f, 1f, 0f, 1f};
+	public static final float[] AZUL    = new float[]{0f, 0f, 1f, 1f};
 }
 
 class GL {
+	public static GLSurfaceView tela;
+	
+	public static void definirTela(GLSurfaceView opengl) {
+		tela = opengl;
+	}
+	
 	public static void limpar() {
 		GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 	}
@@ -187,118 +195,84 @@ class Cena2D {
         GLES30.glBindVertexArray(vao);
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);
 
-        for(Objeto2D obj : objetos) {
+        for(Objeto2D o : objetos) {
             bufferTemp.clear();
-            bufferTemp.put(obj.x).put(obj.y).put(0f).put(0f);
-            bufferTemp.put(obj.x).put(obj.y + obj.altura).put(0f).put(1f);
-            bufferTemp.put(obj.x + obj.largura).put(obj.y).put(1f).put(0f);
-            bufferTemp.put(obj.x + obj.largura).put(obj.y + obj.altura).put(1f).put(1f);
+            bufferTemp.put(o.x).put(o.y).put(0f).put(0f);
+            bufferTemp.put(o.x).put(o.y + o.altura).put(0f).put(1f);
+            bufferTemp.put(o.x + o.largura).put(o.y).put(1f).put(0f);
+            bufferTemp.put(o.x + o.largura).put(o.y + o.altura).put(1f).put(1f);
             bufferTemp.flip();
 
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, obj.textura);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);
             GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, bufferTemp.remaining() *4, bufferTemp);
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
         }
         GLES30.glBindVertexArray(0);
     }
+	
+	public void atualizarProjecao(int largura, int altura) {
+		this.larguraTela = largura;
+		this.alturaTela = altura;
+		Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
+	}
 
-		public void atualizarProjecao(int largura, int altura) {
-			this.larguraTela = largura;
-			this.alturaTela = altura;
-			Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
-		}
-
-	public void add(final Objeto2D obj) {
-        objetos.add(obj);
+	public void add(Objeto2D... os) {
+        for(int i = 0; i < os.length; i++) objetos.add(os[i]);
     }
+	
+	public void remover(Objeto3D o) {
+		objetos.remove(o);
+	}
 }
 
-class Cena3D {  
-	public Camera3D camera = new Camera3D();  
-	public ShaderUtils shader;  
-	public int vao, vbo;  
-	public float[] matrizProj = new float[16];  
-	public float[] matrizView = new float[16];  
-	public float[] matrizModelo = new float[16];  
-	public float[] matrizFinal = new float[16];  
-	public int locMVP, locTex;  
-	public List<Objeto3D> objetos = new ArrayList<Objeto3D>();  
+class Botao2D {
+    public Objeto2D objeto;
+    public boolean pressionado = false;
+    public Handler repetidor;
+    public Runnable acao;
 
-	// buffers:  
-	public FloatBuffer bufferVertices = ByteBuffer  
-	.allocateDirect(6 * 6 * 5 * 4) // 6 triangulos * 6 vertices * 5 floats * 4 bytes  
-	.order(ByteOrder.nativeOrder())  
-	.asFloatBuffer();  
+    public Botao2D(Objeto2D objeto2D) {
+        this.objeto = objeto2D;
+        this.repetidor = new Handler(Looper.getMainLooper());
+    }
 
-	public void iniciar() {  
-		shader = new ShaderUtils(ShaderUtils.obterVert3D(), ShaderUtils.obterFrag3D());  
+    public void definirAcao(Runnable acao) {
+        this.acao = acao;
+    }
 
-		int[] ids = new int[1];  
-		GLES30.glGenVertexArrays(1, ids, 0);  
-		vao = ids[0];  
-		GLES30.glBindVertexArray(vao);  
+    public boolean verificarToque(MotionEvent e) {
+        float x = e.getX();
+        float y = e.getY();
+        boolean tocado = objeto.tocado(x, y);
 
-		GLES30.glGenBuffers(1, ids, 0);  
-		vbo = ids[0];  
-		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);  
+        if(tocado && !pressionado) {
+            pressionado = true;
+            iniciarRepeticao();
+			return true;
+        } else if(!tocado && pressionado) {
+            pressionado = false;
+            pararRepeticao();
+			return false;
+        } else {
+			return false;
+		}
+    }
 
-		GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, 6 * 6 * 5 * 4, null, GLES30.GL_STATIC_DRAW);  
+    public void iniciarRepeticao() {
+        repetidor.postDelayed(new Runnable() {
+				@Override
+				public void run() {
+					if(pressionado && acao != null) {
+						acao.run();
+						repetidor.postDelayed(this, 100);
+					}
+				}
+			}, 0);
+    }
 
-		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 5 * 4, 0);  
-		GLES30.glEnableVertexAttribArray(0);  
-		GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, 5 * 4, 3 * 4);  
-		GLES30.glEnableVertexAttribArray(1);  
-
-		GLES30.glBindVertexArray(0);  
-
-		locMVP = GLES30.glGetUniformLocation(shader.id, "uMVP");  
-		locTex = GLES30.glGetUniformLocation(shader.id, "uTextura");  
-	}  
-
-	public void atualizarProjecao(int largura, int altura) {  
-		float ratio = (float) largura / altura;  
-		Matrix.perspectiveM(matrizProj, 0, 60, ratio, 1f, 100f);  
-	}  
-
-	public void render() {  
-		shader.usar();  
-		GLES30.glBindVertexArray(vao);  
-
-		for(Objeto3D o : objetos) {  
-			Matrix.setIdentityM(matrizModelo, 0);  
-			Matrix.translateM(matrizModelo, 0, o.x, o.y, o.z);  
-			Matrix.rotateM(matrizModelo, 0, o.rX, o.rX, o.rX, 0);  
-			Matrix.scaleM(matrizModelo, 0, o.largura, o.altura, o.profundidade);  
-
-			Matrix.multiplyMM(matrizFinal, 0, matrizView, 0, matrizModelo, 0);  
-			Matrix.multiplyMM(matrizFinal, 0, matrizProj, 0, matrizFinal, 0);  
-
-			o.rX += 1;  
-
-			GLES30.glUniformMatrix4fv(locMVP, 1, false, matrizFinal, 0);  
-			GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);  
-
-			GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, bufferVertices.capacity() * 4, bufferVertices);  
-			GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);  
-		}  
-		GLES30.glBindVertexArray(0);  
-		atualizarCamera();  
-	}  
-
-	public void atualizarCamera() {  
-		Matrix.setLookAtM(matrizView, 0,  
-						  camera.posicao[0], camera.posicao[1], camera.posicao[2],  
-						  camera.posicao[0] + camera.foco[0],  
-						  camera.posicao[1] + camera.foco[1],  
-						  camera.posicao[2] + camera.foco[2],  
-						  camera.up[0], camera.up[1], camera.up[2]);  
-	}  
-
-	public void add(Objeto3D obj) {  
-		objetos.add(obj);  
-		bufferVertices.put(obj.vertices);  
-		bufferVertices.flip();  
-	}  
+    public void pararRepeticao() {
+        repetidor.removeCallbacksAndMessages(null);
+    }
 }
 
 class Objeto2D {
@@ -312,19 +286,125 @@ class Objeto2D {
         this.altura = altura;
         this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
 	}
-	
+
 	public boolean tocado(float x, float y) {
 		if(
-		x >= this.x &&
-		x <= this.x + this.largura &&
-		y >= this.y &&
-		y <= this.y + this.altura
-		) {
+			x >= this.x &&
+			x <= this.x + this.largura &&
+			y >= this.y &&
+			y <= this.y + this.altura
+			) {
 			return true;
 		} else {
 			return false;
 		}
 	}
+}
+
+class Cena3D {
+    public Camera3D camera = new Camera3D();
+    public ShaderUtils shader;
+    public float[] matrizProj = new float[16];
+    public float[] matrizView = new float[16];
+    public float[] matrizModelo = new float[16];
+    public float[] matrizFinal = new float[16];
+    public int locMVP, locTex;
+    public List<Objeto3D> objetos = new ArrayList<Objeto3D>();
+
+    public void iniciar(String vert, String frag) {
+        this.shader = new ShaderUtils(vert, frag);
+        locMVP = GLES30.glGetUniformLocation(this.shader.id, "uMVP");
+        locTex = GLES30.glGetUniformLocation(this.shader.id, "uTextura");
+    }
+
+    public void iniciar() {
+        iniciar(ShaderUtils.obterVert3D(), ShaderUtils.obterFrag3D());
+    }
+
+    public void atualizarProjecao(int largura, int altura) {
+        float ratio = (float) largura / altura;
+        Matrix.perspectiveM(matrizProj, 0, 60, ratio, 1f, 100f);
+    }
+
+    public void render() {
+        atualizarCamera();
+        shader.usar();
+
+        for (Objeto3D o : objetos) {
+            GLES30.glBindVertexArray(o.vao);
+
+            Matrix.setIdentityM(matrizModelo, 0);
+            Matrix.translateM(matrizModelo, 0, o.x, o.y, o.z);
+            Matrix.rotateM(matrizModelo, 0, o.rX, 1, 0, 0);
+            Matrix.rotateM(matrizModelo, 0, o.rY, 0, 1, 0);
+            Matrix.rotateM(matrizModelo, 0, o.rZ, 0, 0, 1);
+            Matrix.scaleM(matrizModelo, 0, o.largura, o.altura, o.profundidade);
+
+            Matrix.multiplyMM(matrizFinal, 0, matrizView, 0, matrizModelo, 0);
+            Matrix.multiplyMM(matrizFinal, 0, matrizProj, 0, matrizFinal, 0);
+
+            GLES30.glUniformMatrix4fv(locMVP, 1, false, matrizFinal, 0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);
+
+            GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);
+        }
+        GLES30.glBindVertexArray(0);
+    }
+
+    public void atualizarVertices(Objeto3D o) {
+        FloatBuffer buffer = ByteBuffer
+            .allocateDirect(o.vertices.length * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer();
+        buffer.put(o.vertices).flip();
+
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, o.vbo);
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, o.vertices.length * 4, buffer, GLES30.GL_STATIC_DRAW);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
+    }
+
+    public void atualizarCamera() {
+        Matrix.setLookAtM(matrizView, 0,
+						  camera.posicao[0], camera.posicao[1], camera.posicao[2],
+						  camera.posicao[0] + camera.foco[0],
+						  camera.posicao[1] + camera.foco[1],
+						  camera.posicao[2] + camera.foco[2],
+						  camera.up[0], camera.up[1], camera.up[2]);
+    }
+
+    public void add(Objeto3D... os) {
+        for (Objeto3D o : os) {
+            FloatBuffer buffer = ByteBuffer
+                .allocateDirect(o.vertices.length * 4)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+            buffer.put(o.vertices).flip();
+
+            int[] vaoId = new int[1];
+            GLES30.glGenVertexArrays(1, vaoId, 0);
+            o.vao = vaoId[0];
+
+            int[] vboId = new int[1];
+            GLES30.glGenBuffers(1, vboId, 0);
+            o.vbo = vboId[0];
+
+            GLES30.glBindVertexArray(o.vao);
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, o.vbo);
+            GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, o.vertices.length * 4, buffer, GLES30.GL_STATIC_DRAW);
+
+            GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 5 * 4, 0);
+            GLES30.glEnableVertexAttribArray(0);
+            GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, 5 * 4, 3 * 4);
+            GLES30.glEnableVertexAttribArray(1);
+
+            GLES30.glBindVertexArray(0);
+            objetos.add(o);
+        }
+    }
+
+    public void remover(Objeto3D o) {
+        objetos.remove(o);
+    }
 }
 
 class Camera3D {
@@ -334,6 +414,10 @@ class Camera3D {
 
 	public float yaw = -90f;
     public float tom = 0f;
+	
+	public Camera3D() {
+		rotacionar(0, 0);
+	}
 
 	public void rotacionar(float dx, float dy) {
         yaw += dx;
@@ -374,10 +458,11 @@ class Camera3D {
 }
 
 class Objeto3D {
-	public float x, y, z, largura, altura, profundidade;
-	public int textura;
+	public float x = 0f, y = 0f, z = 0f;
+	public float largura = 1f, altura = 1f, profundidade = 1f;
 	public float u1 = 0f, v1 = 0f, u2 = 1f, v2 = 1f;
-	public float rX = 1f;
+	public int textura, vbo, vao;
+	public float rX = 0f, rY = 0f, rZ = 0f;
 	public float[] vertices = new float[]{
 		// frente
 		-0.5f, -0.5f,  0.5f,  u1, v2,
@@ -407,7 +492,7 @@ class Objeto3D {
 		0.5f, -0.5f, -0.5f,  u2, v2,
 		0.5f,  0.5f,  0.5f,  u1, v1,
 		0.5f, -0.5f,  0.5f,  u1, v2,
-		// topo
+		//topo
 		-0.5f,  0.5f, -0.5f,  u1, v1,
 		-0.5f,  0.5f,  0.5f,  u1, v2,
 		0.5f,  0.5f,  0.5f,  u2, v2,
@@ -422,24 +507,32 @@ class Objeto3D {
 		0.5f, -0.5f,  0.5f,  u2, v1,
 		-0.5f, -0.5f,  0.5f,  u1, v1,
 	};
-
-		public Objeto3D(float x, float y, float z, float largura, float altura, float profundidade, int textura) {
-			this.x = x;
-			this.y = y;
-			this.z = z;
-			this.largura = largura;
-			this.altura = altura;
-			this.profundidade = profundidade;
-			this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
+	
+	public Objeto3D(float x, float y, float z, float largura, float altura, float profundidade, int textura) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.largura = largura;
+		this.altura = altura;
+		this.profundidade = profundidade;
+		this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
+	}
+	
+	public Objeto3D(float x, float y, float z, float[] vertices, int textura) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.vertices = vertices;
+		this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
+	}
+	
+	public void definirFaceUV(int face, float... uvs) {
+		int inicio = face * 6 * 5;
+		for(int i = 0; i < 6; i++) {
+			vertices[inicio + i * 5 + 3] = uvs[i * 2];
+			vertices[inicio + i * 5 + 4] = uvs[i * 2 + 1];
 		}
-
-		public void definirFaceUV(int face, float... uvs) {
-			int inicio = face * 6 * 5;
-			for(int i = 0; i < 6; i++) {
-				vertices[inicio + i * 5 + 3] = uvs[i * 2];
-				vertices[inicio + i * 5 + 4] = uvs[i * 2 + 1];
-			}
-		}
+	}
 }
 
 class Texturas {
@@ -548,6 +641,156 @@ class Toque {
                 break;
         } 
         return true;
+    }
+}
+
+class PerlinNoise2D {
+    private static final int[] p = new int[512];
+    private static final int[] permutacao = {
+        151,160,137,91,90,15,
+        131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+        190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
+        88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,
+        77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
+        102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,
+        135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,
+        5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
+        223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,
+        129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,
+        251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,
+        49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,
+        138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
+    };
+    public static final float[][] GRADIENTS = {
+        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+        { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 }
+    };
+
+    static {
+        for (int i = 0; i < 256; i++) {
+            p[i] = permutacao[i];
+            p[i + 256] = permutacao[i];
+        }
+    }
+
+    public static float ruido(float x, float z, int seed) {
+        int X = ((int)Math.floor(x) + seed) & 255;
+        int Z = ((int)Math.floor(z) + seed) & 255;
+        float xf = x - (int)Math.floor(x);
+        float zf = z - (int)Math.floor(z);
+
+        float u = fade(xf);
+        float v = fade(zf);
+
+        int A = p[X] + Z;
+        int B = p[X + 1] + Z;
+
+        float gradAA = grad(p[A], xf, zf);
+        float gradBA = grad(p[B], xf - 1, zf);
+        float gradAB = grad(p[A + 1], xf, zf - 1);
+        float gradBB = grad(p[B + 1], xf - 1, zf - 1);
+
+        float lerpX1 = lerp(u, gradAA, gradBA);
+        float lerpX2 = lerp(u, gradAB, gradBB);
+        return lerp(v, lerpX1, lerpX2);
+    }
+
+    public static float fade(float t) {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    public static float lerp(float t, float a, float b) {
+        return a + t * (b - a);
+    }
+
+    public static float grad(int hash, float x, float y) {
+        int h = hash & 7;
+        float[] g = GRADIENTS[h];
+        return g[0] * x + g[1] * y;
+    }
+}
+
+class PerlinNoise3D {
+    private static final int[] p = new int[512];
+    private static final int[] permutacao = {
+        151,160,137,91,90,15,
+        131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+        190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
+        88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,
+        77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
+        102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,
+        135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,
+        5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
+        223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,
+        129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,
+        251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,
+        49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,
+        138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
+    };
+    private static final int[][] GRADIENTES = {
+        {1,1,0},{-1,1,0},{1,-1,0},{-1,-1,0},
+        {1,0,1},{-1,0,1},{1,0,-1},{-1,0,-1},
+        {0,1,1},{0,-1,1},{0,1,-1},{0,-1,-1}
+    };
+
+    static {
+        for(int i = 0; i < 256; i++) {
+            p[i] = permutacao[i];
+            p[i + 256] = permutacao[i];
+        }
+    }
+
+    public static float ruido(float x, float y, float z, int seed) {
+        int X = ((int)Math.floor(x) + seed) & 255;
+        int Y = ((int)Math.floor(y) + seed) & 255;
+        int Z = ((int)Math.floor(z) + seed) & 255;
+        float xf = x - (int)Math.floor(x);
+        float yf = y - (int)Math.floor(y);
+        float zf = z - (int)Math.floor(z);
+
+        float u = fade(xf);
+        float v = fade(yf);
+        float w = fade(zf);
+
+        int A  = p[X] + Y;
+        int AA = p[A] + Z;
+        int AB = p[A + 1] + Z;
+        int B  = p[X + 1] + Y;
+        int BA = p[B] + Z;
+        int BB = p[B + 1] + Z;
+
+        float g000 = grad(p[AA],     xf,     yf,     zf);
+        float g001 = grad(p[AA + 1], xf,     yf,     zf - 1);
+        float g010 = grad(p[AB],     xf,     yf - 1, zf);
+        float g011 = grad(p[AB + 1], xf,     yf - 1, zf - 1);
+        float g100 = grad(p[BA],     xf - 1, yf,     zf);
+        float g101 = grad(p[BA + 1], xf - 1, yf,     zf - 1);
+        float g110 = grad(p[BB],     xf - 1, yf - 1, zf);
+        float g111 = grad(p[BB + 1], xf - 1, yf - 1, zf - 1);
+
+        float lerpX00 = lerp(u, g000, g100);
+        float lerpX01 = lerp(u, g001, g101);
+        float lerpX10 = lerp(u, g010, g110);
+        float lerpX11 = lerp(u, g011, g111);
+
+        float lerpY0 = lerp(v, lerpX00, lerpX10);
+        float lerpY1 = lerp(v, lerpX01, lerpX11);
+
+        return lerp(w, lerpY0, lerpY1);
+    }
+
+    private static float fade(float t) {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    private static float lerp(float t, float a, float b) {
+        return a + t * (b - a);
+    }
+
+    private static float grad(int hash, float x, float y, float z) {
+        int h = hash & 15;
+        int[] g = GRADIENTES[h % 12];
+        return g[0]*x + g[1]*y + g[2]*z;
     }
 }
 
