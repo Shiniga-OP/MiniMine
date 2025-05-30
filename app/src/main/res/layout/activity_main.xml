@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:gravity="center"
+	android:onClick="paraMundo">
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="MINI-MINE"
+		android:textAppearance="?android:attr/textAppearanceLarge"
+		android:textSize="100sp"
+		android:layout_marginBottom="350dp"/>
+
+	<Button
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Um Jogador"
+		android:textSize="20sp"
+		android:onClick="paraMundo"/>
+
+	<Button
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Configurações"
+		android:textSize="20sp"/>
+
+</LinearLayout>
+
