@@ -2,3 +2,4 @@
 # apk
 # openGL
 # open-source
+# java 7
