@@ -225,6 +225,139 @@ class Cena2D {
 	}
 }
 
+class Texto2D {
+    public Objeto2D objeto;
+    public int textura = -1;
+    public String texto;
+    public float x, y;
+    public float tamanhoFonte;
+    public float[] cor;
+
+    public Texto2D(String texto, float x, float y, float tamanhoFonte, float... cor) {
+        this.texto = (texto == "") ? "." : texto;
+        this.x = x;
+        this.y = y;
+        this.tamanhoFonte = tamanhoFonte;
+        this.cor = cor.clone();
+        gerarRecursos();
+    }
+
+    private void gerarRecursos() {
+        if(textura != -1) {
+            GLES30.glDeleteTextures(1, new int[]{textura}, 0);
+        }
+
+        textura = criarTexturaBitmap();
+        criarObjeto2D();
+    }
+
+    private int criarTexturaBitmap() {
+        Paint paint = new Paint();
+        paint.setTextSize(tamanhoFonte);
+        paint.setColor(Color.WHITE);
+        paint.setAntiAlias(true);
+        paint.setTextAlign(Paint.Align.LEFT);
+
+        Rect bounds = new Rect();
+        paint.getTextBounds(texto, 0, texto.length(), bounds);
+        float largura = paint.measureText(texto);
+        float altura = bounds.height();
+
+        Bitmap bitmap = Bitmap.createBitmap(
+            (int) Math.ceil(largura), 
+            (int) Math.ceil(altura), 
+            Bitmap.Config.ARGB_8888
+        );
+
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        canvas.drawText(texto, 0, -bounds.top, paint);
+
+        // Aplicar cor
+        int color = Color.argb(
+            (int)(cor[3] * 255), 
+            (int)(cor[0] * 255), 
+            (int)(cor[1] * 255), 
+            (int)(cor[2] * 255)
+        );
+        bitmap = aplicarCor(bitmap, color);
+
+        int[] texId = new int[1];
+        GLES30.glGenTextures(1, texId, 0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texId[0]);
+        GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+
+        bitmap.recycle();
+        return texId[0];
+    }
+
+    private Bitmap aplicarCor(Bitmap original, int color) {
+        Bitmap result = Bitmap.createBitmap(
+            original.getWidth(), 
+            original.getHeight(), 
+            Bitmap.Config.ARGB_8888
+        );
+        Canvas canvas = new Canvas(result);
+        Paint paint = new Paint();
+        paint.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(original, 0, 0, paint);
+        return result;
+    }
+
+    private void criarObjeto2D() {
+        Paint paint = new Paint();
+        paint.setTextSize(tamanhoFonte);
+        Rect bounds = new Rect();
+        paint.getTextBounds(texto, 0, texto.length(), bounds);
+
+        objeto = new Objeto2D(
+            x, y, 
+            paint.measureText(texto), 
+            bounds.height(), 
+            textura
+        );
+    }
+	
+    public void definirTex(String novoTexto) {
+        if(!texto.equals(novoTexto)) {
+            texto = novoTexto;
+            gerarRecursos();
+        }
+    }
+
+    public void definirCor(float[] novaCor) {
+        if(!Arrays.equals(cor, novaCor)) {
+            cor = novaCor.clone();
+            gerarRecursos();
+        }
+    }
+
+    public void definirTam(float novoTamanho) {
+        if(tamanhoFonte != novoTamanho) {
+            tamanhoFonte = novoTamanho;
+            gerarRecursos();
+        }
+    }
+
+    public void definirPosicao(float x, float y) {
+        this.x = x;
+        this.y = y;
+        if(objeto != null) {
+            objeto.x = x;
+            objeto.y = y;
+        }
+    }
+
+    public void destruir() {
+        if(textura != -1) {
+            GLES30.glDeleteTextures(1, new int[]{textura}, 0);
+            textura = -1;
+        }
+    }
+}
+
 class Botao2D {
     public Objeto2D objeto;
     public boolean pressionado = false;
