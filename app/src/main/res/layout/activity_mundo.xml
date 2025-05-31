@@ -29,7 +29,16 @@
 			android:textSize="20sp"/>
 
 	</LinearLayout>
-
+	
+	<EditText
+		android:layout_width="wrap_content"
+		android:inputType="textPersonName"
+		android:layout_height="wrap_content"
+		android:ems="10"
+		android:id="@+id/nomeMundo"
+		android:textSize="20sp"
+		android:hint="nome do mundo"/>
+	
 	<EditText
 		android:layout_width="wrap_content"
 		android:inputType="number"
