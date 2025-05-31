@@ -28,7 +28,7 @@ Para scripting, usa a biblioteca **LuaJ** integrada ao chat.
 ## Como usar
 
 1. Clone o projeto  
-2. Compile diretamente no Android (sem dependências externas além do LuaJ)  
+2. Compile diretamente no Android(sem dependências externas além do LuaJ)  
 3. Execute no dispositivo ou emulador Android  
 
 ---
