@@ -40,6 +40,10 @@ import java.io.DataInputStream;
 import java.io.BufferedInputStream;
 import android.os.Handler;
 import android.os.Looper;
+import com.engine.Cena2D;
+import com.engine.Botao2D;
+import com.engine.Texturas;
+import com.engine.Objeto2D;
 
 public class GLRender implements GLSurfaceView.Renderer {
     public final Context contexto;
@@ -55,7 +59,8 @@ public class GLRender implements GLSurfaceView.Renderer {
     public ExecutorService executor = Executors.newFixedThreadPool(4);
 
 	public float pesoConta = 0f;
-
+	
+	// interface
 	public boolean debug = false, gc = false, gravidade = true, trava = true;
 	
 	// chunks:
@@ -482,48 +487,84 @@ public class GLRender implements GLSurfaceView.Renderer {
 		this.tipo = tipo;
 		this.pacoteTex = pacoteTex;
     }
+	
+	public Cena2D ui;
 
-    @Override
-    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        GLES30.glClearColor(0.40f, 0.65f, 0.85f, 1.0f);
-        GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+    @Override  
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {  
+        GLES30.glClearColor(0.40f, 0.65f, 0.85f, 1.0f);  
+        GLES30.glEnable(GLES30.GL_DEPTH_TEST);  
+
+        this.mundo = new Mundo(  
+			this.tela, this.seed, this.nome,  
+			this.tipo, this.pacoteTex  
+		);  
+		crMundo(this.mundo);  
+        if(modo.equals("alpha")) this.mundo.RAIO_CARREGAMENTO = 2;  
+        if(modo.equals("teste")) this.mundo.RAIO_CARREGAMENTO = 1;  
+        this.iniciarShaders(contexto);  
+        this.carregarTexturas(contexto);  
+		ui = new Cena2D();
+		ui.iniciar();  
+		slot1 = new Botao2D(new Objeto2D(200, 700, 100, 100, Texturas.texturaBranca()));  
 		
-        this.mundo = new Mundo(
-		this.tela, this.seed, this.nome,
-		this.tipo, this.pacoteTex
-		);
-		crMundo(this.mundo);
-        if(modo.equals("alpha")) this.mundo.RAIO_CARREGAMENTO = 2;
-        if(modo.equals("teste")) this.mundo.RAIO_CARREGAMENTO = 1;
-        this.iniciarShaders(contexto);
-        this.carregarTexturas(contexto);
-    }
+		slot1.definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "AR";  
+				}  
+			});
+			
+		slot2 = new Botao2D(new Objeto2D(320, 700, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
 
-	@Override
-    public void onDrawFrame(GL10 gl) {
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
-		atualizarTempo();
-		atualizarChunks();
-		
-		if(pronto==true) {
-			if(frame++ % 1 == 0) atualizarGravidade();
-			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);
-			renderizar();
+		slot2.definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "PEDREGULHO";  
+				}  
+			});  
+		 
+		ui.add(
+		slot1.objeto,
+		slot2.objeto
+		);  
+    }  
 
-			atualizarViewMatriz();
-			if(mundo.noChao(camera)) {
-				camera.noAr = false;
-				pesoConta = 0.1f;
-			} else {
-				camera.noAr = true;
-			}
-		}
-		if(gc == true) {
-			ativarGC();
-		}
-		if(debug == true) {
-			renderHitbox();
-		}
+	public Botao2D slot1;
+	public Botao2D slot2;
+
+	@Override  
+    public void onDrawFrame(GL10 gl) {  
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);  
+		ui.render();  
+		atualizarTempo();  
+		atualizarChunks();  
+
+		if(pronto==true) {  
+			if(frame++ % 1 == 0) atualizarGravidade();  
+			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
+			renderizar();  
+
+			atualizarViewMatriz();  
+			if(mundo.noChao(camera)) {  
+				camera.noAr = false;  
+				pesoConta = 0.1f;  
+			} else {  
+				camera.noAr = true;  
+			}  
+		}  
+		if(gc == true) {  
+			ativarGC();  
+		}  
+		if(debug == true) {  
+			renderHitbox();  
+		}  
+    }  
+
+	@Override  
+    public void onSurfaceChanged(GL10 gl, int h, int v) {  
+        GLES30.glViewport(0, 0, h, v);  
+        float ratio = (float) h / v;  
+        Matrix.perspectiveM(projMatriz, 0, 90, ratio, 0.1f, 1000f);  
+		ui.atualizarProjecao(h, v);  
     }
 	
 	public void atualizarGravidade() {
@@ -629,13 +670,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 			this.distancia = distancia;
 		}
 	}
-
-    @Override
-    public void onSurfaceChanged(GL10 gl, int horizontal, int lateral) {
-        GLES30.glViewport(0, 0, horizontal, lateral);
-        float ratio = (float) horizontal / lateral;
-        Matrix.perspectiveM(projMatriz, 0, 90, ratio, 0.1f, 1000f);
-    }
 	
 	public void destruir() {
 		for(List<VBOGrupo> grupos : mundo.chunkVBOs.values()) {

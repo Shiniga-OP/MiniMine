@@ -275,6 +275,8 @@ public class MundoActivity extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         eventoToque(e);
+		render.slot1.verificarToque(e);
+		render.slot2.verificarToque(e);
 		return true;
     }
 

@@ -1,3 +1,0 @@
-COMEN="$1"
-git commit -m "$COMEN"
-git push -u origin main
