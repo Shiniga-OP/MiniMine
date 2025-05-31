@@ -20,7 +20,7 @@ Para scripting, usa a biblioteca **LuaJ** integrada ao chat.
 ## Status
 
 - Fase Alpha  
-- Código limpo 
+- Teste
 - Foco em performance no Android nativo  
 
 ---
