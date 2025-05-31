@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class InicioActivity extends Activity {
     
-	private EditText seed, tipoMundo, pacoteTex;
+	private EditText seed, tipoMundo, pacoteTex, nomeMundo;
 	private Random aleatorio = new Random();
 	
     @Override
@@ -20,6 +20,7 @@ public class InicioActivity extends Activity {
 		pacoteTex = findViewById(R.id.pacoteTex);
 		seed = findViewById(R.id.seed);
 		tipoMundo = findViewById(R.id.tipoMundo);
+		nomeMundo = findViewById(R.id.nomeMundo);
     }
 	
 	public void paraJogo(View v) {
@@ -27,7 +28,7 @@ public class InicioActivity extends Activity {
 		
 		if(!seed.getText().toString().equals("")) mundo.putExtra("seed", Integer.parseInt(seed.getText().toString()));
 		else {
-			mundo.putExtra("seed", aleatorio.nextInt(9999999));
+			mundo.putExtra("seed", aleatorio.nextInt(99)+aleatorio.nextInt(999)+aleatorio.nextInt(9999));
 		}
 		if(!pacoteTex.getText().toString().equals("")) mundo.putExtra("pacoteTex", pacoteTex.getText().toString());
 		else {
@@ -36,6 +37,10 @@ public class InicioActivity extends Activity {
 		if(!tipoMundo.getText().toString().equals("")) mundo.putExtra("tipoMundo", tipoMundo.getText().toString());
 		else {
 			mundo.putExtra("tipoMundo", "normal");
+		}
+		if(!nomeMundo.getText().toString().equals("")) mundo.putExtra("nomeMundo", nomeMundo.getText().toString());
+		else {
+			mundo.putExtra("nomeMundo", "novo mundo");
 		}
 		
 		startActivity(mundo);
