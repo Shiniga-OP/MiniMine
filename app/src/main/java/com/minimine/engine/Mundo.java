@@ -562,11 +562,11 @@ public class Mundo {
 		float largura = camera.hitbox[1];
 		float metadeLargura = largura / 2f;
 		float novoX = novoTx;
-		float novoY = novoTy - 1.5f;
+		float novoY = novoTy - 1.5f; // para verificar abaixo do jogador
 		float novoZ = novoTz;
 		float EPSILON = 0.0001f;
 
-		for (int iter = 0; iter < 5; iter++) {
+		for(int iter = 0; iter < 5; iter++) {
 			float minX = novoX - metadeLargura;
 			float maxX = novoX + metadeLargura;
 			float minY = novoY;
@@ -584,10 +584,10 @@ public class Mundo {
 			boolean colidiu = false;
 			boolean ajustouEixo = false;
 
-			for (int bx = startX; bx <= endX; bx++) {
-				for (int by = startY; by <= endY; by++) {
-					for (int bz = startZ; bz <= endZ; bz++) {
-						if (!eBlocoSolido(bx, by, bz)) continue;
+			for(int bx = startX; bx <= endX; bx++) {
+				for(int by = startY; by <= endY; by++) {
+					for(int bz = startZ; bz <= endZ; bz++) {
+						if(!eBlocoSolido(bx, by, bz)) continue;
 
 						float blocoMinX = bx;
 						float blocoMaxX = bx + 1f;
@@ -600,25 +600,22 @@ public class Mundo {
 						float sobreposY = Math.max(0f, Math.min(maxY, blocoMaxY) - Math.max(minY, blocoMinY));
 						float sobreposZ = Math.max(0f, Math.min(maxZ, blocoMaxZ) - Math.max(minZ, blocoMinZ));
 
-						if (sobreposX > EPSILON && sobreposX < sobreposY && sobreposX < sobreposZ) {
+						if(sobreposX > EPSILON && sobreposX < sobreposY && sobreposX < sobreposZ) {
 							novoX += (novoX < bx + 0.5f) ? -sobreposX : sobreposX;
 							ajustouEixo = true;
-						} else if (sobreposY > EPSILON && sobreposY < sobreposX && sobreposY < sobreposZ) {
+						} else if(sobreposY > EPSILON && sobreposY < sobreposX && sobreposY < sobreposZ) {
 							novoY += (novoY < by + 0.5f) ? -sobreposY : sobreposY;
 							ajustouEixo = true;
-						} else if (sobreposZ > EPSILON) {
+						} else if(sobreposZ > EPSILON) {
 							novoZ += (novoZ < bz + 0.5f) ? -sobreposZ : sobreposZ;
 							ajustouEixo = true;
 						}
-
 						colidiu = true;
 					}
 				}
 			}
-
-			if (!colidiu || !ajustouEixo) break;
+			if(!colidiu || !ajustouEixo) break;
 		}
-
-		return new float[] { novoX, novoY + 1.5f, novoZ };
+		return new float[] { novoX, novoY + 1.5f, novoZ }; // + 1.5f para a camera continuar em cima e não nos pés
 	}
 }

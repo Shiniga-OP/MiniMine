@@ -60,7 +60,7 @@ public class Comandos {
 				}
 			} else if(comando.startsWith("/player passo ")) {
 				comando = comando.replace("/player passo ", "");
-				render.camera.velocidade = Float.parseFloat(comando);
+				render.camera.velocidadeX = Float.parseFloat(comando);
 			} else if(comando.startsWith("/player peso ")) {
 				comando = comando.replace("/player peso ", "");
 
