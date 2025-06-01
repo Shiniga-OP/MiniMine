@@ -78,8 +78,16 @@ public class Cena2D {
 	public void add(Objeto2D... os) {
         for(int i = 0; i < os.length; i++) objetos.add(os[i]);
     }
+	
+	public void add(Botao2D... os) {
+        for(int i = 0; i < os.length; i++) objetos.add(os[i].objeto);
+    }
 
-	public void remover(Objeto2D o) {
-		objetos.remove(o);
+	public void remover(Objeto2D... os) {
+		for(int i = 0; i < os.length; i++) objetos.remove(os[i]);
+	}
+	
+	public void remover(Botao2D... os) {
+		for(int i = 0; i < os.length; i++) objetos.remove(os[i].objeto);
 	}
 }

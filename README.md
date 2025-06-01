@@ -6,6 +6,8 @@ O jogo está em fase **alpha** e é de **uso livre**.
 
 Para scripting, usa a biblioteca **LuaJ** integrada ao chat.
 
+O projeto ainda precisa de muitas otimizações.
+
 ---
 
 ## Tecnologias

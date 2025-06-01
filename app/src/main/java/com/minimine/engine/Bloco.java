@@ -91,6 +91,22 @@ class TipoBloco {
 					"texturas/grama_lado2.png",
 					"texturas/grama_lado2.png"
 					);
+		definirTipo("AREIA",
+					"texturas/areia.png",
+					"texturas/areia.png",
+					"texturas/areia.png",
+					"texturas/areia.png",
+					"texturas/areia.png",
+					"texturas/areia.png"
+					);
+		definirTipo("LAMA",
+					"texturas/lama.png",
+					"texturas/lama.png",
+					"texturas/lama.png",
+					"texturas/lama.png",
+					"texturas/lama.png",
+					"texturas/lama.png"
+					);
         definirTipo("TERRA",
 					"texturas/terra.png",
 					"texturas/terra.png",

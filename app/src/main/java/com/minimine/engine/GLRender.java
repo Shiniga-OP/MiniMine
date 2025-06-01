@@ -500,47 +500,59 @@ public class GLRender implements GLSurfaceView.Renderer {
 			this.tipo, this.pacoteTex  
 		);  
 		crMundo(this.mundo);  
-        if(modo.equals("alpha")) this.mundo.RAIO_CARREGAMENTO = 2;  
-        if(modo.equals("teste")) this.mundo.RAIO_CARREGAMENTO = 1;  
+        if(modo.equals("alpha")) this.mundo.RAIO_CARREGAMENTO = 5;  
+        if(modo.equals("teste")) this.mundo.RAIO_CARREGAMENTO = 3;  
         this.iniciarShaders(contexto);  
         this.carregarTexturas(contexto);  
 		ui = new Cena2D();
 		ui.iniciar();  
-		slot1 = new Botao2D(new Objeto2D(200, 700, 100, 100, Texturas.texturaBranca()));  
+		slots[0] = new Botao2D(new Objeto2D(350, 1400, 100, 100, Texturas.texturaBranca()));  
 		
-		slot1.definirAcao(new Runnable() {  
+		slots[0].definirAcao(new Runnable() {  
 				public void run() {  
 					camera.itemMao = "AR";  
 				}  
 			});
 			
-		slot2 = new Botao2D(new Objeto2D(320, 700, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
+		slots[1] = new Botao2D(new Objeto2D(470, 1400, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
 
-		slot2.definirAcao(new Runnable() {  
+		slots[1].definirAcao(new Runnable() {  
 				public void run() {  
 					camera.itemMao = "PEDREGULHO";  
 				}  
+			});
+			
+		slots[2] = new Botao2D(new Objeto2D(590, 1400, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));  
+
+		slots[2].definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "TABUAS_CARVALHO";  
+				}  
+			});
+			
+		slots[3] = new Botao2D(new Objeto2D(710, 1400, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));  
+
+		slots[3].definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "TRONCO_CARVALHO";  
+				}  
 			});  
 		 
-		ui.add(
-		slot1.objeto,
-		slot2.objeto
-		);  
+		ui.add(slots);  
     }  
 
-	public Botao2D slot1;
-	public Botao2D slot2;
+	public Botao2D[] slots = new Botao2D[4];
 
 	@Override  
     public void onDrawFrame(GL10 gl) {  
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);  
-		ui.render();  
 		atualizarTempo();  
 		atualizarChunks();  
 
-		if(pronto==true) {  
+		if(pronto==true) {
 			if(frame++ % 1 == 0) atualizarGravidade();  
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
+			ui.render();  
 			renderizar();  
 
 			atualizarViewMatriz();  
@@ -563,7 +575,7 @@ public class GLRender implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int h, int v) {  
         GLES30.glViewport(0, 0, h, v);  
         float ratio = (float) h / v;  
-        Matrix.perspectiveM(projMatriz, 0, 90, ratio, 0.1f, 1000f);  
+        Matrix.perspectiveM(projMatriz, 0, 90, ratio, 0.1f, 400f);  
 		ui.atualizarProjecao(h, v);  
     }
 	
@@ -982,6 +994,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		dos.writeFloat(camera.posicao[2]);
 		
 		dos.writeFloat(tempo);
+		dos.writeUTF(mundo.tipo);
 		
 		dos.flush();
 		dos.close();
@@ -1037,6 +1050,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 		camera.posicao[2] = dis.readFloat();
 		
 		tempo = dis.readFloat();
+		
+		mundo.tipo = dis.readUTF();
 		
 		dis.close();
 	}
