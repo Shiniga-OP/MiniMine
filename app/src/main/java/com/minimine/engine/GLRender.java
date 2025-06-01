@@ -46,7 +46,7 @@ import com.engine.Texturas;
 import com.engine.Objeto2D;
 
 public class GLRender implements GLSurfaceView.Renderer {
-    public final Context contexto;
+    public Context contexto;
     public final GLSurfaceView tela;
     public float[] projMatriz = new float[16];
     public float[] viewMatriz = new float[16];
@@ -61,6 +61,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 	public float pesoConta = 0f;
 	
 	// interface
+	public Cena2D ui;
 	public boolean debug = false, gc = false, gravidade = true, trava = true;
 	
 	// chunks:
@@ -181,7 +182,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
 	}
 
-	public void iniciarShaders(Context contexto) {
+	public void carregarShaders(Context contexto) {
 		String shaderVertice =
 			"uniform mat4 u_VPMatriz;" +
 			"uniform vec3 u_direcaoLuz;" +
@@ -203,6 +204,7 @@ public class GLRender implements GLSurfaceView.Renderer {
             "uniform sampler2D u_Textura;" +
             "void main() {" +
             "vec4 corTextura = texture2D(u_Textura, v_TexCoord);" +
+			"if(corTextura.a<0.5) discard;"+
             "gl_FragColor = vec4(corTextura.rgb * v_intencidadeLuz, corTextura.a);" +
             "}";
 		shaderPrograma = ShaderUtils.criarPrograma(shaderVertice, shaderFragmento);
@@ -330,6 +332,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"}";
 
 		programaHitbox = ShaderUtils.criarPrograma(vertHitboxC, fragHitboxC);
+		GLES30.glLineWidth(15f);
 	}
 	
 	public void renderHitbox() {
@@ -488,12 +491,52 @@ public class GLRender implements GLSurfaceView.Renderer {
 		this.pacoteTex = pacoteTex;
     }
 	
-	public Cena2D ui;
+	public Botao2D[] slots = new Botao2D[4];
+	
+	public void carregarUI(Context contexto) {
+		// slots
+		slots[0] = new Botao2D(new Objeto2D(350, 1400, 100, 100, Texturas.texturaBranca()));  
+
+		slots[0].definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "AR";  
+				}  
+			});
+
+		slots[1] = new Botao2D(new Objeto2D(470, 1400, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
+
+		slots[1].definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "PEDREGULHO";  
+				}  
+			});
+
+		slots[2] = new Botao2D(new Objeto2D(590, 1400, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));  
+
+		slots[2].definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "TABUAS_CARVALHO";  
+				}  
+			});
+
+		slots[3] = new Botao2D(new Objeto2D(710, 1400, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));  
+
+		slots[3].definirAcao(new Runnable() {  
+				public void run() {  
+					camera.itemMao = "TRONCO_CARVALHO";  
+				}  
+			});  
+		// mira:
+		mira = new Objeto2D(0, 0, 50, 50, Texturas.carregarAsset(contexto, "texturas/evolva/ui/mira.png"));
+	}
+	
+	public Objeto2D mira;
 
     @Override  
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {  
         GLES30.glClearColor(0.40f, 0.65f, 0.85f, 1.0f);  
         GLES30.glEnable(GLES30.GL_DEPTH_TEST);  
+		GLES30.glEnable(GLES30.GL_BLEND);
 
         this.mundo = new Mundo(  
 			this.tela, this.seed, this.nome,  
@@ -502,46 +545,14 @@ public class GLRender implements GLSurfaceView.Renderer {
 		crMundo(this.mundo);  
         if(modo.equals("alpha")) this.mundo.RAIO_CARREGAMENTO = 5;  
         if(modo.equals("teste")) this.mundo.RAIO_CARREGAMENTO = 3;  
-        this.iniciarShaders(contexto);  
+        this.carregarShaders(contexto);  
         this.carregarTexturas(contexto);  
+		this.carregarUI(contexto);
 		ui = new Cena2D();
-		ui.iniciar();  
-		slots[0] = new Botao2D(new Objeto2D(350, 1400, 100, 100, Texturas.texturaBranca()));  
-		
-		slots[0].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "AR";  
-				}  
-			});
-			
-		slots[1] = new Botao2D(new Objeto2D(470, 1400, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
-
-		slots[1].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "PEDREGULHO";  
-				}  
-			});
-			
-		slots[2] = new Botao2D(new Objeto2D(590, 1400, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));  
-
-		slots[2].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "TABUAS_CARVALHO";  
-				}  
-			});
-			
-		slots[3] = new Botao2D(new Objeto2D(710, 1400, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));  
-
-		slots[3].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "TRONCO_CARVALHO";  
-				}  
-			});  
-		 
-		ui.add(slots);  
-    }  
-
-	public Botao2D[] slots = new Botao2D[4];
+		ui.iniciar();
+		ui.add(mira);
+		ui.add(slots);
+    } 
 
 	@Override  
     public void onDrawFrame(GL10 gl) {  
@@ -577,6 +588,8 @@ public class GLRender implements GLSurfaceView.Renderer {
         float ratio = (float) h / v;  
         Matrix.perspectiveM(projMatriz, 0, 90, ratio, 0.1f, 400f);  
 		ui.atualizarProjecao(h, v);  
+		mira.y = v / 2;
+		mira.x = h / 2;
     }
 	
 	public void atualizarGravidade() {

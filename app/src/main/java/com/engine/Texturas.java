@@ -20,11 +20,11 @@ public class Texturas {
 
 			GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
 			GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
-
+			
 			bmp.recycle();
 			return texID[0];
 		} catch(Exception e) {
-			Debug.log("erro ao carregar textura: " + nomeArquivo + e.getMessage());
+			System.out.println("erro ao carregar textura: " + nomeArquivo + e.getMessage());
 			return -1;
 		}
 	}
