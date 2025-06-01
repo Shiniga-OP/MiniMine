@@ -567,7 +567,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			renderizar();  
 
 			atualizarViewMatriz();  
-			if(mundo.noChao(camera)) {  
+			if(mundo.noChao(camera) || mundo.chunksAtivos.size() < 4) {  
 				camera.noAr = false;  
 				pesoConta = 0.1f;  
 			} else {  
@@ -652,7 +652,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 
 		int carregados = 0;
 		
-		if(MundoActivity.livre >= 10.0 || trava == false) {
+		if(MundoActivity.livre >= 10.0 || trava == false || MundoActivity.total <= 30.0) {
 			while(!fila.isEmpty() && carregados < this.chunksPorVez) {
 				final ChunkCandidato c = fila.poll();
 				final String chave = c.chave;
