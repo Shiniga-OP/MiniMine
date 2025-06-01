@@ -140,7 +140,11 @@ public class Mundo {
 					int globalZ = baseZ + z;
 					for(int y = 0; y < 3; y++) {
 						String tipoBloco = (y == 0) ? "BEDROCK" : (y < 2) ? "TERRA" : "GRAMA";
+						try {
 						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
+						} catch(Exception e) {
+							System.out.println("erro: "+e);
+						}
 					}
 				}
 			}
@@ -183,7 +187,11 @@ public class Mundo {
 						if (noise3D > BIOMAS[biomaAtual].caverna) tipoBloco = "AR";
 					}
 					if(!tipoBloco.equals("AR")) {
-						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
+						try {
+							chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
+						} catch(Exception e) {
+							System.out.println("erro: "+e);
+						}
 					}
 				}
 			}
@@ -192,7 +200,7 @@ public class Mundo {
 		long sementeChunk = ((long) chunkX * 341873128712L) ^ ((long) chunkZ * 132897987541L) ^ seed;
 		Random rnd = new Random(sementeChunk);
 
-		int tentativasArvore = 2;
+		int tentativasArvore = 3;
 		int tentativasDeserto = 1;
 
 		for(int i = 0; i < tentativasArvore; i++) {
@@ -553,8 +561,13 @@ public class Mundo {
 		int localX = bx - chunkX * CHUNK_TAMANHO;
 		int localZ = bz - chunkZ * CHUNK_TAMANHO;
 		if(localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return false;
-		Bloco bloco = chunk[localX][by][localZ];
-		return bloco != null && bloco.solido;
+		try{
+			Bloco bloco = chunk[localX][by][localZ];
+			return bloco != null && bloco.solido;
+		} catch(Exception e) {
+			System.out.println("erro: "+e);
+			return false;
+		}
 	}
 
 	public float[] verificarColisao(Camera camera, float novoTx, float novoTy, float novoTz) {

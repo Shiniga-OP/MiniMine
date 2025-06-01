@@ -2,6 +2,7 @@ package com.minimine.engine;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.engine.AABB;
 
 public class Camera {
     public float[] posicao = new float[]{8f, 70f, 8f};
@@ -45,7 +46,7 @@ public class Camera {
 class Player extends Camera {
 	public int vida = 20;
 	public float velocidadeX = 0.2f;
-	public float salto = 0.14f;
+	public float salto = 0.25f;
 	public float peso = 1f;
 	public float alcance = 7f;
 	
