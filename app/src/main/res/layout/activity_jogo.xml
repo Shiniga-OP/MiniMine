@@ -17,7 +17,7 @@
 		android:layout_alignParentBottom="true"
 		android:layout_alignParentStart="true"
 		android:layout_margin="16dp"/>
-	
+
 	<Button
 		android:layout_width="60dp"
 		android:layout_height="60dp"
@@ -49,6 +49,7 @@
 		android:id="@+id/coordenadas"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
+		android:textColor="#232323"
 		android:text="X: 0 Y: 0 Z: 0"
 		android:textSize="16sp"
 		android:layout_alignParentTop="true"
@@ -59,7 +60,7 @@
 		android:id="@+id/logs"
 		android:layout_width="200dp"
 		android:layout_height="100dp"
-		android:textColor="#FF959595"
+		android:textColor="#232323"
 		android:layout_above="@+id/btnFrente"
 		android:layout_alignParentLeft="true"
 		android:layout_margin="10dp"

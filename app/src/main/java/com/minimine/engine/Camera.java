@@ -44,16 +44,18 @@ public class Camera {
 
 class Player extends Camera {
 	public int vida = 20;
-	public float velocidade = 0.2f;
-	public float salto = 0.005f;
-
+	public float velocidadeX = 0.2f;
+	public float salto = 0.14f;
 	public float peso = 1f;
-	public float pesoTotal = 0.05f;
-
-	public String itemMao = "AR";
 	public float alcance = 7f;
 	
+	public float velocidadeY = 0f;
+	public float GRAVIDADE = -0.03f;
+	public float velocidadeY_limite = -1.5f;
+	
+	// estados:
 	public boolean noAr = true;
+	public String itemMao = "AR";
 
 	public final List<Slot> inventario = new ArrayList<>();
 

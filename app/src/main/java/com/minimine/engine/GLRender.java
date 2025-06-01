@@ -97,10 +97,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 	public FloatBuffer hitboxBuffer;
 	public int programaHitbox;
 	
-	// gravidade
-	public Handler gravidadeLoop;
-	public Runnable tarefaGravidade;
-
 	public void renderizar() {
 		GLES30.glUseProgram(shaderPrograma);
 		GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, vpMatriz, 0);
@@ -558,10 +554,10 @@ public class GLRender implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {  
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);  
 		atualizarTempo();  
-		atualizarChunks();  
+		atualizarChunks();
 
 		if(pronto==true) {
-			if(frame++ % 1 == 0) atualizarGravidade();  
+			atualizarGravidade();
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
 			ui.render();  
 			renderizar();  
@@ -593,13 +589,33 @@ public class GLRender implements GLSurfaceView.Renderer {
     }
 	
 	public void atualizarGravidade() {
-		if(camera.noAr == true && gravidade==true || camera.peso==0) {
-			if(pesoConta>=2f) pesoConta = 2f;
-			else pesoConta += camera.pesoTotal;
-			float novaY = camera.posicao[1] - camera.peso*pesoConta;
-			float[] pos = mundo.verificarColisao(camera, camera.posicao[0], novaY, camera.posicao[2]);
-			camera.posicao[1] = pos[1];
+		if(mundo.noChao(camera)) return;
+		if(!gravidade || camera.peso == 0) return;
+
+		// aplica gravidade
+		camera.velocidadeY += camera.GRAVIDADE;
+		if(camera.velocidadeY < camera.velocidadeY_limite)
+			camera.velocidadeY = camera.velocidadeY_limite;
+
+		float novaY = camera.posicao[1] + camera.velocidadeY;
+
+		// verifica colisão
+		float[] pos = mundo.verificarColisao(camera, camera.posicao[0], novaY, camera.posicao[2]);
+		boolean bateuChao = pos[1] > novaY;
+
+		camera.posicao[1] = pos[1];
+
+		// atualiza o esytado do jogador
+		if(bateuChao) {
+			camera.velocidadeY = 0;
+			camera.noAr = false;
+		} else {
+			camera.noAr = true;
 		}
+	}
+	
+	public static void chavePraCoords(String chave, int chunkX, int chunkZ) {
+		
 	}
 
     public void atualizarChunks() {
@@ -610,10 +626,11 @@ public class GLRender implements GLSurfaceView.Renderer {
 		Iterator<Map.Entry<String, Bloco[][][]>> iterator = mundo.chunksAtivos.entrySet().iterator();
 		while(iterator.hasNext()) {
 			Map.Entry<String, Bloco[][][]> entry = iterator.next();
+			
 			String chave = entry.getKey();
-			String[] partes = chave.split(",");
-			int chunkX = Integer.parseInt(partes[0]);
-			int chunkZ = Integer.parseInt(partes[1]);
+			int virgula = chave.indexOf(',');
+			int chunkX = Integer.parseInt(chave.substring(0, virgula));
+			int chunkZ = Integer.parseInt(chave.substring(virgula + 1));
 
 			int deltaX = Math.abs(chunkX - chunkJogadorX);
 			int deltaZ = Math.abs(chunkZ - chunkJogadorZ);
@@ -854,7 +871,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 
 	public void moverDireita() {
-		mover(camera.foco[2], camera.foco[0]);
+		mover(-camera.foco[2], camera.foco[0]);
 	}
 
 	public void moverEsquerda() {
@@ -869,7 +886,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		dirX *= invMag;
 		dirZ *= invMag;
 
-		float velocidade = camera.velocidade;
+		float velocidade = camera.velocidadeX;
 		float[] pos = camera.posicao;
 		float halfSize = camera.hitbox[1] * 0.5f;
 		
@@ -898,14 +915,9 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 	
 	public void pular() {
-		if(camera.noAr == false || gravidade==false || camera.peso==0) {
-			for(int i=0; i<500; i++) {
-				camera.pesoTotal = 0f;
-				
-				camera.posicao[1] += camera.salto;
-				float[] posAjustada = mundo.verificarColisao(camera, camera.posicao[0], camera.posicao[1], camera.posicao[2]);
-				camera.posicao[1] = posAjustada[1];
-			}
+		if(!camera.noAr && gravidade && camera.peso > 0) {
+			camera.posicao[1] += 1f;
+			camera.velocidadeY = camera.salto;
 			camera.noAr = true;
 		}
 	}
