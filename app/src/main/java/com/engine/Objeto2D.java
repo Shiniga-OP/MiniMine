@@ -1,4 +1,5 @@
 package com.engine;
+import android.content.Context;
 
 public class Objeto2D {
     public float x, y, largura, altura;
@@ -11,7 +12,7 @@ public class Objeto2D {
         this.altura = altura;
         this.textura = (textura == -1) ? Texturas.texturaBranca() : textura;
 	}
-
+	
 	public boolean tocado(float x, float y) {
 		if(
 			x >= this.x &&

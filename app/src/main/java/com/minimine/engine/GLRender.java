@@ -214,18 +214,18 @@ public class GLRender implements GLSurfaceView.Renderer {
 		
 		String vertC =
 			"#version 300 es\n" +
-			"layout (location = 0) in vec3 aPos;\n" +
+			"layout(location = 0) in vec3 aPos;\n" +
 			"uniform mat4 u_view;\n" +
 			"uniform mat4 u_projecao;\n" +
 			"out vec3 TexCoords;\n" +
 			"void main() {\n" +
-			"TexCoords = aPos;\n" +
-			"mat4 view = u_view;\n" +
-			"view[3][0] = 0.0;\n" +
-			"view[3][1] = 0.0;\n" +
-			" view[3][2] = 0.0;\n" +
-			"vec4 pos = u_projecao * view * vec4(aPos, 1.0);\n" +
-			"gl_Position = pos.xyww;\n" +
+			"  TexCoords = aPos;\n" +
+			"  mat4 view = u_view;\n" +
+			"  view[3][0] = 0.0;\n" +
+			"  view[3][1] = 0.0;\n" +
+			"  view[3][2] = 0.0;\n" +
+			"  vec4 pos = u_projecao * view * vec4(aPos, 1.0);\n" +
+			"  gl_Position = pos.xyww;\n" +
 			"}";
 
 		String fragC =
@@ -234,63 +234,102 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"in vec3 TexCoords;\n" +
 			"uniform float u_tempo;\n" +
 			"out vec4 FragColor;\n" +
+
+			// Textura de nuvem procedural (ruído simples)
+			"float hash(vec3 p) {\n" +
+			"  p = fract(p * 0.3183099 + vec3(0.1, 0.1, 0.1));\n" +
+			"  p *= 17.0;\n" +
+			"  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));\n" +
+			"}\n" +
+
+			"float ruido(vec3 p) {\n" +
+			"  vec3 i = floor(p);\n" +
+			"  vec3 f = fract(p);\n" +
+			"  float a = hash(i);\n" +
+			"  float b = hash(i + vec3(1.0, 0.0, 0.0));\n" +
+			"  float c = hash(i + vec3(0.0, 1.0, 0.0));\n" +
+			"  float d = hash(i + vec3(1.0, 1.0, 0.0));\n" +
+			"  float e = hash(i + vec3(0.0, 0.0, 1.0));\n" +
+			"  float f1 = hash(i + vec3(1.0, 0.0, 1.0));\n" +
+			"  float g = hash(i + vec3(0.0, 1.0, 1.0));\n" +
+			"  float h = hash(i + vec3(1.0, 1.0, 1.0));\n" +
+
+			"  vec3 u = f * f * (3.0 - 2.0 * f);\n" +
+
+			"  float res = mix(mix(mix(a, b, u.x), mix(c, d, u.x), u.y),\n" +
+			"                  mix(mix(e, f1, u.x), mix(g, h, u.x), u.y), u.z);\n" +
+			"  return res;\n" +
+			"}\n" +
+
 			"void main() {\n" +
-			"vec3 diaCor = vec3(0.53, 0.81, 0.98);\n" +
-			"vec3 noiteCor = vec3(0.0, 0.0, 0.1);\n" +
-			"float t = abs(u_tempo - 0.5) * 2.0;\n" +
-			"vec3 ceuCor = mix(diaCor, noiteCor, t);\n" +
-			"FragColor = vec4(ceuCor, 1.0);\n" +
+			"  vec3 pos = TexCoords * 5.0 + vec3(u_tempo * 0.2, 0.0, u_tempo * 0.1);\n" +
+			"  float densidade = ruido(pos);\n" +
+
+			// Ajuste para a densidade das nuvens (alpha)
+			"  float alpha = smoothstep(0.5, 0.7, densidade);\n" +
+
+			// Cor da nuvem (branco meio transparente)
+			"  vec3 corNuvem = vec3(1.0);\n" +
+
+			// Cor do céu atrás (gradiente azul)
+			"  vec3 corCeu = mix(vec3(0.53, 0.81, 0.98), vec3(0.0, 0.0, 0.3), TexCoords.y * 0.5 + 0.5);\n" +
+
+			// Mistura cor nuvem com céu pela alpha
+			"  vec3 corFinal = mix(corCeu, corNuvem, alpha);\n" +
+
+			"  FragColor = vec4(corFinal, alpha);\n" +
 			"}";
 
+// Criar programa shader
 		shaderProgramaCeu = ShaderUtils.criarPrograma(vertC, fragC);
 
 		viewLocCeu = GLES30.glGetUniformLocation(shaderProgramaCeu, "u_view");
 		projLocCeu = GLES30.glGetUniformLocation(shaderProgramaCeu, "u_projecao");
 		tempoLocCeu = GLES30.glGetUniformLocation(shaderProgramaCeu, "u_tempo");
-		
+
 		float[] verticesCeu = {
-			// face tras
-			-1.0f,  1.0f, -1.0f,
-			-1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			1.0f,  1.0f, -1.0f,
-			-1.0f,  1.0f, -1.0f,
-			// face esquerda
-			-1.0f, -1.0f,  1.0f,
-			-1.0f, -1.0f, -1.0f,
-			-1.0f,  1.0f, -1.0f,
-			-1.0f,  1.0f, -1.0f,
-			-1.0f,  1.0f,  1.0f,
-			-1.0f, -1.0f,  1.0f,
-			// face direita
-			1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			// face frente
-			-1.0f, -1.0f,  1.0f,
-			-1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f, -1.0f,  1.0f,
-			-1.0f, -1.0f,  1.0f,
-			// face cima
-			-1.0f,  1.0f, -1.0f,
-			1.0f,  1.0f, -1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			-1.0f,  1.0f,  1.0f,
-			-1.0f,  1.0f, -1.0f,
-			// face baixo
-			-1.0f, -1.0f, -1.0f,
-			-1.0f, -1.0f,  1.0f,
-			1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			-1.0f, -1.0f,  1.0f,
-			1.0f, -1.0f,  1.0f
+			// Cubo para skybox / nuvens
+			-1f,  1f, -1f,
+			-1f, -1f, -1f,
+			1f, -1f, -1f,
+			1f, -1f, -1f,
+			1f,  1f, -1f,
+			-1f,  1f, -1f,
+
+			-1f, -1f,  1f,
+			-1f, -1f, -1f,
+			-1f,  1f, -1f,
+			-1f,  1f, -1f,
+			-1f,  1f,  1f,
+			-1f, -1f,  1f,
+
+			1f, -1f, -1f,
+			1f, -1f,  1f,
+			1f,  1f,  1f,
+			1f,  1f,  1f,
+			1f,  1f, -1f,
+			1f, -1f, -1f,
+
+			-1f, -1f,  1f,
+			-1f,  1f,  1f,
+			1f,  1f,  1f,
+			1f,  1f,  1f,
+			1f, -1f,  1f,
+			-1f, -1f,  1f,
+
+			-1f,  1f, -1f,
+			1f,  1f, -1f,
+			1f,  1f,  1f,
+			1f,  1f,  1f,
+			-1f,  1f,  1f,
+			-1f,  1f, -1f,
+
+			-1f, -1f, -1f,
+			-1f, -1f,  1f,
+			1f, -1f, -1f,
+			1f, -1f, -1f,
+			-1f, -1f,  1f,
+			1f, -1f,  1f
 		};
 
 		ceuBuffer = ByteBuffer.allocateDirect(verticesCeu.length * 4)
@@ -305,14 +344,28 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glGenBuffers(1, vboCeu, 0);
 
 		GLES30.glBindVertexArray(vaoCeu[0]);
-		
+
 		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboCeu[0]);
-	
 		GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, verticesCeu.length * 4, ceuBuffer, GLES30.GL_STATIC_DRAW);
-		
+
 		GLES30.glEnableVertexAttribArray(0);
 		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 3 * 4, 0);
+
 		GLES30.glBindVertexArray(0);
+
+// No render loop:
+// tempo += deltaTempo; // atualiza tempo com o tempo do frame
+// GLES30.glUseProgram(shaderProgramaCeu);
+// GLES30.glUniformMatrix4fv(viewLocCeu, 1, false, matrizView, 0);
+// GLES30.glUniformMatrix4fv(projLocCeu, 1, false, matrizProj, 0);
+// GLES30.glUniform1f(tempoLocCeu, tempo);
+// GLES30.glBindVertexArray(vaoCeu[0]);
+// GLES30.glEnable(GLES30.GL_BLEND);
+// GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA);
+// GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);
+// GLES30.glDisable(GLES30.GL_BLEND);
+// GLES30.glBindVertexArray(0);
+		
 		String vertHitboxC =
 			"uniform mat4 uMVPMatriz;" +
 			"attribute vec3 aPosicao;" +
@@ -328,7 +381,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"}";
 
 		programaHitbox = ShaderUtils.criarPrograma(vertHitboxC, fragHitboxC);
-		GLES30.glLineWidth(15f);
+		GLES30.glLineWidth(10f);
 	}
 	
 	public void renderHitbox() {
@@ -381,13 +434,13 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(tempo < 1.1f) {
 			tempo += tempoVelo;
 		} else {
-			tempo = 0.0f;
+			tempo = 0.1f;
 		}
 		luz = 1.0f - Math.abs(tempo - 0.5f) * 1.0f;
 		
-		if(tempo >= 0.3f && tempo <= 0.7) ciclo = "tarde";
-		else if(tempo >= 0.8) ciclo = "noite";
-		else if(tempo <= 0.2) ciclo = "dia";
+		if(tempo >= 0.5f && tempo <= 0.7f) ciclo = "tarde";
+		else if(tempo >= 0.8f) ciclo = "noite";
+		else if(tempo <= 0.5f) ciclo = "dia";
 		
 		GLES30.glUseProgram(shaderProgramaCeu);
 		GLES30.glUniformMatrix4fv(viewLocCeu, 1, false, viewMatriz, 0);
@@ -489,7 +542,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 	
 	public Botao2D[] slots = new Botao2D[4];
 	
-	public void carregarUI(Context contexto) {
+	public void carregarUI(Context ctx) {
 		// slots
 		slots[0] = new Botao2D(new Objeto2D(350, 1400, 100, 100, Texturas.texturaBranca()));  
 
@@ -523,7 +576,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}  
 			});  
 		// mira:
-		mira = new Objeto2D(0, 0, 50, 50, Texturas.carregarAsset(contexto, "texturas/evolva/ui/mira.png"));
+		mira = new Objeto2D(0, 0, 50, 50, Texturas.carregarAsset(ctx, "texturas/evolva/ui/mira.png"));
 	}
 	
 	public Objeto2D mira;
@@ -533,6 +586,7 @@ public class GLRender implements GLSurfaceView.Renderer {
         GLES30.glClearColor(0.40f, 0.65f, 0.85f, 1.0f);  
         GLES30.glEnable(GLES30.GL_DEPTH_TEST);  
 		GLES30.glEnable(GLES30.GL_BLEND);
+		// GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA);
 
         this.mundo = new Mundo(  
 			this.tela, this.seed, this.nome,  
@@ -584,12 +638,12 @@ public class GLRender implements GLSurfaceView.Renderer {
         float ratio = (float) h / v;  
         Matrix.perspectiveM(projMatriz, 0, 90, ratio, 0.1f, 400f);  
 		ui.atualizarProjecao(h, v);  
-		mira.y = v / 2;
-		mira.x = h / 2;
+		mira.y = v / 2 - mira.altura / 2;
+		mira.x = h / 2 - mira.largura / 2;
     }
 	
 	public void atualizarGravidade() {
-		if(mundo.noChao(camera)) return;
+		if(camera.noAr == false) return;
 		if(!gravidade || camera.peso == 0) return;
 
 		// aplica gravidade
@@ -612,10 +666,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 		} else {
 			camera.noAr = true;
 		}
-	}
-	
-	public static void chavePraCoords(String chave, int chunkX, int chunkZ) {
-		
 	}
 
     public void atualizarChunks() {
@@ -916,7 +966,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 	
 	public void pular() {
 		if(!camera.noAr && gravidade && camera.peso > 0) {
-			camera.posicao[1] += 1f;
 			camera.velocidadeY = camera.salto;
 			camera.noAr = true;
 		}
