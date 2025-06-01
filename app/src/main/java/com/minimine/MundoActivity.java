@@ -131,6 +131,7 @@ public class MundoActivity extends Activity {
 						"\n\ntempo: " + render.tempo +
 						"\nciclo diario: " + render.ciclo +
 						"\n\nplayer atual:\nposicao: " + posicao +
+						"\nmão: "+render.camera.itemMao+
 						"\nhitbox: vertical: " + render.camera.hitbox[0] +
 						", horizontal: " + render.camera.hitbox[1] +
 						"\nslots: " + render.camera.inventario.size();

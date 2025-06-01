@@ -15,7 +15,6 @@ O projeto ainda precisa de muitas otimizações.
 - Java 7 puro 
 - OpenGL ES 3.0(renderização gráfica)  
 - LuaJ para scripts dinâmicos  
-- Totalmente open-source  
 
 ---
 

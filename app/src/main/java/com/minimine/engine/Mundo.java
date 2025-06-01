@@ -21,7 +21,7 @@ public class Mundo {
 	public GLSurfaceView tela;
 
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
-    public int MUNDO_LATERAL = 54; // padrao: 64, testes: 32
+    public int MUNDO_LATERAL = 46; // padrao: 64, testes: 32
     public int RAIO_CARREGAMENTO = 3; // padrao: 3, testes: 2, inicial: 15
 
     public final int FACES_POR_BLOCO = 6;
@@ -49,32 +49,32 @@ public class Mundo {
 
 	Bioma[] BIOMAS = new Bioma[] {
 		// planicie
-		new Bioma(32f, 4f, // altura base e variação
+		new Bioma(22f, 4f, // altura base e variação
 		0.03f, 0.14f, // escalas 2D e 3D
 		"GRAMA", "TERRA", "PEDRA", // camadas
 		0.12f), // limite de cavernas
 		// deserto
-		new Bioma(32f, 3f,
+		new Bioma(22f, 3f,
 		0.04f, 0.1f,
 		"AREIA", "AREIA", "PEDRA",
 		0.01f),
 		// montanha
-		new Bioma(32f, 35f,
+		new Bioma(24f, 26f,
 		0.02f, 0.16f,
 		"PEDRA", "PEDRA", "PEDRA",
 		0.15f),
 		// floresta
-		new Bioma(32f, 3f,
+		new Bioma(22f, 3f,
 		0.05f, 0.1f,
 		"GRAMA", "TERRA", "PEDRA",
 		0.15f),
 		// floresta de lagos
-		new Bioma(32f, 3f,
+		new Bioma(22f, 3f,
 		0.05f, 0.1f,
 		"GRAMA", "TERRA", "PEDRA",
 		0.15f),
 		// lago
-		new Bioma(30f, 1f,
+		new Bioma(20f, 1f,
 		0.01f, 0.12f,
 		"AGUA", "AREIA", "PEDRA",
 		0.1f)
