@@ -44,7 +44,7 @@ public class MundoActivity extends Activity {
 	public Runnable movimentoTarefa;
 	public Runtime rt;
 	public Handler atualizadorMemoria = new Handler();
-	public Runnable tarefaMemoria;
+	public Runnable tarefaDebug;
 	public Runnable tarefaFPS;
 
 	public Globals globals = JsePlatform.standardGlobals(); 
@@ -94,6 +94,9 @@ public class MundoActivity extends Activity {
 		
 		tarefaFPS = new Runnable() {
 			public void run() {
+				livre = rt.freeMemory() / 1048576.0;
+				total = rt.totalMemory() / 1048576.0;
+				usado = total - livre;
 				frames++;
 				long agora = System.nanoTime();
 				if(agora - tempoAnterior >= 1_000_000_000L) {
@@ -101,16 +104,12 @@ public class MundoActivity extends Activity {
 					frames = 0;
 					tempoAnterior = agora;
 				}
-				atualizadorMemoria.postDelayed(this, 16); // 60 vezes por segundo
+				atualizadorMemoria.postDelayed(this, 1); // 60 vezes por segundo
 			}
 		};
-
-		Runnable tarefaMemoria = new Runnable() {
+		
+		tarefaDebug = new Runnable() {
 			public void run() {
-				livre = rt.freeMemory() / 1048576.0;
-				total = rt.totalMemory() / 1048576.0;
-				usado = total - livre;
-
 				String posicao = "X: "+render.camera.posicao[0]+
 					", Y: "+render.camera.posicao[1]+
 					", Z: "+render.camera.posicao[2];
@@ -143,7 +142,7 @@ public class MundoActivity extends Activity {
 			}
 		};
 		atualizadorMemoria.post(tarefaFPS);
-		atualizadorMemoria.post(tarefaMemoria);
+		atualizadorMemoria.post(tarefaDebug);
 		
 		dpad.definirDPadAgenda(new DPadView.DPadAgenda() {
 				@Override
@@ -275,8 +274,9 @@ public class MundoActivity extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         eventoToque(e);
-		render.slot1.verificarToque(e);
-		render.slot2.verificarToque(e);
+		for(int i = 0; i < render.slots.length; i++) {
+			render.slots[i].verificarToque(e);
+		}
 		return true;
     }
 
@@ -290,7 +290,7 @@ public class MundoActivity extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 		render.svMundo(render.mundo);
-		atualizadorMemoria.removeCallbacks(tarefaMemoria);
+		atualizadorMemoria.removeCallbacks(tarefaDebug);
 		atualizadorMemoria.removeCallbacks(tarefaFPS);
 		responsavel2.removeCallbacks(movimentoTarefa);
 		render.limparTexturas();

@@ -28,7 +28,7 @@ public class InicioActivity extends Activity {
 		
 		if(!seed.getText().toString().equals("")) mundo.putExtra("seed", Integer.parseInt(seed.getText().toString()));
 		else {
-			mundo.putExtra("seed", aleatorio.nextInt(99)+aleatorio.nextInt(999)+aleatorio.nextInt(9999));
+			mundo.putExtra("seed", aleatorio.nextInt(99)+aleatorio.nextInt(999)+aleatorio.nextInt(9999)+aleatorio.nextInt(99999));
 		}
 		if(!pacoteTex.getText().toString().equals("")) mundo.putExtra("pacoteTex", pacoteTex.getText().toString());
 		else {

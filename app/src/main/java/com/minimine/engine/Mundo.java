@@ -20,11 +20,8 @@ public class Mundo {
 	public GLSurfaceView tela;
 
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
-    public int MUNDO_LATERAL = 32; // padrao: 60, testes: 16
+    public int MUNDO_LATERAL = 32; // padrao: 64, testes: 32
     public int RAIO_CARREGAMENTO = 2; // padrao: 3, testes: 2, inicial: 15
-	public float ESCALA_2D = 0.05f;
-	public float ESCALA_3D = 0.1f;
-	public float CAVERNA_LIMITE = 0f;
 
     public final int FACES_POR_BLOCO = 6;
 
@@ -36,11 +33,67 @@ public class Mundo {
 	public Map<String, Boolean> chunksAlterados = new HashMap<>();
 	public Map<String, Bloco[][][]> chunksModificados = new HashMap<>();
     public Map<String, Bloco[][][]> chunksCarregados = new HashMap<>();
-	public String nome = "novo mundo", tipo = "plano", biomaAtual = "planicie";
+	public String nome = "novo mundo", tipo = "plano";
 	public int seed;
 	public String pacoteTex;
 	
 	public List<String> estruturas = new ArrayList<>();
+	
+	public static final int BIOMA_PLANICIE = 0;
+    public static final int BIOMA_DESERTO = 1;
+    public static final int BIOMA_MONTANHA = 2;
+    public static final int BIOMA_FLORESTA = 3;
+    public static final int BIOMA_PANTANO = 4;
+
+	Bioma[] BIOMAS = new Bioma[] {
+		// planicie
+		new Bioma(32f, 4f, // altura base e variação
+		0.03f, 0.14f, // escalas 2D e 3D
+		"GRAMA", "TERRA", "PEDRA", // camadas
+		0.12f), // limite de cavernas
+		// deserto
+		new Bioma(32f, 3f,
+		0.04f, 0.1f,
+		"AREIA", "AREIA", "PEDRA",
+		0.01f),
+		// montanha
+		new Bioma(32f, 39f,
+		0.02f, 0.16f,
+		"PEDRA", "PEDRA", "PEDRA",
+		0.15f),
+		// floresta
+		new Bioma(16f, 32f,
+		0.05f, 0.1f,
+		"GRAMA", "TERRA", "PEDRA",
+		0.15f),
+		// pantano
+		new Bioma(30f, 2f,
+		0.01f, 0.12f,
+		"LAMA", "LAMA", "PEDRA",
+		0.1f)
+	};
+	
+    public class Bioma {
+		public final float altBase;
+		public final float variacao;
+		public final float escala2D;
+		public final float escala3D;
+		public final String blocoSup;
+		public final String blocoSub;
+		public final String blocoCaver;
+		public final float caverna;
+		
+		public Bioma(float altBase, float variacao, float escala2D, float escala3D, String blocoSup, String blocoSub, String blocoCaver, float caverna) {
+			this.altBase = altBase;
+			this.variacao = variacao;
+			this.escala2D = escala2D;
+			this.escala3D = escala3D;
+			this.blocoSup = blocoSup;
+			this.blocoSub = blocoSub;
+			this.blocoCaver = blocoCaver;
+			this.caverna = caverna;
+		}
+	}
 
 	public final float[][] NORMAIS = {
 		{0f, 0f, 1f},
@@ -69,84 +122,100 @@ public class Mundo {
 	}
 	
 	public Bloco[][][] gerarChunk(final int chunkX, final int chunkZ) {
-		if("planicie".equals(biomaAtual)) {
-			ESCALA_2D = 0.03f;
-			ESCALA_3D = 0.1f;
-		} else if("montanha".equals(biomaAtual)) {
-			ESCALA_2D = 0.25f;
-			ESCALA_3D = 0.01f;
-		}
-		return chunkPlanicie(chunkX, chunkZ);
-	}
-	
-	public Bloco[][][] chunkPlanicie(final int chunkX, final int chunkZ) {
+		final int baseX = chunkX * CHUNK_TAMANHO;
+		final int baseZ = chunkZ * CHUNK_TAMANHO;
 		final Bloco[][][] chunk = new Bloco[CHUNK_TAMANHO][MUNDO_LATERAL][CHUNK_TAMANHO];
-		int baseX = chunkX * CHUNK_TAMANHO;
-		int baseZ = chunkZ * CHUNK_TAMANHO;
-		boolean plano = tipo.equals("plano");
 
-		int[][] alturas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
-		for(int x = 0; x < CHUNK_TAMANHO; x++) {
-			for(int z = 0; z < CHUNK_TAMANHO; z++) {
-				int globalX = baseX + x;
-				int globalZ = baseZ + z;
-				float noise2D = plano
-					? 0.001f
-					: (PerlinNoise2D.ruido(globalX * ESCALA_2D, globalZ * ESCALA_2D, seed) + 1f) * 0.5f;
-				alturas[x][z] = (int) (noise2D * 16f + 16f);
-			}
-		}
+		if (tipo.equals("plano")) {
+			for (int x = 0; x < CHUNK_TAMANHO; x++) {
+				final int globalX = baseX + x;
+				for (int z = 0; z < CHUNK_TAMANHO; z++) {
+					final int globalZ = baseZ + z;
+					for (int y = 0; y < 3; y++) {
+						String tipoBloco;
+						if (y == 0) tipoBloco = "BEDROCK";
+						else if (y < 2) tipoBloco = "TERRA";
+						else tipoBloco = "GRAMA";
 
-		for(int x = 0; x < CHUNK_TAMANHO; x++) {
-			for(int z = 0; z < CHUNK_TAMANHO; z++) {
-				int globalX = baseX + x;
-				int globalZ = baseZ + z;
-				int altura = alturas[x][z];
-
-				for(int y = 0; y < MUNDO_LATERAL; y++) {
-					String tipoBloco;
-					if(y == 0) {
-						tipoBloco = "BEDROCK";
-					} else {
-						float noise3D = PerlinNoise3D.ruido(
-							globalX * ESCALA_3D,
-							y * ESCALA_3D,
-							globalZ * ESCALA_3D,
-							seed + 100
-						);
-						if(noise3D > 0.15f && y < altura) {
-							tipoBloco = "AR";
-						} else if(y < altura - 1) {
-							tipoBloco = "PEDRA";
-						} else if(y < altura) {
-							tipoBloco = "TERRA";
-						} else if(y == altura) {
-							tipoBloco = "GRAMA";
-						} else {
-							tipoBloco = "AR";
-						}
+						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
 					}
-					chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
 				}
 			}
+			return chunk;
 		}
-		for(int x = 0; x < CHUNK_TAMANHO; x++) {
-			for(int z = 0; z < CHUNK_TAMANHO; z++) {
-				int globalX = baseX + x;
-				int globalZ = baseZ + z;
-				int altura = alturas[x][z];
 
-				if(spawnEstrutura(0.1f, globalX, globalZ, seed)) {
-					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(0), chunk);
-				}
-				if(spawnEstrutura(0.01f, globalX, globalZ, seed)) {
-					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(1), chunk);
-				}
-				if(spawnEstrutura(0.009f, globalX, globalZ, seed)) {
-					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(2), chunk);
+		final int[][] alturas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
+		final int[][] biomas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
+
+		for (int x = 0; x < CHUNK_TAMANHO; x++) {
+			final int globalX = baseX + x;
+			for (int z = 0; z < CHUNK_TAMANHO; z++) {
+				final int globalZ = baseZ + z;
+
+				final float ruidoBioma = PerlinNoise2D.ruido(globalX * 0.01f, globalZ * 0.01f, seed);
+
+				int bioma;
+				if (ruidoBioma < -0.5f) bioma = BIOMA_DESERTO;
+				else if (ruidoBioma < 0.0f) bioma = BIOMA_PLANICIE;
+				else if (ruidoBioma < 0.3f) bioma = BIOMA_FLORESTA;
+				else if (ruidoBioma < 0.6f) bioma = BIOMA_MONTANHA;
+				else bioma = BIOMA_PANTANO;
+
+				biomas[x][z] = bioma;
+
+				Bioma b = BIOMAS[bioma];
+				final float noise2D = PerlinNoise2D.ruido(globalX * b.escala2D, globalZ * b.escala2D, seed);
+				alturas[x][z] = (int) (b.altBase + noise2D * b.variacao);
+			}
+		}
+
+		for (int x = 0; x < CHUNK_TAMANHO; x++) {
+			for (int z = 0; z < CHUNK_TAMANHO; z++) {
+				final int globalX = baseX + x;
+				final int globalZ = baseZ + z;
+				final int altura = alturas[x][z];
+				final int bioma = biomas[x][z];
+				Bioma b = BIOMAS[bioma];
+
+				for (int y = 0; y < MUNDO_LATERAL; y++) {
+					String tipoBloco = "AR";
+
+					if (y == 0) tipoBloco = "BEDROCK";
+					else if (y < altura - 4) tipoBloco = b.blocoCaver;
+					else if (y < altura - 1) tipoBloco = b.blocoSub;
+					else if (y < altura) tipoBloco = b.blocoSub;
+					else if (y == altura) tipoBloco = b.blocoSup;
+
+					if (y < altura - 5) {
+						final float noise3D = PerlinNoise3D.ruido(globalX * b.escala3D, y * b.escala3D, globalZ * b.escala3D, seed + 100);
+						if (noise3D > BIOMAS[bioma].caverna) tipoBloco = "AR";
+					}
+
+					if (!tipoBloco.equals("AR")) {
+						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
+					}
 				}
 			}
 		}
+
+		for (int x = 0; x < CHUNK_TAMANHO; x++) {
+			for (int z = 0; z < CHUNK_TAMANHO; z++) {
+				final int globalX = baseX + x;
+				final int globalZ = baseZ + z;
+				final int altura = alturas[x][z];
+				final int bioma = biomas[x][z];
+
+				if (bioma == BIOMA_FLORESTA && spawnEstrutura(0.1f, globalX, globalZ, seed)) {
+					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(0), chunk);
+					if (spawnEstrutura(0.01f, globalX, globalZ, seed)) {
+						adicionarEstrutura(globalX, altura, globalZ, estruturas.get(2), chunk);
+					}
+				} else if (bioma == BIOMA_DESERTO && spawnEstrutura(0.02f, globalX, globalZ, seed)) {
+					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(3), chunk);
+				}
+			}
+		}
+
 		return chunk;
 	}
 
@@ -209,31 +278,31 @@ public class Mundo {
 	public boolean faceVisivel(int x, int y, int z, int face) {
 		int ny = y + DY[face];
 
-		// Verificação vertical precoce
+		// verificação vertical precoce
 		if(ny < 0 || ny >= MUNDO_LATERAL) return true;
 
 		int nx = x + DX[face];
 		int nz = z + DZ[face];
 
-		// Cálculo de chunk otimizado
+		// calculo de chunk otimizado
 		int chunkX = (nx >= 0) ? nx / CHUNK_TAMANHO : (nx + 1) / CHUNK_TAMANHO - 1;
 		int chunkZ = (nz >= 0) ? nz / CHUNK_TAMANHO : (nz + 1) / CHUNK_TAMANHO - 1;
 
-		// Formação de chave eficiente
+		// formação de chave eficiente
 		String chaveChunk = String.valueOf(chunkX).concat(",").concat(String.valueOf(chunkZ));
 
-		// Busca direta no mapa
+		// busca direta no mapa
 		Bloco[][][] chunkVizinho = chunksAtivos.get(chaveChunk);
 		if(chunkVizinho == null) return true;
 
-		// Cálculo de coordenadas locais
+		// calculo de coordenadas locais
 		int localX = nx - chunkX * CHUNK_TAMANHO;
 		if(localX < 0) localX += CHUNK_TAMANHO;
 
 		int localZ = nz - chunkZ * CHUNK_TAMANHO;
 		if(localZ < 0) localZ += CHUNK_TAMANHO;
 
-		// Acesso seguro
+		// acesso seguro
 		if(localX >= CHUNK_TAMANHO || localZ >= CHUNK_TAMANHO) return true;
 
 		Bloco vizinho = chunkVizinho[localX][ny][localZ];
@@ -266,7 +335,7 @@ public class Mundo {
 				JSONObject bloco = blocos.getJSONObject(i);
 
 				int bx = bloco.getInt("x") + x;
-				int by = bloco.getInt("y") + y;
+				int by = bloco.getInt("y") + y + 1;
 				int bz = bloco.getInt("z") + z;
 
 				addBloco(bx, by, bz, bloco.getString("tipo"), chunk);
@@ -276,16 +345,10 @@ public class Mundo {
 		}
 	}
 
-	public boolean spawnEstrutura(float chanceSpawn, int x, int z, int seed ) {
-		float TAMANHO_RUIDO = 0.05f;
-
-		float ruido = (PerlinNoise2D.ruido(x * TAMANHO_RUIDO, z * TAMANHO_RUIDO, seed) + 1f) * 0.5f;
-		float normalizado =  (ruido * 16f + 32f) - 45;
-
-		if(normalizado > chanceSpawn) {
-			return true;
-		}
-		return false;
+	public boolean spawnEstrutura(float chanceSpawn, int x, int z, int seed) {
+		float noise = PerlinNoise2D.ruido(x * 0.1f, z * 0.1f, seed + 1000);
+		float normalized = (noise + 1f) / 2f;
+		return normalized < chanceSpawn;
 	}
 
 	public void definirEstruturas() {
@@ -343,19 +406,27 @@ public class Mundo {
 		String pedra1 =
 			"{"+
 			"\"blocos\": ["+
+			"{\"x\": 0, \"y\": 0, \"z\": 0, \"tipo\": \"PEDRA\"},"+
+			"{\"x\": 1, \"y\": 0, \"z\": 0, \"tipo\": \"PEDREGULHO\"},"+
+			"{\"x\": 1, \"y\": 0, \"z\": 1, \"tipo\": \"PEDRA\"},"+
+			"{\"x\": -1, \"y\": 0, \"z\": 0, \"tipo\": \"PEDREGULHO\"},"+
+			"{\"x\": 1, \"y\": 0, \"z\": 1, \"tipo\": \"PEDREGULHO\"},"+
+			"{\"x\": 0, \"y\": 0, \"z\": 1, \"tipo\": \"PEDREGULHO\"},"+
 			"{\"x\": 0, \"y\": 1, \"z\": 0, \"tipo\": \"PEDRA\"},"+
-			"{\"x\": 1, \"y\": 1, \"z\": 0, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 1, \"y\": 1, \"z\": 1, \"tipo\": \"PEDRA\"},"+
-			"{\"x\": -1, \"y\": 1, \"z\": 0, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 1, \"y\": 1, \"z\": 1, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 0, \"y\": 1, \"z\": 1, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 0, \"y\": 2, \"z\": 0, \"tipo\": \"PEDRA\"},"+
-			"{\"x\": 0, \"y\": 2, \"z\": 1, \"tipo\": \"PEDREGULHO\"}"+
+			"{\"x\": 0, \"y\": 1, \"z\": 1, \"tipo\": \"PEDREGULHO\"}"+
+			"]"+
+			"}";
+		String pilarAreia =
+			"{"+
+			"\"blocos\": ["+
+			"{\"x\": 0, \"y\": 0, \"z\": 0, \"tipo\": \"AREIA\"},"+
+			"{\"x\": 0, \"y\": 1, \"z\": 0, \"tipo\": \"AREIA\"}"+
 			"]"+
 			"}";
 		estruturas.add(arvore1);
 		estruturas.add(arvore2);
 		estruturas.add(pedra1);
+		estruturas.add(pilarAreia);
 	}
 
 	public void destruirBloco(final float globalX, final float y, final float globalZ, final Player player) {
