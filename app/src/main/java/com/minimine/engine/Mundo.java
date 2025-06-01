@@ -126,15 +126,15 @@ public class Mundo {
 		final int baseZ = chunkZ * CHUNK_TAMANHO;
 		final Bloco[][][] chunk = new Bloco[CHUNK_TAMANHO][MUNDO_LATERAL][CHUNK_TAMANHO];
 
-		if (tipo.equals("plano")) {
-			for (int x = 0; x < CHUNK_TAMANHO; x++) {
+		if(tipo.equals("plano")) {
+			for(int x = 0; x < CHUNK_TAMANHO; x++) {
 				final int globalX = baseX + x;
-				for (int z = 0; z < CHUNK_TAMANHO; z++) {
+				for(int z = 0; z < CHUNK_TAMANHO; z++) {
 					final int globalZ = baseZ + z;
-					for (int y = 0; y < 3; y++) {
+					for(int y = 0; y < 3; y++) {
 						String tipoBloco;
-						if (y == 0) tipoBloco = "BEDROCK";
-						else if (y < 2) tipoBloco = "TERRA";
+						if(y == 0) tipoBloco = "BEDROCK";
+						else if(y < 2) tipoBloco = "TERRA";
 						else tipoBloco = "GRAMA";
 
 						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
@@ -147,18 +147,18 @@ public class Mundo {
 		final int[][] alturas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
 		final int[][] biomas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
 
-		for (int x = 0; x < CHUNK_TAMANHO; x++) {
+		for(int x = 0; x < CHUNK_TAMANHO; x++) {
 			final int globalX = baseX + x;
-			for (int z = 0; z < CHUNK_TAMANHO; z++) {
+			for(int z = 0; z < CHUNK_TAMANHO; z++) {
 				final int globalZ = baseZ + z;
 
 				final float ruidoBioma = PerlinNoise2D.ruido(globalX * 0.01f, globalZ * 0.01f, seed);
 
 				int bioma;
-				if (ruidoBioma < -0.5f) bioma = BIOMA_DESERTO;
-				else if (ruidoBioma < 0.0f) bioma = BIOMA_PLANICIE;
-				else if (ruidoBioma < 0.3f) bioma = BIOMA_FLORESTA;
-				else if (ruidoBioma < 0.6f) bioma = BIOMA_MONTANHA;
+				if(ruidoBioma < -0.5f) bioma = BIOMA_DESERTO;
+				else if(ruidoBioma < 0.0f) bioma = BIOMA_PLANICIE;
+				else if(ruidoBioma < 0.3f) bioma = BIOMA_FLORESTA;
+				else if(ruidoBioma < 0.6f) bioma = BIOMA_MONTANHA;
 				else bioma = BIOMA_PANTANO;
 
 				biomas[x][z] = bioma;
@@ -169,53 +169,52 @@ public class Mundo {
 			}
 		}
 
-		for (int x = 0; x < CHUNK_TAMANHO; x++) {
-			for (int z = 0; z < CHUNK_TAMANHO; z++) {
+		for(int x = 0; x < CHUNK_TAMANHO; x++) {
+			for(int z = 0; z < CHUNK_TAMANHO; z++) {
 				final int globalX = baseX + x;
 				final int globalZ = baseZ + z;
 				final int altura = alturas[x][z];
 				final int bioma = biomas[x][z];
 				Bioma b = BIOMAS[bioma];
 
-				for (int y = 0; y < MUNDO_LATERAL; y++) {
+				for(int y = 0; y < MUNDO_LATERAL; y++) {
 					String tipoBloco = "AR";
 
-					if (y == 0) tipoBloco = "BEDROCK";
+					if(y == 0) tipoBloco = "BEDROCK";
 					else if (y < altura - 4) tipoBloco = b.blocoCaver;
 					else if (y < altura - 1) tipoBloco = b.blocoSub;
 					else if (y < altura) tipoBloco = b.blocoSub;
 					else if (y == altura) tipoBloco = b.blocoSup;
 
-					if (y < altura - 5) {
+					if(y < altura - 5) {
 						final float noise3D = PerlinNoise3D.ruido(globalX * b.escala3D, y * b.escala3D, globalZ * b.escala3D, seed + 100);
-						if (noise3D > BIOMAS[bioma].caverna) tipoBloco = "AR";
+						if(noise3D > BIOMAS[bioma].caverna) tipoBloco = "AR";
 					}
 
-					if (!tipoBloco.equals("AR")) {
+					if(!tipoBloco.equals("AR")) {
 						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
 					}
 				}
 			}
 		}
 
-		for (int x = 0; x < CHUNK_TAMANHO; x++) {
-			for (int z = 0; z < CHUNK_TAMANHO; z++) {
+		for(int x = 0; x < CHUNK_TAMANHO; x++) {
+			for(int z = 0; z < CHUNK_TAMANHO; z++) {
 				final int globalX = baseX + x;
 				final int globalZ = baseZ + z;
 				final int altura = alturas[x][z];
 				final int bioma = biomas[x][z];
 
-				if (bioma == BIOMA_FLORESTA && spawnEstrutura(0.1f, globalX, globalZ, seed)) {
+				if(bioma == BIOMA_FLORESTA && spawnEstrutura(0.1f, globalX, globalZ, seed)) {
 					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(0), chunk);
-					if (spawnEstrutura(0.01f, globalX, globalZ, seed)) {
+					if(spawnEstrutura(0.01f, globalX, globalZ, seed)) {
 						adicionarEstrutura(globalX, altura, globalZ, estruturas.get(2), chunk);
 					}
-				} else if (bioma == BIOMA_DESERTO && spawnEstrutura(0.02f, globalX, globalZ, seed)) {
+				} else if(bioma == BIOMA_DESERTO && spawnEstrutura(0.02f, globalX, globalZ, seed)) {
 					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(3), chunk);
 				}
 			}
 		}
-
 		return chunk;
 	}
 
