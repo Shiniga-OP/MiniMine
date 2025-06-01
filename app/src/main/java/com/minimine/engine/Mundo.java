@@ -20,8 +20,8 @@ public class Mundo {
 	public GLSurfaceView tela;
 
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
-    public int MUNDO_LATERAL = 32; // padrao: 64, testes: 32
-    public int RAIO_CARREGAMENTO = 2; // padrao: 3, testes: 2, inicial: 15
+    public int MUNDO_LATERAL = 54; // padrao: 64, testes: 32
+    public int RAIO_CARREGAMENTO = 3; // padrao: 3, testes: 2, inicial: 15
 
     public final int FACES_POR_BLOCO = 6;
 
@@ -39,11 +39,12 @@ public class Mundo {
 	
 	public List<String> estruturas = new ArrayList<>();
 	
-	public static final int BIOMA_PLANICIE = 0;
-    public static final int BIOMA_DESERTO = 1;
-    public static final int BIOMA_MONTANHA = 2;
-    public static final int BIOMA_FLORESTA = 3;
-    public static final int BIOMA_PANTANO = 4;
+	public static final int PLANICIE = 0;
+    public static final int DESERTO = 1;
+    public static final int MONTANHA = 2;
+    public static final int FLORESTA = 3;
+	public static final int FLORESTA_LAGOAS = 5;
+    public static final int LAGO = 4;
 
 	Bioma[] BIOMAS = new Bioma[] {
 		// planicie
@@ -57,19 +58,24 @@ public class Mundo {
 		"AREIA", "AREIA", "PEDRA",
 		0.01f),
 		// montanha
-		new Bioma(32f, 39f,
+		new Bioma(32f, 35f,
 		0.02f, 0.16f,
 		"PEDRA", "PEDRA", "PEDRA",
 		0.15f),
 		// floresta
-		new Bioma(16f, 32f,
+		new Bioma(32f, 3f,
 		0.05f, 0.1f,
 		"GRAMA", "TERRA", "PEDRA",
 		0.15f),
-		// pantano
-		new Bioma(30f, 2f,
+		// floresta de lagos
+		new Bioma(32f, 3f,
+		0.05f, 0.1f,
+		"GRAMA", "TERRA", "PEDRA",
+		0.15f),
+		// lago
+		new Bioma(30f, 1f,
 		0.01f, 0.12f,
-		"LAMA", "LAMA", "PEDRA",
+		"AGUA", "AREIA", "PEDRA",
 		0.1f)
 	};
 	
@@ -155,11 +161,12 @@ public class Mundo {
 				final float ruidoBioma = PerlinNoise2D.ruido(globalX * 0.01f, globalZ * 0.01f, seed);
 
 				int bioma;
-				if(ruidoBioma < -0.5f) bioma = BIOMA_DESERTO;
-				else if(ruidoBioma < 0.0f) bioma = BIOMA_PLANICIE;
-				else if(ruidoBioma < 0.3f) bioma = BIOMA_FLORESTA;
-				else if(ruidoBioma < 0.6f) bioma = BIOMA_MONTANHA;
-				else bioma = BIOMA_PANTANO;
+				if(ruidoBioma < -0.5f) bioma = DESERTO;
+				else if(ruidoBioma < 0.01f) bioma = FLORESTA_LAGOAS;
+				else if(ruidoBioma < 0.1f) bioma = PLANICIE;
+				else if(ruidoBioma < 0.3f) bioma = FLORESTA;
+				else if(ruidoBioma < 0.6f) bioma = MONTANHA;
+				else bioma = LAGO;
 
 				biomas[x][z] = bioma;
 
@@ -195,22 +202,13 @@ public class Mundo {
 						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
 					}
 				}
-			}
-		}
 
-		for(int x = 0; x < CHUNK_TAMANHO; x++) {
-			for(int z = 0; z < CHUNK_TAMANHO; z++) {
-				final int globalX = baseX + x;
-				final int globalZ = baseZ + z;
-				final int altura = alturas[x][z];
-				final int bioma = biomas[x][z];
-
-				if(bioma == BIOMA_FLORESTA && spawnEstrutura(0.1f, globalX, globalZ, seed)) {
+				if(bioma == FLORESTA && spawnEstrutura(0.4f, globalX, globalZ, seed)) {
 					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(0), chunk);
 					if(spawnEstrutura(0.01f, globalX, globalZ, seed)) {
 						adicionarEstrutura(globalX, altura, globalZ, estruturas.get(2), chunk);
 					}
-				} else if(bioma == BIOMA_DESERTO && spawnEstrutura(0.02f, globalX, globalZ, seed)) {
+				} else if(bioma == DESERTO && spawnEstrutura(0.02f, globalX, globalZ, seed)) {
 					adicionarEstrutura(globalX, altura, globalZ, estruturas.get(3), chunk);
 				}
 			}
@@ -499,7 +497,11 @@ public class Mundo {
 			return;
 		}
 
-		chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, tipo);
+		try {
+			chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, tipo);
+		} catch(Exception e) {
+			System.out.println("erro: "+e);
+		}
 	}
 
 	public boolean noChao(Camera camera) {
@@ -514,9 +516,9 @@ public class Mundo {
 		int bz1 = (int) Math.floor(camera.posicao[2] - halfLargura);
 		int bz2 = (int) Math.floor(camera.posicao[2] + halfLargura);
 
-		for (int bx = bx1; bx <= bx2; bx++) {
-			for (int bz = bz1; bz <= bz2; bz++) {
-				if (eBlocoSolido(bx, by, bz)) {
+		for(int bx = bx1; bx <= bx2; bx++) {
+			for(int bz = bz1; bz <= bz2; bz++) {
+				if(eBlocoSolido(bx, by, bz)) {
 					return true;
 				}
 			}
@@ -525,14 +527,14 @@ public class Mundo {
 	}
 
 	public boolean eBlocoSolido(int bx, int by, int bz) {
-		if (by < 0 || by >= MUNDO_LATERAL) return false;
+		if(by < 0 || by >= MUNDO_LATERAL) return false;
 		int chunkX = (int) Math.floor(bx / (float) CHUNK_TAMANHO);
 		int chunkZ = (int) Math.floor(bz / (float) CHUNK_TAMANHO);
 		Bloco[][][] chunk = chunksAtivos.get(chunkX + "," + chunkZ);
-		if (chunk == null) return false;
+		if(chunk == null) return false;
 		int localX = bx - chunkX * CHUNK_TAMANHO;
 		int localZ = bz - chunkZ * CHUNK_TAMANHO;
-		if (localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return false;
+		if(localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return false;
 		Bloco bloco = chunk[localX][by][localZ];
 		return bloco != null && bloco.solido;
 	}

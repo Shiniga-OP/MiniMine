@@ -14,6 +14,10 @@ public class Bloco {
         this.y = y;
         this.z = z;
 		if(tipo.equals("AR")) this.solido=false;
+		if(tipo.equals("AGUA")) {
+			this.solido = false;
+			this.liquido = true;
+		}
 		this.tipo = TipoBloco.tipos.get(tipo);
 		this.id = tipo;
     }
@@ -84,84 +88,92 @@ class TipoBloco {
 					"0", "0", "0"
 					);
         definirTipo("GRAMA",
-					"texturas/grama_lado.png",
-					"texturas/grama_lado.png",
-					"texturas/grama_cima.png",
-					"texturas/terra.png",
-					"texturas/grama_lado2.png",
-					"texturas/grama_lado2.png"
+					"blocos/grama_lado.png",
+					"blocos/grama_lado.png",
+					"blocos/grama_cima.png",
+					"blocos/terra.png",
+					"blocos/grama_lado2.png",
+					"blocos/grama_lado2.png"
 					);
 		definirTipo("AREIA",
-					"texturas/areia.png",
-					"texturas/areia.png",
-					"texturas/areia.png",
-					"texturas/areia.png",
-					"texturas/areia.png",
-					"texturas/areia.png"
+					"blocos/areia.png",
+					"blocos/areia.png",
+					"blocos/areia.png",
+					"blocos/areia.png",
+					"blocos/areia.png",
+					"blocos/areia.png"
+					);
+		definirTipo("AGUA",
+					"blocos/agua.png",
+					"blocos/agua.png",
+					"blocos/agua.png",
+					"blocos/agua.png",
+					"blocos/agua.png",
+					"blocos/agua.png"
 					);
 		definirTipo("LAMA",
-					"texturas/lama.png",
-					"texturas/lama.png",
-					"texturas/lama.png",
-					"texturas/lama.png",
-					"texturas/lama.png",
-					"texturas/lama.png"
+					"blocos/lama.png",
+					"blocos/lama.png",
+					"blocos/lama.png",
+					"blocos/lama.png",
+					"blocos/lama.png",
+					"blocos/lama.png"
 					);
         definirTipo("TERRA",
-					"texturas/terra.png",
-					"texturas/terra.png",
-					"texturas/terra.png",
-					"texturas/terra.png",
-					"texturas/terra.png",
-					"texturas/terra.png"
+					"blocos/terra.png",
+					"blocos/terra.png",
+					"blocos/terra.png",
+					"blocos/terra.png",
+					"blocos/terra.png",
+					"blocos/terra.png"
 					);
         definirTipo("PEDRA",
-					"texturas/pedra.png",
-					"texturas/pedra.png",
-					"texturas/pedra.png",
-					"texturas/pedra.png",
-					"texturas/pedra.png",
-					"texturas/pedra.png"
+					"blocos/pedra.png",
+					"blocos/pedra.png",
+					"blocos/pedra.png",
+					"blocos/pedra.png",
+					"blocos/pedra.png",
+					"blocos/pedra.png"
 					);
         definirTipo("PEDREGULHO",
-					"texturas/pedregulho.png",
-					"texturas/pedregulho.png",
-					"texturas/pedregulho.png",
-					"texturas/pedregulho.png",
-					"texturas/pedregulho.png",
-					"texturas/pedregulho.png"
+					"blocos/pedregulho.png",
+					"blocos/pedregulho.png",
+					"blocos/pedregulho.png",
+					"blocos/pedregulho.png",
+					"blocos/pedregulho.png",
+					"blocos/pedregulho.png"
 					);
         definirTipo("TABUAS_CARVALHO",
-					"texturas/tabuas_carvalho.png",
-					"texturas/tabuas_carvalho.png",
-					"texturas/tabuas_carvalho.png",
-					"texturas/tabuas_carvalho.png",
-					"texturas/tabuas_carvalho.png",
-					"texturas/tabuas_carvalho.png"
+					"blocos/tabuas_carvalho.png",
+					"blocos/tabuas_carvalho.png",
+					"blocos/tabuas_carvalho.png",
+					"blocos/tabuas_carvalho.png",
+					"blocos/tabuas_carvalho.png",
+					"blocos/tabuas_carvalho.png"
 					);
 		definirTipo("TRONCO_CARVALHO",
-					"texturas/tronco_carvalho.png",
-					"texturas/tronco_carvalho.png",
-					"texturas/tronco_carvalho_cima.png",
-					"texturas/tronco_carvalho_cima.png",
-					"texturas/tronco_carvalho.png",
-					"texturas/tronco_carvalho.png"
+					"blocos/tronco_carvalho.png",
+					"blocos/tronco_carvalho.png",
+					"blocos/tronco_carvalho_cima.png",
+					"blocos/tronco_carvalho_cima.png",
+					"blocos/tronco_carvalho.png",
+					"blocos/tronco_carvalho.png"
 					);
 		definirTipo("FOLHAS",
-					"texturas/folhas.png",
-					"texturas/folhas.png",
-					"texturas/folhas.png",
-					"texturas/folhas.png",
-					"texturas/folhas.png",
-					"texturas/folhas.png"
+					"blocos/folhas.png",
+					"blocos/folhas.png",
+					"blocos/folhas.png",
+					"blocos/folhas.png",
+					"blocos/folhas.png",
+					"blocos/folhas.png"
 					);
         definirTipo("BEDROCK",
-					"texturas/bedrock.png",
-					"texturas/bedrock.png",
-					"texturas/bedrock.png",
-					"texturas/bedrock.png",
-					"texturas/bedrock.png",
-					"texturas/bedrock.png"
+					"blocos/bedrock.png",
+					"blocos/bedrock.png",
+					"blocos/bedrock.png",
+					"blocos/bedrock.png",
+					"blocos/bedrock.png",
+					"blocos/bedrock.png"
 					);
     }
 

@@ -55,11 +55,12 @@ public class MundoActivity extends Activity {
 	public long tempoAnterior = System.nanoTime();
 	public int frames = 0;
 	public int fps = 0;
-
+	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_jogo);
+		
         coordenadas = findViewById(R.id.coordenadas);
 		coordenadas.setTextSize(20);
         chat = findViewById(R.id.chat);
