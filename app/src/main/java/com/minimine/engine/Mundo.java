@@ -16,6 +16,8 @@ import java.nio.ByteBuffer;
 import android.opengl.GLES30;
 import java.nio.ByteOrder;
 import java.util.Random;
+import com.engine.PerlinNoise2D;
+import com.engine.PerlinNoise3D;
 
 public class Mundo {
 	public GLSurfaceView tela;

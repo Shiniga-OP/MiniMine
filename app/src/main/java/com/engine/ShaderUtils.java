@@ -15,7 +15,7 @@ public class ShaderUtils {
         GLES30.glGetProgramiv(id, GLES30.GL_LINK_STATUS, status, 0);
         if(status[0] == 0) {
             String log = GLES30.glGetProgramInfoLog(id);                
-            Debug.log("erro ao linkar programa:\n" + log);
+            System.out.println("erro ao linkar programa:\n" + log);
         }
         GLES30.glDeleteShader(vs);
         GLES30.glDeleteShader(fs);
@@ -29,7 +29,7 @@ public class ShaderUtils {
         GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, status, 0);
         if(status[0] == 0) {
             String log = GLES30.glGetShaderInfoLog(shader);
-            Debug.log("erro compilando shader: " + log);
+            System.out.println("erro compilando shader: " + log);
         }
         return shader;
     }
