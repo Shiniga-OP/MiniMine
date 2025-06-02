@@ -508,7 +508,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 	
 	public void carregarUI(Context ctx) {
 		// slots
-		slots[0] = new Botao2D(new Objeto2D(350, 1400, 100, 100, Texturas.texturaBranca()));  
+		slots[0] = new Botao2D(new Objeto2D(125 * 4 + 100, 10, 100, 100, Texturas.texturaBranca()));  
 
 		slots[0].definirAcao(new Runnable() {  
 				public void run() {  
@@ -516,7 +516,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}  
 			});
 
-		slots[1] = new Botao2D(new Objeto2D(470, 1400, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
+		slots[1] = new Botao2D(new Objeto2D(125 * 3 + 100, 10, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
 
 		slots[1].definirAcao(new Runnable() {  
 				public void run() {  
@@ -524,7 +524,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}  
 			});
 
-		slots[2] = new Botao2D(new Objeto2D(590, 1400, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));  
+		slots[2] = new Botao2D(new Objeto2D(125 * 2 + 100, 10, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));  
 
 		slots[2].definirAcao(new Runnable() {  
 				public void run() {  
@@ -532,7 +532,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}  
 			});
 
-		slots[3] = new Botao2D(new Objeto2D(710, 1400, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));  
+		slots[3] = new Botao2D(new Objeto2D(125 + 100, 10, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));  
 
 		slots[3].definirAcao(new Runnable() {  
 				public void run() {  
@@ -590,10 +590,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(gc == true) {  
 			ativarGC();  
 		}  
-	/*
+		
 		if(debug == true) {  
 			renderHitbox();  
-		}   */
+		} 
     }  
 
 	@Override  
@@ -604,8 +604,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 		ui.atualizarProjecao(h, v);  
 		mira.y = v / 2 - mira.altura / 2;
 		mira.x = h / 2 - mira.largura / 2;
-		
-		for(int i = 0; i < slots.length; i++) slots[i].objeto.y = h - slots[i].objeto.altura;
     }
 	
 	public void atualizarGravidade() {

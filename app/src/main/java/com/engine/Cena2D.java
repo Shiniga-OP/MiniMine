@@ -73,6 +73,10 @@ public class Cena2D {
 
 	public void atualizarProjecao(int largura, int altura) {
 		Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
+		for(int i = 0; i < objetos.size(); i++) {
+			objetos.get(i).x = (largura - objetos.get(i).largura) - objetos.get(i).x;
+			objetos.get(i).y = (altura - objetos.get(i).altura) - objetos.get(i).y;
+		}
 	}
 
 	public void add(Objeto2D... os) {
