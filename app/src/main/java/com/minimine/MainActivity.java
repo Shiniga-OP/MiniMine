@@ -37,6 +37,10 @@ public class MainActivity extends Activity {
 		startActivity(intent);
 	}
 	
+	public void paraLogs(View v) {
+		
+	}
+	
 	public void pedirPermissao() {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if(!Environment.isExternalStorageManager()) {

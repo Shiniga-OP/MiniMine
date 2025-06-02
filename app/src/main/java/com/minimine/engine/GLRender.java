@@ -44,6 +44,8 @@ import com.engine.Cena2D;
 import com.engine.Botao2D;
 import com.engine.Texturas;
 import com.engine.Objeto2D;
+import android.util.DisplayMetrics;
+import android.app.Activity;
 
 public class GLRender implements GLSurfaceView.Renderer {
     public Context contexto;
@@ -588,9 +590,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(gc == true) {  
 			ativarGC();  
 		}  
+	/*
 		if(debug == true) {  
 			renderHitbox();  
-		}  
+		}   */
     }  
 
 	@Override  
@@ -601,6 +604,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 		ui.atualizarProjecao(h, v);  
 		mira.y = v / 2 - mira.altura / 2;
 		mira.x = h / 2 - mira.largura / 2;
+		
+		for(int i = 0; i < slots.length; i++) slots[i].objeto.y = h - slots[i].objeto.altura;
     }
 	
 	public void atualizarGravidade() {
