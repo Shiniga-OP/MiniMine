@@ -24,6 +24,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.graphics.Color;
 import android.graphics.Canvas;
+import android.util.DisplayMetrics;
 
 public class MundoActivity extends Activity {
     public GLSurfaceView tela;
@@ -31,8 +32,6 @@ public class MundoActivity extends Activity {
 
     public TextView coordenadas;
     public EditText chat, console;
-
-    public Logs log;
 
 	public static double livre, total, usado;
 	public static String gc;
@@ -67,8 +66,7 @@ public class MundoActivity extends Activity {
 
         console = findViewById(R.id.logs);
 
-        log = new Logs();
-        log.capturar();
+        Logs.capturar();
 
         tela = findViewById(R.id.tela);
 
@@ -87,7 +85,7 @@ public class MundoActivity extends Activity {
 
         render.camera.mover(0.5f);
 
-		comandos =  new Comandos(log, render, chat);
+		comandos =  new Comandos(render, chat);
 
 		dpad = findViewById(R.id.dpad);
 
@@ -183,10 +181,8 @@ public class MundoActivity extends Activity {
 					globals.load(chat.getText().toString(), "script").call();
 					chat.setText("");
 				}
-
-				if(log.ativo == true) {
-					console.setText(log.exibir());
-				}
+				
+				console.setText(Logs.exibir());
 			} catch(Exception e) {
 				System.out.println("erro: "+e);
 			}

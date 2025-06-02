@@ -3,14 +3,12 @@ package com.minimine.engine;
 import android.widget.EditText;
 
 public class Comandos {
-	public Logs log;
-	private GLRender render;
-	private EditText chat;
+	public GLRender render;
+	public EditText chat;
 
-	public Comandos(Logs log, GLRender render, EditText chat) {
+	public Comandos(GLRender render, EditText chat) {
 		this.render = render;
 		this.chat = chat;
-		this.log = log;
 	}
 
     public void executar(String comando) {
@@ -74,8 +72,8 @@ public class Comandos {
 
 				render.camera.hitbox[1] = Float.parseFloat(comando);
 				// debug:
-			} else if(comando.startsWith("/debug hitbox ")) {
-				comando = comando.replace("/debug hitbox ", "");
+			} else if(comando.startsWith("/debug ")) {
+				comando = comando.replace("/debug ", "");
 
 				if(comando.equals("0")) {
 					render.debug = false;
@@ -87,8 +85,8 @@ public class Comandos {
 			} else if(comando.startsWith("/seed")) {
 				comando = "seed atual: "+render.mundo.seed;
 			} else if(comando.startsWith("/log")) {
-				if(comando.startsWith("/log att")) log.capturar();
-				else if(comando.startsWith("/log 0")) log.ativo = false;
+				if(comando.startsWith("/log att")) Logs.capturar();
+				else if(comando.startsWith("/log 0")) Logs.parar();
 				// memoria
 			} else if(comando.startsWith("/gc")) {
 				if(comando.equals("/gc 1")) render.gc = true;
