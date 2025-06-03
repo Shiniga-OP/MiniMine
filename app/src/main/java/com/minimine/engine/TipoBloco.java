@@ -91,6 +91,14 @@ public class TipoBloco {
 					"blocos/folhas.png",
 					"blocos/folhas.png"
 					);
+		definirTipo("CACTO",
+					"blocos/cacto.png",
+					"blocos/cacto.png",
+					"blocos/cacto_cima.png",
+					"blocos/cacto_cima.png",
+					"blocos/cacto.png",
+					"blocos/cacto.png"
+					);
         definirTipo("BEDROCK",
 					"blocos/bedrock.png",
 					"blocos/bedrock.png",

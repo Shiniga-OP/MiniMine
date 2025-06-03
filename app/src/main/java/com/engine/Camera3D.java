@@ -1,14 +1,19 @@
-package com.minimine.engine;
+package com.engine;
 
-public class Camera {
-    public float[] posicao = new float[]{8f, 70f, 8f};
-    public float[] foco = new float[]{0f, 0f, -1f};
-    public float[] up = new float[]{0f, 1f, 0f};
+public class Camera3D {
+    public float[] posicao = {8f, 70f, 8f};
+    public float[] foco = {0f, 0f, -1f};
+    public float[] up = {0f, 1f, 0f};
 
-	public float[] hitbox = new float[]{0.5f, 0.5f};
+	public float[] hitbox = {0.5f, 0.5f};
 
     public float yaw = -90f;
     public float tom = 0f;
+
+	public Camera3D() {
+		this.mover(0f);
+		this.rotacionar(0f, 0f);
+	}
 
     public void rotacionar(float dx, float dy) {
         // rotacao invertida propositalmente para rotacao certa:

@@ -18,13 +18,14 @@ import java.nio.ByteOrder;
 import java.util.Random;
 import com.engine.PerlinNoise2D;
 import com.engine.PerlinNoise3D;
+import com.engine.Camera3D;
 
 public class Mundo {
 	public GLSurfaceView tela;
 
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
-    public int MUNDO_LATERAL = 46; // padrao: 64, testes: 32
-    public int RAIO_CARREGAMENTO = 3; // padrao: 3, testes: 2, inicial: 15
+    public int MUNDO_LATERAL = 64; // padrao: 64, testes: 32
+    public int RAIO_CARREGAMENTO = 5; // padrao: 3, testes: 2, inicial: 15
 
     public final int FACES_POR_BLOCO = 6;
 
@@ -441,17 +442,17 @@ public class Mundo {
 			"{\"x\": 0, \"y\": 1, \"z\": 1, \"tipo\": \"PEDREGULHO\"}"+
 			"]"+
 			"}";
-		String pilarAreia =
+		String cacto =
 			"{"+
 			"\"blocos\": ["+
-			"{\"x\": 0, \"y\": 0, \"z\": 0, \"tipo\": \"AREIA\"},"+
-			"{\"x\": 0, \"y\": 1, \"z\": 0, \"tipo\": \"AREIA\"}"+
+			"{\"x\": 0, \"y\": 0, \"z\": 0, \"tipo\": \"CACTO\"},"+
+			"{\"x\": 0, \"y\": 1, \"z\": 0, \"tipo\": \"CACTO\"}"+
 			"]"+
 			"}";
 		estruturas.add(arvore1);
 		estruturas.add(arvore2);
 		estruturas.add(pedra1);
-		estruturas.add(pilarAreia);
+		estruturas.add(cacto);
 	}
 
 	public void destruirBloco(final float globalX, final float y, final float globalZ, final Player player) {
@@ -532,7 +533,7 @@ public class Mundo {
 		}
 	}
 
-	public boolean noChao(Camera camera) {
+	public boolean noChao(Camera3D camera) {
 		float posPes = camera.posicao[1] - 1 - (camera.hitbox[0] / 2f);
 
 		float yTeste = posPes - 0.1f;
@@ -572,7 +573,7 @@ public class Mundo {
 		}
 	}
 
-	public float[] verificarColisao(Camera camera, float novoTx, float novoTy, float novoTz) {
+	public float[] verificarColisao(Camera3D camera, float novoTx, float novoTy, float novoTz) {
 		float altura = camera.hitbox[0];
 		float largura = camera.hitbox[1];
 		float metadeLargura = largura / 2f;

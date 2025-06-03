@@ -15,12 +15,14 @@ public class Cena2D {
     public int locProjecao, locTexture;
 
     public List<Objeto2D> objetos;
+	public List<Botao2D> botoes;
 
     public FloatBuffer bufferTemp;
 
     public void iniciar() {
 		matrizProj = new float[16];
-		objetos = new ArrayList<Objeto2D>();
+		objetos = new ArrayList<>();
+		botoes = new ArrayList<>();
 		bufferTemp = ByteBuffer
 			.allocateDirect(4 * 4 * 4) // 4 vertices * 4 floats * 4 bytes
 			.order(ByteOrder.nativeOrder())
@@ -71,11 +73,16 @@ public class Cena2D {
         GLES30.glBindVertexArray(0);
     }
 
-	public void atualizarProjecao(int largura, int altura) {
-		Matrix.orthoM(matrizProj, 0, 0, largura, altura, 0, -1, 1);
+	public void atualizarProjecao(int h, int v) {
+		Matrix.orthoM(matrizProj, 0, 0, h, v, 0, -1, 1);
 		for(int i = 0; i < objetos.size(); i++) {
-			objetos.get(i).x = (largura - objetos.get(i).largura) - objetos.get(i).x;
-			objetos.get(i).y = (altura - objetos.get(i).altura) - objetos.get(i).y;
+			if(h < v) {
+				objetos.get(i).x = (h - objetos.get(i).largura) - objetos.get(i).x;
+				objetos.get(i).y = (v - objetos.get(i).altura) - objetos.get(i).y;
+			} else {
+				objetos.get(i).x = (h - objetos.get(i).largura) - (objetos.get(i).x + h / 2.2f);
+				objetos.get(i).y = (v - objetos.get(i).altura) - objetos.get(i).y;
+			}
 		}
 	}
 
@@ -84,7 +91,10 @@ public class Cena2D {
     }
 	
 	public void add(Botao2D... os) {
-        for(int i = 0; i < os.length; i++) objetos.add(os[i].objeto);
+        for(int i = 0; i < os.length; i++) {
+			botoes.add(os[i]);
+			objetos.add(os[i].objeto);
+		}
     }
 
 	public void remover(Objeto2D... os) {
