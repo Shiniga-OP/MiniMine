@@ -633,58 +633,45 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 
     public void atualizarChunks() {
-		int chunkJogadorX = (int) Math.floor(camera.posicao[0] / mundo.CHUNK_TAMANHO);
-		int chunkJogadorZ = (int) Math.floor(camera.posicao[2] / mundo.CHUNK_TAMANHO);
+		int chunkJogadorX = (int)(camera.posicao[0] / mundo.CHUNK_TAMANHO);
+		int chunkJogadorZ = (int)(camera.posicao[2] / mundo.CHUNK_TAMANHO);
 
-		// remove chunks fora do raio
-		Iterator<Map.Entry<String, Bloco[][][]>> iterator = mundo.chunksAtivos.entrySet().iterator();
-		while(iterator.hasNext()) {
-			Map.Entry<String, Bloco[][][]> entry = iterator.next();
-			
-			String chave = entry.getKey();
-			int virgula = chave.indexOf(',');
-			int chunkX = Integer.parseInt(chave.substring(0, virgula));
-			int chunkZ = Integer.parseInt(chave.substring(virgula + 1));
-
-			int deltaX = Math.abs(chunkX - chunkJogadorX);
-			int deltaZ = Math.abs(chunkZ - chunkJogadorZ);
-
-			if(deltaX > mundo.RAIO_CARREGAMENTO || deltaZ > mundo.RAIO_CARREGAMENTO) {
-				iterator.remove();
-
+		Iterator<Map.Entry<String, Bloco[][][]>> it = mundo.chunksAtivos.entrySet().iterator();
+		while (it.hasNext()) {
+			String chave = it.next().getKey();
+			int sep = chave.indexOf(',');
+			int cx = Integer.parseInt(chave.substring(0, sep));
+			int cz = Integer.parseInt(chave.substring(sep + 1));
+			if (Math.abs(cx - chunkJogadorX) > mundo.RAIO_CARREGAMENTO || Math.abs(cz - chunkJogadorZ) > mundo.RAIO_CARREGAMENTO) {
+				it.remove();
+				if (!mundo.chunksModificados.containsKey(chave)) mundo.chunksCarregados.remove(chave);
 				List<VBOGrupo> grupos = mundo.chunkVBOs.remove(chave);
-				if(!mundo.chunksModificados.containsKey(chave)) {
-					mundo.chunksCarregados.remove(chave);
-				}
-				if(grupos != null) {
-					for(VBOGrupo grupo : grupos) {
-						GLES30.glDeleteBuffers(1, new int[]{ grupo.vboId }, 0);
-						GLES30.glDeleteBuffers(1, new int[]{ grupo.iboId }, 0);
+				if (grupos != null) for (VBOGrupo g : grupos) {
+						GLES30.glDeleteBuffers(1, new int[]{ g.vboId }, 0);
+						GLES30.glDeleteBuffers(1, new int[]{ g.iboId }, 0);
 					}
-				}
 			}
 		}
-		
+
 		PriorityQueue<ChunkCandidato> fila = new PriorityQueue<ChunkCandidato>(10, new Comparator<ChunkCandidato>() {
 				public int compare(ChunkCandidato a, ChunkCandidato b) {
 					return Double.compare(a.distancia, b.distancia);
 				}
 			});
 
-		for(int x = chunkJogadorX - mundo.RAIO_CARREGAMENTO; x <= chunkJogadorX + mundo.RAIO_CARREGAMENTO; x++) {
-			for(int z = chunkJogadorZ - mundo.RAIO_CARREGAMENTO; z <= chunkJogadorZ + mundo.RAIO_CARREGAMENTO; z++) {
-				final String chave = x + "," + z;
-				if(!mundo.chunksAtivos.containsKey(chave)) {
-					double dist = Math.sqrt((x - chunkJogadorX)*(x - chunkJogadorX) + (z - chunkJogadorZ)*(z - chunkJogadorZ));
+		for (int x = chunkJogadorX - mundo.RAIO_CARREGAMENTO; x <= chunkJogadorX + mundo.RAIO_CARREGAMENTO; x++) {
+			for (int z = chunkJogadorZ - mundo.RAIO_CARREGAMENTO; z <= chunkJogadorZ + mundo.RAIO_CARREGAMENTO; z++) {
+				String chave = x + "," + z;
+				if (!mundo.chunksAtivos.containsKey(chave)) {
+					double dist = Math.hypot(x - chunkJogadorX, z - chunkJogadorZ);
 					fila.offer(new ChunkCandidato(chave, x, z, dist));
 				}
 			}
 		}
 
 		int carregados = 0;
-		
-		if(MundoActivity.livre >= 10.0 || trava == false || MundoActivity.total <= 30.0) {
-			while(!fila.isEmpty() && carregados < this.chunksPorVez) {
+		if (MundoActivity.livre >= 10.0 || !trava || MundoActivity.total <= 30.0) {
+			while (!fila.isEmpty() && carregados < chunksPorVez) {
 				final ChunkCandidato c = fila.poll();
 				final String chave = c.chave;
 				final Bloco[][][] chunk = mundo.carregarChunk(c.x, c.z);
@@ -694,15 +681,14 @@ public class GLRender implements GLSurfaceView.Renderer {
 							final Map<Integer, List<float[]>> dados = mundo.calculoVBO(chunk);
 							tela.queueEvent(new Runnable() {
 									public void run() {
-										List<VBOGrupo> grupos = gerarVBO(dados);
-										mundo.chunkVBOs.put(chave, grupos);
+										mundo.chunkVBOs.put(chave, gerarVBO(dados));
 									}
 								});
 						}
 					});
 				carregados++;
 			}
-			if(pronto == false) pronto = true;
+			if (!pronto) pronto = true;
 			MundoActivity.gc = "\n[GC]: livre";
 		} else {
 			ativarGC();
@@ -1031,6 +1017,9 @@ public class GLRender implements GLSurfaceView.Renderer {
 		dos.writeFloat(camera.posicao[1]);
 		dos.writeFloat(camera.posicao[2]);
 		
+		dos.writeFloat(camera.yaw);
+		dos.writeFloat(camera.tom);
+		
 		dos.writeFloat(tempo);
 		dos.writeUTF(mundo.tipo);
 		
@@ -1087,24 +1076,15 @@ public class GLRender implements GLSurfaceView.Renderer {
 		camera.posicao[1] = dis.readFloat();
 		camera.posicao[2] = dis.readFloat();
 		
+		camera.yaw = dis.readFloat();
+		camera.tom = dis.readFloat();
+		
+		camera.rotacionar(0f, 0f);
+		
 		tempo = dis.readFloat();
 		
 		mundo.tipo = dis.readUTF();
 		
 		dis.close();
 	}
-}
-
-class VBOGrupo {
-    public int texturaId;
-    public int vboId;
-	public int iboId;
-    public int vertices;
-
-    public VBOGrupo(int texturaId, int vboId, int iboId, int vertices) {
-        this.texturaId = texturaId;
-        this.vboId = vboId;
-		this.iboId = iboId;
-        this.vertices = vertices;
-    }
 }
