@@ -8,7 +8,7 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import com.minimine.engine.Comandos;
-import com.minimine.engine.Logs;
+import com.engine.Logs;
 import com.minimine.engine.GLRender;
 import com.minimine.engine.Player;
 import com.engine.Camera3D;
@@ -25,6 +25,9 @@ import android.util.AttributeSet;
 import android.graphics.Color;
 import android.graphics.Canvas;
 import android.util.DisplayMetrics;
+import com.engine.Audio;
+import com.engine.Toque;
+import android.view.KeyEvent;
 
 public class MundoActivity extends Activity {
     public GLSurfaceView tela;
@@ -57,13 +60,13 @@ public class MundoActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_jogo);
 		
+		Logs.capturar();
+		
         coordenadas = findViewById(R.id.coordenadas);
 		coordenadas.setTextSize(20);
         chat = findViewById(R.id.chat);
 
         console = findViewById(R.id.logs);
-
-        Logs.capturar();
 
         tela = findViewById(R.id.tela);
 
@@ -138,116 +141,32 @@ public class MundoActivity extends Activity {
 
 		globals.set("render", luaRender);
 		globals.set("comandos", luaComandos);
-	}
-/*
-	private class MovimentoTarefa implements Runnable {
-		private final int direcao;
-
-		public MovimentoTarefa(int direcao) {
-			this.direcao = direcao;
-		}
-
-		@Override
-		public void run() {
-			try {
-				if(chat.getText().toString().startsWith("/")) {
-					comandos.executar(chat.getText().toString());
-					chat.setText("");
-				} else if(!chat.getText().toString().equals("")) {
-					globals.load(chat.getText().toString(), "script").call();
-					chat.setText("");
-				}
-				
-				console.setText(Logs.exibir());
-			} catch(Exception e) {
-				System.out.println("erro: "+e);
-			}
-
-			// movimento puro sem diagonal
-			if((direcao & DPadView.DIR_CIMA) != 0) {
-				render.moverFrente();
-			}
-			if((direcao & DPadView.DIR_BAIXO) != 0) {
-				render.moverTras();
-			}
-			if((direcao & DPadView.DIR_ESQUERDA) != 0) {
-				render.moverEsquerda();
-			}
-			if((direcao & DPadView.DIR_DIREITA) != 0) {
-				render.moverDireita();
-			}
-			responsavel2.postDelayed(this, 100); // intervalo aumentado para 100ms
-		}
-	}
-*/
-	public boolean eventoToque(MotionEvent e) {
-		int acao = e.getActionMasked();
-		int indice = e.getActionIndex();
-
-		switch (acao) {
-			case MotionEvent.ACTION_DOWN:
-			case MotionEvent.ACTION_POINTER_DOWN:
-				if (pontoAtivo == -1) {
-					pontoAtivo = e.getPointerId(indice);
-					ultimoX = e.getX(indice);
-					ultimoY = e.getY(indice);
-				}
-				break;
-
-			case MotionEvent.ACTION_MOVE:
-				int i = e.findPointerIndex(pontoAtivo);
-				if (i != -1) {
-					float x = e.getX(i);
-					float y = e.getY(i);
-					float dx = x - ultimoX;
-					float dy = y - ultimoY;
-					render.camera.rotacionar(dx * 0.15f, dy * 0.15f);
-					ultimoX = x;
-					ultimoY = y;
-				}
-				break;
-
-			case MotionEvent.ACTION_POINTER_UP:
-				if (e.getPointerId(indice) == pontoAtivo) {
-					for (int j = 0; j < e.getPointerCount(); j++) {
-						if (j != indice) {
-							pontoAtivo = e.getPointerId(j);
-							ultimoX = e.getX(j);
-							ultimoY = e.getY(j);
-							break;
+		
+		chat.setOnKeyListener(new View.OnKeyListener() {
+				public boolean onKey(View v, int keyCode, KeyEvent event) {
+					if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
+						try {
+							if(chat.getText().toString().startsWith("/")) {
+								comandos.executar(chat.getText().toString());
+								chat.setText("");
+							} else if(!chat.getText().toString().equals("")) {
+								globals.load(chat.getText().toString(), "script").call();
+								chat.setText("");
+							}
+							console.setText(Logs.exibir());
+						} catch(Exception e) {
+							System.out.println("erro: "+e);
 						}
+						return true;
 					}
+					return false;
 				}
-				break;
-
-			case MotionEvent.ACTION_UP:
-			case MotionEvent.ACTION_CANCEL:
-				pontoAtivo = -1;
-				break;
-		}
-
-		return pontoAtivo != -1;
-	}
-
-	public void pular(View v) {
-		try {
-			if(render.camera != null) {
-				render.pular();
-			} else {
-				System.out.println("erro: a camera é null");
-			}
-		} catch(Exception e) {
-			System.out.println("erro: "+e);
-		}
-	}
-
-	public void colocarBloco(View v) {
-		render.colocarBloco();
+			});
 	}
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        eventoToque(e);
+        Toque.cameraOlhar(render.camera, e);
 		for(int i = 0; i < render.ui.botoes.size(); i++) {
 			render.ui.botoes.get(i).verificarToque(e);
 		}
@@ -263,6 +182,7 @@ public class MundoActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+		Audio.pararMusicas();
 		render.svMundo(render.mundo);
 		atualizadorMemoria.removeCallbacks(tarefaDebug);
 		atualizadorMemoria.removeCallbacks(tarefaFPS);

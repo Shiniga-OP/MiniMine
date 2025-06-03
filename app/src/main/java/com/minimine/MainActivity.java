@@ -29,7 +29,11 @@ public class MainActivity extends Activity {
 		
 		tela = findViewById(R.id.tela);
 		
-		Audio.tocarMusica(this, "musicas/igor.m4a", false);
+		if(Math.random() < 0.5) {
+			Audio.tocarMusica(this, "musicas/igor.m4a", false);
+		} else {
+			Audio.tocarMusica(this, "musicas/igor-2.m4a", false);
+		}
 		
 		tela.setEGLContextClientVersion(3);
         render = new GLRender(this, tela, 77734, "novo mundo", "normal", "texturas/"+"evolva"+"/");

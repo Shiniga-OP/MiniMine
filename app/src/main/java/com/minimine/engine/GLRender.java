@@ -476,7 +476,7 @@ public class GLRender implements GLSurfaceView.Renderer {
     }
 	
 	public Botao2D[] slots = new Botao2D[4];
-	public Botao2D[] botoes = new Botao2D[4];
+	public Botao2D[] botoes = new Botao2D[6];
 	
 	public void carregarUI(Context ctx) {
 		// slots
@@ -539,6 +539,20 @@ public class GLRender implements GLSurfaceView.Renderer {
 					moverFrente();
 				}  
 			});  
+			
+		botoes[4] = new Botao2D(new Objeto2D(-1000, 10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));
+		botoes[4].definirAcao(new Runnable() {  
+				public void run() {  
+					pular();
+				}  
+			});  
+			
+		botoes[5] = new Botao2D(new Objeto2D(-1000, (botoesTam*3)+10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/clique.png")));
+		botoes[5].definirAcao(new Runnable() {  
+				public void run() {  
+					colocarBloco();
+				}  
+			});  
 	}
 	
 	public Objeto2D mira;
@@ -587,9 +601,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			atualizarGravidade();
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
 			if(UI) {
-				GLES30.glDisable(GLES30.GL_DEPTH_TEST);  
 				ui.render();
-				GLES30.glEnable(GLES30.GL_DEPTH_TEST);
 			}
 			renderizar();  
 
