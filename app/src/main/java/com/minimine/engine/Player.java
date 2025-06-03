@@ -1,8 +1,10 @@
 package com.minimine.engine;
+
 import java.util.List;
 import java.util.ArrayList;
+import com.engine.Camera3D;
 
-public class Player extends Camera {
+public class Player extends Camera3D {
 	public int vida = 20;
 	public float velocidadeX = 0.2f;
 	public float salto = 0.25f;

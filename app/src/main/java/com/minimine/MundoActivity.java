@@ -11,7 +11,7 @@ import com.minimine.engine.Comandos;
 import com.minimine.engine.Logs;
 import com.minimine.engine.GLRender;
 import com.minimine.engine.Player;
-import com.minimine.engine.Camera;
+import com.engine.Camera3D;
 import android.opengl.GLSurfaceView;
 import android.widget.TextView;
 import android.widget.EditText;
@@ -33,12 +33,9 @@ public class MundoActivity extends Activity {
     public TextView coordenadas;
     public EditText chat, console;
 
-	public static double livre, total, usado;
-	public static String gc;
-
 	public Comandos comandos;
 
-	public DPadView dpad;
+	// public DPadView dpad;
 	public Handler responsavel2 = new Handler();
 	public Runnable movimentoTarefa;
 	public Runtime rt;
@@ -86,16 +83,9 @@ public class MundoActivity extends Activity {
         render.camera.mover(0.5f);
 
 		comandos =  new Comandos(render, chat);
-
-		dpad = findViewById(R.id.dpad);
-
-		rt = Runtime.getRuntime();
 		
 		tarefaFPS = new Runnable() {
 			public void run() {
-				livre = rt.freeMemory() / 1048576.0;
-				total = rt.totalMemory() / 1048576.0;
-				usado = total - livre;
 				frames++;
 				long agora = System.nanoTime();
 				if(agora - tempoAnterior >= 1_000_000_000L) {
@@ -115,10 +105,9 @@ public class MundoActivity extends Activity {
 
 				if(render.debug) {
 					String debug =
-						"memória livre: " + String.format("%.2f", livre) + " MB" +
-						"\nmemória total: " + String.format("%.2f", total) + " MB" +
-						"\nmemória usada: " + String.format("%.2f", usado) + " MB" +
-						"\n"+gc+
+						"memória livre: " + String.format("%.2f", render.livre) + " MB" +
+						"\nmemória total: " + String.format("%.2f", render.total) + " MB" +
+						"\nmemória usada: " + String.format("%.2f", render.usado) + " MB" +
 						"\n\nFPS: "+fps+
 						"\n\nchunks ativas: " + render.mundo.chunksAtivos.size() +
 						"\nchunks modificados: " + render.mundo.chunksModificados.size() +
@@ -144,26 +133,13 @@ public class MundoActivity extends Activity {
 		atualizadorMemoria.post(tarefaFPS);
 		atualizadorMemoria.post(tarefaDebug);
 		
-		dpad.definirDPadAgenda(new DPadView.DPadAgenda() {
-				@Override
-				public void quandoDirecaoPressio(int direcao) {
-					responsavel2.removeCallbacks(movimentoTarefa);
-					movimentoTarefa = new MovimentoTarefa(direcao);
-					responsavel2.post(movimentoTarefa);
-				}
-
-				@Override
-				public void quandoDirecaoAtivada(int direcao) {
-					responsavel2.removeCallbacks(movimentoTarefa);
-				}
-			});
 		LuaValue luaComandos = CoerceJavaToLua.coerce(comandos);
 		LuaValue luaRender = CoerceJavaToLua.coerce(render);
 
 		globals.set("render", luaRender);
 		globals.set("comandos", luaComandos);
 	}
-
+/*
 	private class MovimentoTarefa implements Runnable {
 		private final int direcao;
 
@@ -203,7 +179,7 @@ public class MundoActivity extends Activity {
 			responsavel2.postDelayed(this, 100); // intervalo aumentado para 100ms
 		}
 	}
-
+*/
 	public boolean eventoToque(MotionEvent e) {
 		int acao = e.getActionMasked();
 		int indice = e.getActionIndex();
@@ -272,8 +248,8 @@ public class MundoActivity extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         eventoToque(e);
-		for(int i = 0; i < render.slots.length; i++) {
-			render.slots[i].verificarToque(e);
+		for(int i = 0; i < render.ui.botoes.size(); i++) {
+			render.ui.botoes.get(i).verificarToque(e);
 		}
 		return true;
     }
@@ -320,102 +296,3 @@ class PeerlinNoise {
         return b;
     }
 }
-
-class DPadView extends View {
-    private Paint pincelBase, pincelPressio;
-    private RectF btnCima, btnBaixo, btnEsquerda, btnDireita;
-    private boolean cimaPressio, baixoPressio, esquerdaPressio, direitaPressio;
-    private DPadAgenda agenda;
-
-    public interface DPadAgenda {
-        void quandoDirecaoPressio(int direcao);
-        void quandoDirecaoAtivada(int direcao);
-    }
-
-    // direcoes usa bitmask para combinacoes
-    public static final int DIR_CIMA = 1;
-    public static final int DIR_BAIXO = 2;
-    public static final int DIR_ESQUERDA = 4;
-    public static final int DIR_DIREITA = 8;
-
-    public DPadView(Context contexto, AttributeSet attrs) {
-        super(contexto, attrs);
-        iniciar();
-    }
-
-    private void iniciar() {
-        pincelBase = new Paint();
-        pincelBase.setColor(Color.argb(150, 255, 255, 255)); // semi transparente
-        pincelBase.setStyle(Paint.Style.FILL);
-        pincelBase.setAntiAlias(true);
-
-        pincelPressio = new Paint();
-        pincelPressio.setColor(Color.argb(200, 200, 200, 0)); // cor quando pressionado
-        pincelPressio.setStyle(Paint.Style.FILL);
-        pincelPressio.setAntiAlias(true);
-    }
-
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        float centroX = h / 2f;
-        float centroY = h / 2f;
-        float btnTamanho = Math.min(w, h) * 0.16f;
-
-        // posicionando os botoez
-        btnCima = new RectF(centroX - btnTamanho, centroY - btnTamanho * 100, 
-							centroX + btnTamanho, centroY - btnTamanho);
-        btnBaixo = new RectF(centroX - btnTamanho, centroY + btnTamanho, 
-							 centroX + btnTamanho, centroY + btnTamanho * 100);
-        btnEsquerda = new RectF(centroX - btnTamanho * 100, centroY - btnTamanho, 
-								centroX - btnTamanho, centroY + btnTamanho);
-        btnDireita = new RectF(centroX + btnTamanho, centroY - btnTamanho, 
-							   centroX + btnTamanho * 100, centroY + btnTamanho);
-    }
-
-    @Override
-	public boolean onTouchEvent(MotionEvent e) {
-		int acao = e.getActionMasked();
-		float x = e.getX();
-		float y = e.getY();
-
-		boolean tocou = false;
-		boolean pressio = (acao == MotionEvent.ACTION_DOWN || acao == MotionEvent.ACTION_MOVE);
-
-		cimaPressio = pressio && btnCima.contains(x, y); if (cimaPressio) tocou = true;
-		baixoPressio = pressio && btnBaixo.contains(x, y); if (baixoPressio) tocou = true;
-		esquerdaPressio = pressio && btnEsquerda.contains(x, y); if (esquerdaPressio) tocou = true;
-		direitaPressio = pressio && btnDireita.contains(x, y); if (direitaPressio) tocou = true;
-
-		int direcao = 0;
-		if (cimaPressio) direcao |= DIR_CIMA;
-		if (baixoPressio) direcao |= DIR_BAIXO;
-		if (esquerdaPressio) direcao |= DIR_ESQUERDA;
-		if (direitaPressio) direcao |= DIR_DIREITA;
-
-		if (agenda != null) {
-			if (pressio) agenda.quandoDirecaoPressio(direcao);
-			else agenda.quandoDirecaoAtivada(direcao);
-		}
-
-		invalidate();
-		return tocou;
-	}
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        // desenhar botões
-        renderBotao(canvas, btnCima, cimaPressio);
-        renderBotao(canvas, btnBaixo, baixoPressio);
-        renderBotao(canvas, btnEsquerda, esquerdaPressio);
-        renderBotao(canvas, btnDireita, direitaPressio);
-    }
-
-    private void renderBotao(Canvas canvas, RectF rect, boolean pressio) {
-        canvas.drawRoundRect(rect, 15, 15, pressio ? pincelPressio : pincelBase);
-    }
-
-    public void definirDPadAgenda(DPadAgenda agenda) {
-        this.agenda = agenda;
-    }
-}
-

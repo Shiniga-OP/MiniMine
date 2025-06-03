@@ -1,5 +1,7 @@
 package com.engine;
 import android.opengl.GLES30;
+import android.content.Context;
+import java.io.InputStream;
 
 public class ShaderUtils {
     public int id;
@@ -32,6 +34,18 @@ public class ShaderUtils {
             System.out.println("erro compilando shader: " + log);
         }
         return shader;
+    }
+	
+	public static String lerShaderDoRaw(Context ctx, int resId) {
+        try {
+            InputStream is = ctx.getResources().openRawResource(resId);
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+            return new String(buffer);
+        } catch(Exception e) {
+            return null;
+        }
     }
 
     public void usar() {
