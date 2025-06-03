@@ -7,7 +7,7 @@ import com.engine.Camera3D;
 public class Player extends Camera3D {
 	public int vida = 20;
 	public float velocidadeX = 0.2f;
-	public float salto = 0.25f;
+	public float salto = 0.27f;
 	public float peso = 1f;
 	public float alcance = 7f;
 

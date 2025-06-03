@@ -1,6 +1,7 @@
 package com.minimine.engine;
 
 import android.widget.EditText;
+import com.engine.Logs;
 
 public class Comandos {
 	public GLRender render;
@@ -59,7 +60,10 @@ public class Comandos {
 			} else if(comando.startsWith("/player passo ")) {
 				comando = comando.replace("/player passo ", "");
 				render.camera.velocidadeX = Float.parseFloat(comando);
-			} else if(comando.startsWith("/player peso ")) {
+			} else if(comando.startsWith("/player salto ")) {
+				comando = comando.replace("/player salto ", "");
+				render.camera.salto = Float.parseFloat(comando);
+			}  else if(comando.startsWith("/player peso ")) {
 				comando = comando.replace("/player peso ", "");
 
 				render.camera.peso = Float.parseFloat(comando);
@@ -94,7 +98,14 @@ public class Comandos {
 			} else if(comando.startsWith("/mundo ")) {
 				if(comando.startsWith("/mundo salvar")) render.svMundo(render.mundo);
 				if(comando.startsWith("/mundo carregar")) render.crMundo(render.mundo);
-			}
+				// tempo
+			} else if(comando.startsWith("/tempo velo ")) {
+				comando = comando.replace("/tempo velo ", "");
+				render.tempoVelo = Float.parseFloat(comando);
+			}  else if(comando.startsWith("/tempo ")) {
+				comando = comando.replace("/tempo ", "");
+				render.tempo = Float.parseFloat(comando);
+			} 
 			System.out.println(comando);
 		} catch(Exception e) {
 			System.out.println("erro: " + e.getMessage());

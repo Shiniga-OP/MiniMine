@@ -9,25 +9,6 @@
 		android:id="@+id/tela"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"/>
-	
-	<Button
-		android:layout_width="60dp"
-		android:layout_height="60dp"
-		android:text="click"
-		android:layout_alignParentBottom="true"
-		android:layout_alignParentRight="true"
-		android:onClick="colocarBloco"
-		android:translationY="-100dp"/>
-
-	<Button
-		android:id="@+id/btnPular"
-		android:layout_width="60dp"
-		android:layout_height="60dp"
-		android:text="^"
-		android:layout_alignParentBottom="true"
-		android:layout_alignParentRight="true"
-		android:layout_margin="20dp"
-		android:onClick="pular"/>
 
 	<EditText
 		android:id="@+id/chat"
@@ -35,7 +16,11 @@
 		android:layout_height="wrap_content"
 		android:layout_margin="10dp"
 		android:hint="Chat"
-		android:layout_alignParentTop="true"/>
+		android:layout_alignParentTop="true"
+		android:minLines="1"
+		android:lines="1"
+		android:maxLines="1"
+		android:inputType="textWebEditText"/>
 
 	<TextView
 		android:id="@+id/coordenadas"
