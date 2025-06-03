@@ -23,7 +23,7 @@ public class Mundo {
 	public GLSurfaceView tela;
 
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
-    public int MUNDO_LATERAL = 56; // padrao: 64, testes: 32
+    public int MUNDO_LATERAL = 46; // padrao: 64, testes: 32
     public int RAIO_CARREGAMENTO = 3; // padrao: 3, testes: 2, inicial: 15
 
     public final int FACES_POR_BLOCO = 6;
@@ -61,7 +61,7 @@ public class Mundo {
 		"AREIA", "AREIA", "PEDRA",
 		0.01f),
 		// montanha
-		new Bioma(24f, 26f,
+		new Bioma(24f, 10f,
 		0.02f, 0.16f,
 		"PEDRA", "PEDRA", "PEDRA",
 		0.15f),
