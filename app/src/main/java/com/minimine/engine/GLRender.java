@@ -46,6 +46,9 @@ import com.engine.Texturas;
 import com.engine.Objeto2D;
 import android.util.DisplayMetrics;
 import android.app.Activity;
+import com.engine.GL;
+import com.engine.Sistema;
+import com.engine.ShaderUtils;
 
 public class GLRender implements GLSurfaceView.Renderer {
     public Context contexto;
@@ -89,8 +92,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 	public int viewLocCeu;
 	public int projLocCeu;
 	public int tempoLocCeu;
-	public int[] vboCeu;
-	public int[] vaoCeu;
+	public int vboCeu;
+	public int vaoCeu;
 	public FloatBuffer ceuBuffer;
 	
 	// hitbox
@@ -281,26 +284,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 			1.0f, -1.0f,  1.0f
 		};
 
-		ceuBuffer = ByteBuffer.allocateDirect(verticesCeu.length * 4)
-			.order(ByteOrder.nativeOrder())
-			.asFloatBuffer();
+		ceuBuffer = GL.criarFloatBuffer(verticesCeu.length);
 		ceuBuffer.put(verticesCeu);
 		ceuBuffer.position(0);
 
-		vaoCeu = new int[1];
-		vboCeu = new int[1];
-		GLES30.glGenVertexArrays(1, vaoCeu, 0);
-		GLES30.glGenBuffers(1, vboCeu, 0);
-
-		GLES30.glBindVertexArray(vaoCeu[0]);
-		
-		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboCeu[0]);
-	
-		GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, verticesCeu.length * 4, ceuBuffer, GLES30.GL_STATIC_DRAW);
-		
-		GLES30.glEnableVertexAttribArray(0);
-		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 3 * 4, 0);
-		GLES30.glBindVertexArray(0);
+		vboCeu = GL.gerarVBO(ceuBuffer);
+		vaoCeu = GL.gerarVAO(vboCeu, 3 * 4);
 		
 		String vertHitboxC =
 			"uniform mat4 uMVPMatriz;" +
@@ -384,7 +373,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glUniform1f(tempoLocCeu, tempo);
 		
 		GLES30.glDepthFunc(GLES30.GL_LEQUAL);
-		GLES30.glBindVertexArray(vaoCeu[0]);
+		GLES30.glBindVertexArray(vaoCeu);
 		GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);
 		GLES30.glBindVertexArray(0);
 		GLES30.glDepthFunc(GLES30.GL_LESS);
@@ -397,10 +386,11 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
 		mundo.atlasUVMapa.clear();
 	}
-
+	
+	
 	public List<VBOGrupo> gerarVBO(Map<Integer, List<float[]>> dadosPorTextura) {
 		List<VBOGrupo> grupos = new ArrayList<>();
-
+		
 		for(Map.Entry<Integer, List<float[]>> entry : dadosPorTextura.entrySet()) {
 			int texturaId = entry.getKey();
 
@@ -411,10 +401,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			}
 
 			// cria buffer de vertices
-			FloatBuffer vertBuffer = ByteBuffer
-				.allocateDirect(totalVertices * 8 * 4)
-				.order(ByteOrder.nativeOrder())
-				.asFloatBuffer();
+			FloatBuffer vertBuffer = GL.criarFloatBuffer(totalVertices*8);
 
 			for(float[] dados : entry.getValue()) {
 				vertBuffer.put(dados);
@@ -422,38 +409,15 @@ public class GLRender implements GLSurfaceView.Renderer {
 			vertBuffer.position(0);
 
 			// gera array de indices de sequencia
-			ShortBuffer indiceBuffer = ByteBuffer
-				.allocateDirect(totalVertices * 2)
-				.order(ByteOrder.nativeOrder())
-				.asShortBuffer();
+			ShortBuffer indiceBuffer = GL.criarShortBuffer(totalVertices);
 			for(short i = 0; i < totalVertices; i++) {
 				indiceBuffer.put(i);
 			}
 			indiceBuffer.position(0);
 
 			// gera IDs de buffer(VBO e IBO)
-			int[] bufferIds = new int[2];
-			GLES30.glGenBuffers(2, bufferIds, 0);
-			int vboId = bufferIds[0];
-			int iboId = bufferIds[1];
-
-			// prenche VBO
-			GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId);
-			GLES30.glBufferData(
-				GLES30.GL_ARRAY_BUFFER,
-				vertBuffer.capacity() * 4,
-				vertBuffer,
-				GLES30.GL_STATIC_DRAW
-			);
-
-			// prenche IBO
-			GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, iboId);
-			GLES30.glBufferData(
-				GLES30.GL_ELEMENT_ARRAY_BUFFER,
-				indiceBuffer.capacity() * 2,
-				indiceBuffer,
-				GLES30.GL_STATIC_DRAW
-			);
+			int vboId = GL.gerarVBO(vertBuffer);
+			int iboId = GL.gerarIBO(indiceBuffer);
 
 			// desvincula VBO(IBO fica associado ao VAO)
 			GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);

@@ -1,4 +1,5 @@
 package com.engine;
+
 import android.opengl.GLES30;
 import android.content.Context;
 import java.io.InputStream;
@@ -7,23 +8,32 @@ public class ShaderUtils {
     public int id;
 
     public ShaderUtils(String vert, String frag) {
+        id = criarPrograma(vert, frag);
+    }
+	
+	public static int criarPrograma(String vert, String frag) {
         int vs = compilar(GLES30.GL_VERTEX_SHADER, vert);
         int fs = compilar(GLES30.GL_FRAGMENT_SHADER, frag);
-        id = GLES30.glCreateProgram();
-        GLES30.glAttachShader(id, vs);
-        GLES30.glAttachShader(id, fs);
-        GLES30.glLinkProgram(id);
-        int[] status = new int[1];
-        GLES30.glGetProgramiv(id, GLES30.GL_LINK_STATUS, status, 0);
-        if(status[0] == 0) {
-            String log = GLES30.glGetProgramInfoLog(id);                
+
+        int programa = GLES30.glCreateProgram();
+        GLES30.glAttachShader(programa, vs);
+        GLES30.glAttachShader(programa, fs);
+        GLES30.glLinkProgram(programa);
+		
+		int[] status = new int[1];
+		GLES30.glGetProgramiv(programa, GLES30.GL_LINK_STATUS, status, 0);
+		if(status[0] == 0) {
+            String log = GLES30.glGetProgramInfoLog(programa);                
             System.out.println("erro ao linkar programa:\n" + log);
         }
-        GLES30.glDeleteShader(vs);
+		
+		GLES30.glDeleteShader(vs);
         GLES30.glDeleteShader(fs);
+		status = null;
+        return programa;
     }
 
-    public int compilar(int tipo, String fonte) {
+    public static int compilar(int tipo, String fonte) {
         int shader = GLES30.glCreateShader(tipo);
         GLES30.glShaderSource(shader, fonte);
         GLES30.glCompileShader(shader);
@@ -36,7 +46,7 @@ public class ShaderUtils {
         return shader;
     }
 	
-	public static String lerShaderDoRaw(Context ctx, int resId) {
+	public static String lerShaderRaw(Context ctx, int resId) {
         try {
             InputStream is = ctx.getResources().openRawResource(resId);
             byte[] buffer = new byte[is.available()];
@@ -46,6 +56,10 @@ public class ShaderUtils {
         } catch(Exception e) {
             return null;
         }
+    }
+	
+	public static void usar(int idPrograma) {
+        GLES30.glUseProgram(idPrograma);
     }
 
     public void usar() {

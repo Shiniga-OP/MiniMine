@@ -10,7 +10,7 @@ import android.opengl.Matrix;
 
 public class Cena2D {
     public int vao, vbo;
-    public ShaderUtils shader;
+    public int shader;
     public float[] matrizProj;
     public int locProjecao, locTexture;
 
@@ -23,11 +23,8 @@ public class Cena2D {
 		matrizProj = new float[16];
 		objetos = new ArrayList<>();
 		botoes = new ArrayList<>();
-		bufferTemp = ByteBuffer
-			.allocateDirect(4 * 4 * 4) // 4 vertices * 4 floats * 4 bytes
-			.order(ByteOrder.nativeOrder())
-			.asFloatBuffer();
-        shader = new ShaderUtils(ShaderUtils.obterVert2D(), ShaderUtils.obterFrag2D());
+		bufferTemp = GL.criarFloatBuffer(4 * 4);
+        shader = ShaderUtils.criarPrograma(ShaderUtils.obterVert2D(), ShaderUtils.obterFrag2D());
         int[] ids = new int[1];
         GLES30.glGenVertexArrays(1, ids, 0);
         vao = ids[0];
@@ -36,7 +33,7 @@ public class Cena2D {
         GLES30.glGenBuffers(1, ids, 0);             
         vbo = ids[0];      
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, 4 * 4 *4, null, GLES30.GL_DYNAMIC_DRAW);   
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, 4 * 4 *4, null, GLES30.GL_STATIC_DRAW);   
 
         GLES30.glVertexAttribPointer(0, 2, GLES30.GL_FLOAT, false, 4 *4, 0);
         GLES30.glEnableVertexAttribArray(0);
@@ -45,12 +42,12 @@ public class Cena2D {
 
         GLES30.glBindVertexArray(0);
 
-        locProjecao = GLES30.glGetUniformLocation(shader.id, "uProjecao");
-        locTexture = GLES30.glGetUniformLocation(shader.id, "uTextura");
+        locProjecao = GLES30.glGetUniformLocation(shader, "uProjecao");
+        locTexture = GLES30.glGetUniformLocation(shader, "uTextura");
     }
 
     public void render() {
-        shader.usar();
+        ShaderUtils.usar(shader);
         GLES30.glUniformMatrix4fv(locProjecao, 1, false, matrizProj, 0);
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
         GLES30.glUniform1i(locTexture, 0);
@@ -75,13 +72,16 @@ public class Cena2D {
 
 	public void atualizarProjecao(int h, int v) {
 		Matrix.orthoM(matrizProj, 0, 0, h, v, 0, -1, 1);
+
 		for(int i = 0; i < objetos.size(); i++) {
+			Objeto2D obj = objetos.get(i);
+
 			if(h < v) {
-				objetos.get(i).x = (h - objetos.get(i).largura) - objetos.get(i).x;
-				objetos.get(i).y = (v - objetos.get(i).altura) - objetos.get(i).y;
+				obj.x = h - obj.largura - obj.x;
+				obj.y = v - obj.altura - obj.y;
 			} else {
-				objetos.get(i).x = (h - objetos.get(i).largura) - (objetos.get(i).x + h / 2.2f);
-				objetos.get(i).y = (v - objetos.get(i).altura) - objetos.get(i).y;
+				obj.x = (h - obj.largura) - (obj.x + h / 2.2f);
+				obj.y = v - obj.altura - obj.y;
 			}
 		}
 	}
@@ -96,12 +96,25 @@ public class Cena2D {
 			objetos.add(os[i].objeto);
 		}
     }
+	
+	public void add(Texto2D... os) {
+        for(int i = 0; i < os.length; i++) {
+			objetos.add(os[i].objeto);
+		}
+    }
 
 	public void remover(Objeto2D... os) {
 		for(int i = 0; i < os.length; i++) objetos.remove(os[i]);
 	}
 	
-	public void remover(Botao2D... os) {
+	public void remover(Texto2D... os) {
 		for(int i = 0; i < os.length; i++) objetos.remove(os[i].objeto);
+	}
+	
+	public void remover(Botao2D... os) {
+		for(int i = 0; i < os.length; i++) {
+			objetos.remove(os[i].objeto);
+			botoes.remove(os[i]);
+		}
 	}
 }

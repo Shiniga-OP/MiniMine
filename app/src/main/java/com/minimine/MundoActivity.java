@@ -28,6 +28,8 @@ import android.util.DisplayMetrics;
 import com.engine.Audio;
 import com.engine.Toque;
 import android.view.KeyEvent;
+import com.engine.GL;
+import com.engine.Sistema;
 
 public class MundoActivity extends Activity {
     public GLSurfaceView tela;
@@ -39,21 +41,11 @@ public class MundoActivity extends Activity {
 	public Comandos comandos;
 
 	// public DPadView dpad;
-	public Handler responsavel2 = new Handler();
-	public Runnable movimentoTarefa;
 	public Runtime rt;
-	public Handler atualizadorMemoria = new Handler();
+	public Handler atualizador = new Handler();
 	public Runnable tarefaDebug;
-	public Runnable tarefaFPS;
-
-	public Globals globals = JsePlatform.standardGlobals(); 
-
-	public int pontoAtivo = -1;
-    public float ultimoX, ultimoY;
 	
-	public long tempoAnterior = System.nanoTime();
-	public int frames = 0;
-	public int fps = 0;
+	public Globals globals = JsePlatform.standardGlobals(); 
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +53,8 @@ public class MundoActivity extends Activity {
         setContentView(R.layout.activity_jogo);
 		
 		Logs.capturar();
+		
+		Sistema.capturarFPS();
 		
         coordenadas = findViewById(R.id.coordenadas);
 		coordenadas.setTextSize(20);
@@ -77,28 +71,14 @@ public class MundoActivity extends Activity {
 		String pacoteTex = dados.getStringExtra("pacoteTex");
 
 		console.setText(String.valueOf(seed));
-        tela.setEGLContextClientVersion(3);
-
+        
         render = new GLRender(this, tela, seed, nome, tipoMundo, "texturas/"+pacoteTex+"/");
-        tela.setRenderer(render);
-        tela.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
-
+        
+		GL.definirRender(tela, render);
+		
         render.camera.mover(0.5f);
 
 		comandos =  new Comandos(render, chat);
-		
-		tarefaFPS = new Runnable() {
-			public void run() {
-				frames++;
-				long agora = System.nanoTime();
-				if(agora - tempoAnterior >= 1_000_000_000L) {
-					fps = frames;
-					frames = 0;
-					tempoAnterior = agora;
-				}
-				atualizadorMemoria.postDelayed(this, 1); // 60 vezes por segundo
-			}
-		};
 		
 		tarefaDebug = new Runnable() {
 			public void run() {
@@ -111,7 +91,7 @@ public class MundoActivity extends Activity {
 						"memória livre: " + String.format("%.2f", render.livre) + " MB" +
 						"\nmemória total: " + String.format("%.2f", render.total) + " MB" +
 						"\nmemória usada: " + String.format("%.2f", render.usado) + " MB" +
-						"\n\nFPS: "+fps+
+						"\n\nFPS: "+Sistema.fps+
 						"\n\nchunks ativas: " + render.mundo.chunksAtivos.size() +
 						"\nchunks modificados: " + render.mundo.chunksModificados.size() +
 						"\nchunks por vez: " + render.chunksPorVez +
@@ -130,11 +110,10 @@ public class MundoActivity extends Activity {
 				} else {
 					coordenadas.setText(posicao);
 				}
-				atualizadorMemoria.postDelayed(this, 200);
+				atualizador.postDelayed(this, 200);
 			}
 		};
-		atualizadorMemoria.post(tarefaFPS);
-		atualizadorMemoria.post(tarefaDebug);
+		atualizador.post(tarefaDebug);
 		
 		LuaValue luaComandos = CoerceJavaToLua.coerce(comandos);
 		LuaValue luaRender = CoerceJavaToLua.coerce(render);
@@ -184,14 +163,11 @@ public class MundoActivity extends Activity {
 		super.onDestroy();
 		Audio.pararMusicas();
 		render.svMundo(render.mundo);
-		atualizadorMemoria.removeCallbacks(tarefaDebug);
-		atualizadorMemoria.removeCallbacks(tarefaFPS);
-		responsavel2.removeCallbacks(movimentoTarefa);
 		render.limparTexturas();
 		render.destruir();
 	}
 }
-
+/*
 class PeerlinNoise {
     public static float ruido(final float x, final float z, final int seed) {
         final float[] conta = new float[7];
@@ -215,4 +191,4 @@ class PeerlinNoise {
         b /= r[4] - r[7];
         return b;
     }
-}
+} */

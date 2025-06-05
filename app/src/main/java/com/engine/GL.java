@@ -1,16 +1,13 @@
 package com.engine;
+
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import java.nio.FloatBuffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.ShortBuffer;
 
 public class GL {
-	public static GLSurfaceView tela;
-
-	public static void definirTela(GLSurfaceView opengl) {
-		tela = opengl;
-	}
 
 	public static void limpar() {
 		GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
@@ -27,7 +24,7 @@ public class GL {
     }
 
 	public static void ativar3D(boolean ativo) {
-		if(ativo == true) {
+		if(ativo) {
 			GLES30.glEnable(GLES30.GL_DEPTH_TEST);
 			GLES30.glEnable(GLES30.GL_CULL_FACE);
 		} else {
@@ -37,7 +34,7 @@ public class GL {
 	}
 
 	public static void ativarTransparente(boolean ativo) {
-		if(ativo== true) GLES30.glEnable(GLES30.GL_BLEND);
+		if(ativo) GLES30.glEnable(GLES30.GL_BLEND);
 		else GLES30.glDisable(GLES30.GL_BLEND);
 	}
 
@@ -47,11 +44,13 @@ public class GL {
 
 	// memoria:
 	public static int gerarVBO(float[] vertices) {
-		FloatBuffer buffer = ByteBuffer.allocateDirect(vertices.length * 4)
-			.order(ByteOrder.nativeOrder())
-			.asFloatBuffer();
-		buffer.put(vertices).position(0);
+		FloatBuffer buffer = criarFloatBuffer(vertices.length);
+		buffer.put(vertices);
+		buffer.position(0);
+		return gerarVBO(buffer);
+	}
 
+	public static int gerarVBO(FloatBuffer buffer) {
 		int[] vbo = new int[1];
 		GLES30.glGenBuffers(1, vbo, 0);
 		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo[0]);
@@ -60,15 +59,8 @@ public class GL {
 		return vbo[0];
 	}
 
-	public static int gerarVBO(float[] vertices, FloatBuffer buffer) {
-		buffer.put(vertices).position(0);
-
-		int[] vbo = new int[1];
-		GLES30.glGenBuffers(1, vbo, 0);
-		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo[0]);
-		GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.capacity() * 4, buffer, GLES30.GL_STATIC_DRAW);
-
-		return vbo[0];
+	public static int gerarVAO(int vbo) {
+		return gerarVAO(vbo, 5 * 4);
 	}
 
 	public static int gerarVAO(int vbo, int stride) {
@@ -89,29 +81,39 @@ public class GL {
 		return vao[0];
 	}
 
-	public static int gerarVAO(int vbo) {
-		int[] vao = new int[1];
-		GLES30.glGenVertexArrays(1, vao, 0);
-
-		GLES30.glBindVertexArray(vao[0]);
-
-		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);
-		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 5 * 4, 0);
-		GLES30.glEnableVertexAttribArray(0);
-
-		GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, 5 * 4, 12);
-		GLES30.glEnableVertexAttribArray(1);
-
-		GLES30.glBindVertexArray(0);
-
-		return vao[0];
+	public static int gerarIBO(short[] indices) {
+		ShortBuffer buffer = criarShortBuffer(indices.length);
+		buffer.put(indices);
+		buffer.position(0);
+		return gerarIBO(buffer);
 	}
 
-	public static FloatBuffer criarBuffer(int tamanho) {
+	public static int gerarIBO(ShortBuffer buffer) {
+		int[] ibo = new int[1];
+		GLES30.glGenBuffers(1, ibo, 0);
+		GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, ibo[0]);
+		GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, buffer.capacity() * 2, buffer, GLES30.GL_STATIC_DRAW);
+
+		return ibo[0];
+	}
+
+	public static FloatBuffer criarFloatBuffer(int tamanho) {
 		FloatBuffer buffer = ByteBuffer.allocateDirect(tamanho * 4)
 			.order(ByteOrder.nativeOrder())
 			.asFloatBuffer();
 
 		return buffer;
+	}
+
+	public static ShortBuffer criarShortBuffer(int tamanho) {
+		return ByteBuffer.allocateDirect(tamanho * 2)
+			.order(ByteOrder.nativeOrder())
+			.asShortBuffer();
+	}
+
+	public static ByteBuffer criarByteBuffer(int tamanho) {
+		ByteBuffer buffer = ByteBuffer.allocateDirect(tamanho * 4)
+            .order(ByteOrder.nativeOrder());
+        return buffer;
 	}
 }

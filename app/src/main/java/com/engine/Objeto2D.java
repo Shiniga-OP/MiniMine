@@ -1,5 +1,4 @@
 package com.engine;
-import android.content.Context;
 
 public class Objeto2D {
     public float x, y, largura, altura;
