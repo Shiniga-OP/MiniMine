@@ -37,3 +37,9 @@ O projeto ainda precisa de muitas otimizações.
 ## Licença
 
 Projeto open-source para uso livre.
+
+---
+
+## canal do zap zap:
+
+https://whatsapp.com/channel/0029VbBE0fiISTkH2BfWl53v
