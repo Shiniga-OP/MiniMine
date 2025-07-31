@@ -8,7 +8,6 @@ import android.widget.EditText;
 import java.util.Random;
 
 public class InicioActivity extends Activity {
-    
 	private EditText seed, tipoMundo, pacoteTex, nomeMundo;
 	private Random aleatorio = new Random();
 	
@@ -21,6 +20,9 @@ public class InicioActivity extends Activity {
 		seed = findViewById(R.id.seed);
 		tipoMundo = findViewById(R.id.tipoMundo);
 		nomeMundo = findViewById(R.id.nomeMundo);
+		
+		Intent dados = getIntent();
+		if(dados.getBooleanExtra("dev", false)) paraJogo(null);
     }
 	
 	public void paraJogo(View v) {
@@ -42,7 +44,6 @@ public class InicioActivity extends Activity {
 		else {
 			mundo.putExtra("nomeMundo", "novo mundo");
 		}
-		
 		startActivity(mundo);
 	}
 }

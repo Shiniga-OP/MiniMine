@@ -34,17 +34,12 @@ import com.engine.Sistema;
 public class MundoActivity extends Activity {
     public GLSurfaceView tela;
     public GLRender render;
-
     public TextView coordenadas;
     public EditText chat, console;
-
 	public Comandos comandos;
-
-	// public DPadView dpad;
 	public Runtime rt;
 	public Handler atualizador = new Handler();
 	public Runnable tarefaDebug;
-	
 	public Globals globals = JsePlatform.standardGlobals(); 
 	
     @Override
@@ -53,31 +48,22 @@ public class MundoActivity extends Activity {
         setContentView(R.layout.activity_jogo);
 		
 		Logs.capturar();
-		
 		Sistema.capturarFPS();
-		
         coordenadas = findViewById(R.id.coordenadas);
-		coordenadas.setTextSize(20);
         chat = findViewById(R.id.chat);
-
         console = findViewById(R.id.logs);
-
         tela = findViewById(R.id.tela);
 
-		Intent dados = getIntent();
-		int seed = dados.getIntExtra("seed", 3);
-		String nome = dados.getStringExtra("nomeMundo");
-		String tipoMundo = dados.getStringExtra("tipoMundo");
-		String pacoteTex = dados.getStringExtra("pacoteTex");
+		Intent cache = getIntent();
+		int seed = cache.getIntExtra("seed", 12345);
+		String nome = cache.getStringExtra("nomeMundo");
+		String tipoMundo = cache.getStringExtra("tipoMundo");
+		String pacoteTex = cache.getStringExtra("pacoteTex");
 
 		console.setText(String.valueOf(seed));
-        
-        render = new GLRender(this, tela, seed, nome, tipoMundo, "texturas/"+pacoteTex+"/");
-        
+        render = new GLRender(this, tela, seed, (nome == null) ? "novo mundo" : nome, (tipoMundo == null) ? "plano" : tipoMundo, "texturas/".concat((pacoteTex == null) ? "evolva" : pacoteTex)+"/");
 		GL.definirRender(tela, render);
-		
         render.camera.mover(0.5f);
-
 		comandos =  new Comandos(render, chat);
 		
 		tarefaDebug = new Runnable() {
@@ -85,7 +71,6 @@ public class MundoActivity extends Activity {
 				String posicao = "X: "+render.camera.posicao[0]+
 					", Y: "+render.camera.posicao[1]+
 					", Z: "+render.camera.posicao[2];
-
 				if(render.debug) {
 					String debug =
 						"memória livre: " + String.format("%.2f", render.livre) + " MB" +
@@ -105,11 +90,8 @@ public class MundoActivity extends Activity {
 						"\nhitbox: vertical: " + render.camera.hitbox[0] +
 						", horizontal: " + render.camera.hitbox[1] +
 						"\nslots: " + render.camera.inventario.size();
-
 					coordenadas.setText(debug);
-				} else {
-					coordenadas.setText(posicao);
-				}
+				} else coordenadas.setText(posicao);
 				atualizador.postDelayed(this, 200);
 			}
 		};
@@ -117,10 +99,8 @@ public class MundoActivity extends Activity {
 		
 		LuaValue luaComandos = CoerceJavaToLua.coerce(comandos);
 		LuaValue luaRender = CoerceJavaToLua.coerce(render);
-
 		globals.set("render", luaRender);
 		globals.set("comandos", luaComandos);
-		
 		chat.setOnKeyListener(new View.OnKeyListener() {
 				public boolean onKey(View v, int keyCode, KeyEvent event) {
 					if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
@@ -128,13 +108,11 @@ public class MundoActivity extends Activity {
 							if(chat.getText().toString().startsWith("/")) {
 								comandos.executar(chat.getText().toString());
 								chat.setText("");
-							} else if(!chat.getText().toString().equals("")) {
-								globals.load(chat.getText().toString(), "script").call();
-								chat.setText("");
-							}
+							} else if(!chat.getText().toString().equals("")) globals.load(chat.getText().toString(), "script").call();
 							console.setText(Logs.exibir());
-						} catch(Exception e) {
-							System.out.println("erro: "+e);
+						} catch(Exception ee) {
+							System.out.println("erro: "+ee);
+							System.out.println(Logs.exibir());
 						}
 						return true;
 					}
@@ -146,9 +124,7 @@ public class MundoActivity extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         Toque.cameraOlhar(render.camera, e);
-		for(int i = 0; i < render.ui.botoes.size(); i++) {
-			render.ui.botoes.get(i).verificarToque(e);
-		}
+		for(int i = 0; i < render.ui.botoes.size(); i++) render.ui.botoes.get(i).verificarToque(e);
 		return true;
     }
 

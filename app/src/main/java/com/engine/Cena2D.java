@@ -56,34 +56,31 @@ public class Cena2D {
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);
 
         for(Objeto2D o : objetos) {
-            bufferTemp.clear();
-            bufferTemp.put(o.x).put(o.y).put(0f).put(0f);
-            bufferTemp.put(o.x).put(o.y + o.altura).put(0f).put(1f);
-            bufferTemp.put(o.x + o.largura).put(o.y).put(1f).put(0f);
-            bufferTemp.put(o.x + o.largura).put(o.y + o.altura).put(1f).put(1f);
-            bufferTemp.flip();
+			float x = o.x / larguraTela;
+			float y = o.y / alturaTela;
+			float largura = o.largura / larguraTela;
+			float altura = o.altura / alturaTela;
 
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);
-            GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, bufferTemp.remaining() *4, bufferTemp);
-            GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
-        }
+			bufferTemp.clear();
+			bufferTemp.put(x).put(y).put(0f).put(0f);
+			bufferTemp.put(x).put(y + altura).put(0f).put(1f);
+			bufferTemp.put(x + largura).put(y).put(1f).put(0f);
+			bufferTemp.put(x + largura).put(y + altura).put(1f).put(1f);
+			bufferTemp.flip();
+
+			GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, o.textura);
+			GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, bufferTemp.remaining() * 4, bufferTemp);
+			GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
+		}
         GLES30.glBindVertexArray(0);
     }
 
+	public float larguraTela, alturaTela;
+
 	public void atualizarProjecao(int h, int v) {
-		Matrix.orthoM(matrizProj, 0, 0, h, v, 0, -1, 1);
-
-		for(int i = 0; i < objetos.size(); i++) {
-			Objeto2D obj = objetos.get(i);
-
-			if(h < v) {
-				obj.x = h - obj.largura - obj.x;
-				obj.y = v - obj.altura - obj.y;
-			} else {
-				obj.x = (h - obj.largura) - (obj.x + h / 2.2f);
-				obj.y = v - obj.altura - obj.y;
-			}
-		}
+		larguraTela = h;
+		alturaTela = v;
+		Matrix.orthoM(matrizProj, 0, 0, 1f, 1f, 0, -1, 1);
 	}
 
 	public void add(Objeto2D... os) {

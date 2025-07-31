@@ -58,15 +58,11 @@ public class GLRender implements GLSurfaceView.Renderer {
     public float[] vpMatriz = new float[16];
 	
     public Player camera = new Player();
-
     public ExecutorService executor = Executors.newFixedThreadPool(4);
-
 	public float pesoConta = 0f;
-	
 	// interface
 	public Cena2D ui;
 	public boolean debug = false, gc = false, gravidade = true, trava = true, UI = true;
-	
 	// chunks:
 	public Mundo mundo;
 	public int seed;
@@ -83,11 +79,9 @@ public class GLRender implements GLSurfaceView.Renderer {
     public float[] luzDirecao = {0.5f, 1.0f, 0.5f};
 	public float luz = 0.93f;
 	public int chunksPorVez = 1;
-	
 	// céu:
 	public float tempo = 0.40f;
 	public float tempoVelo = 0.00001f;
-	
 	public int shaderProgramaCeu;
 	public int viewLocCeu;
 	public int projLocCeu;
@@ -95,7 +89,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 	public int vboCeu;
 	public int vaoCeu;
 	public FloatBuffer ceuBuffer;
-	
 	// hitbox
 	public FloatBuffer hitboxBuffer;
 	public int programaHitbox;
@@ -108,7 +101,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 		
 		for(Map.Entry<String, Bloco[][][]> entry : mundo.chunksAtivos.entrySet()) {
 			final String chave = entry.getKey();
-
 			if(mundo.chunksAlterados.containsKey(chave) && mundo.chunksAlterados.get(chave)) {
 				final Bloco[][][] chunk = entry.getValue();
 				executor.submit(new Runnable() {
@@ -124,14 +116,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 					});
 				mundo.chunksAlterados.put(chave, false);
 			}
-
 			List<VBOGrupo> grupos = mundo.chunkVBOs.get(chave);
 			if(grupos == null) continue;
 
 			for(VBOGrupo grupo : grupos) {
 				// textura:
 				GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, grupo.texturaId);
-				
 				// VBO:
 				GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, grupo.vboId);
 				GLES30.glVertexAttribPointer(lidarPosicao, 3, GLES30.GL_FLOAT, false, 8 * 4, 0);
@@ -142,12 +132,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 
 				GLES30.glVertexAttribPointer(lidarTexCoord, 2, GLES30.GL_FLOAT, false, 8 * 4, 6 * 4);
 				GLES30.glEnableVertexAttribArray(lidarTexCoord);
-
 				// IBO:
 				GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, grupo.iboId);
 				// renderiza:
 				GLES30.glDrawElements(GLES30.GL_TRIANGLES, grupo.vertices, GLES30.GL_UNSIGNED_SHORT, 0);
-
 				// desvincula buffers:
 				GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
 				GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
@@ -204,7 +192,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"vec4 pos = u_projecao * view * vec4(aPos, 1.0);\n" +
 			"gl_Position = pos.xyww;\n" +
 			"}";
-
 		String fragC =
 			"#version 300 es\n" +
 			"precision mediump float;\n" +
@@ -232,9 +219,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"}\n" +
 			"FragColor = vec4(corFinal, 1.0);\n" +
 			"}";
-
 		shaderProgramaCeu = ShaderUtils.criarPrograma(vertC, fragC);
-
 		viewLocCeu = GLES30.glGetUniformLocation(shaderProgramaCeu, "u_view");
 		projLocCeu = GLES30.glGetUniformLocation(shaderProgramaCeu, "u_projecao");
 		tempoLocCeu = GLES30.glGetUniformLocation(shaderProgramaCeu, "u_tempo");
@@ -283,11 +268,9 @@ public class GLRender implements GLSurfaceView.Renderer {
 			-1.0f, -1.0f,  1.0f,
 			1.0f, -1.0f,  1.0f
 		};
-
 		ceuBuffer = GL.criarFloatBuffer(verticesCeu.length);
 		ceuBuffer.put(verticesCeu);
 		ceuBuffer.position(0);
-
 		vboCeu = GL.gerarVBO(ceuBuffer);
 		vaoCeu = GL.gerarVAO(vboCeu, 3 * 4);
 		
@@ -297,14 +280,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"void main() {"+
 			"gl_Position = uMVPMatriz * vec4(aPosicao, 1.0);"+
 			"}";
-
 		String fragHitboxC =
 			"precision mediump float;" +
 			"uniform vec4 uCor;" +
 			"void main() {"+
 			"gl_FragColor = uCor;"+
 			"}";
-
 		programaHitbox = ShaderUtils.criarPrograma(vertHitboxC, fragHitboxC);
 		GLES30.glLineWidth(10f);
 	}
@@ -355,12 +336,45 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glDisableVertexAttribArray(posLidar);
 	}
 	
-	public void atualizarTempo() {
-		if(tempo < 1.1f) {
-			tempo += tempoVelo;
-		} else {
-			tempo = 0.1f;
+	public void renderizarMobs() {
+		GLES30.glUseProgram(shaderPrograma);
+		GLES30.glUniform1f(lidarLuzIntensidade, luz);
+		GLES30.glUniform3fv(lidarLuzDirecao, 1, luzDirecao, 0);
+
+		for(Mob mob : mundo.mobs) {
+			// matriz modelo * view * projeção
+			float[] modeloMatriz = new float[16];
+			float[] mvpMatriz = new float[16];
+
+			Matrix.setIdentityM(modeloMatriz, 0);
+			Matrix.translateM(modeloMatriz, 0, mob.posicao[0], mob.posicao[1], mob.posicao[2]);
+			Matrix.scaleM(modeloMatriz, 0, 1f, 1f, 1f); // se quiser escalar mob
+
+			Matrix.multiplyMM(mvpMatriz, 0, vpMatriz, 0, modeloMatriz, 0);
+			GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, mvpMatriz, 0);
+
+			GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, mob.texturaId);
+			GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mob.modelo.vboId);
+			GLES30.glVertexAttribPointer(lidarPosicao, 3, GLES30.GL_FLOAT, false, 8 * 4, 0);
+			GLES30.glEnableVertexAttribArray(lidarPosicao);
+
+			GLES30.glVertexAttribPointer(lidarNormal, 3, GLES30.GL_FLOAT, false, 8 * 4, 3 * 4);
+			GLES30.glEnableVertexAttribArray(lidarNormal);
+
+			GLES30.glVertexAttribPointer(lidarTexCoord, 2, GLES30.GL_FLOAT, false, 8 * 4, 6 * 4);
+			GLES30.glEnableVertexAttribArray(lidarTexCoord);
+
+			GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, mob.modelo.iboId);
+			GLES30.glDrawElements(GLES30.GL_TRIANGLES, mob.modelo.vertices, GLES30.GL_UNSIGNED_SHORT, 0);
+
+			GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
+			GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 		}
+	}
+	
+	public void atualizarTempo() {
+		if(tempo < 1.1f) tempo += tempoVelo;
+		else tempo = 0.1f;
 		luz = 1.0f - Math.abs(tempo - 0.5f) * 1.0f;
 		
 		if(tempo >= 0.5f && tempo <= 0.7f) ciclo = "tarde";
@@ -387,42 +401,29 @@ public class GLRender implements GLSurfaceView.Renderer {
 		mundo.atlasUVMapa.clear();
 	}
 	
-	
 	public List<VBOGrupo> gerarVBO(Map<Integer, List<float[]>> dadosPorTextura) {
 		List<VBOGrupo> grupos = new ArrayList<>();
 		
 		for(Map.Entry<Integer, List<float[]>> entry : dadosPorTextura.entrySet()) {
 			int texturaId = entry.getKey();
-
 			//  calcula total de vertices em todas as listas float[]
 			int totalVertices = 0;
-			for(float[] arr : entry.getValue()) {
-				totalVertices += arr.length / 8;
-			}
-
+			for(float[] arr : entry.getValue()) totalVertices += arr.length / 8;
 			// cria buffer de vertices
 			FloatBuffer vertBuffer = GL.criarFloatBuffer(totalVertices*8);
 
-			for(float[] dados : entry.getValue()) {
-				vertBuffer.put(dados);
-			}
+			for(float[] dados : entry.getValue()) vertBuffer.put(dados);
 			vertBuffer.position(0);
-
 			// gera array de indices de sequencia
 			ShortBuffer indiceBuffer = GL.criarShortBuffer(totalVertices);
-			for(short i = 0; i < totalVertices; i++) {
-				indiceBuffer.put(i);
-			}
+			for(short i = 0; i < totalVertices; i++) indiceBuffer.put(i);
 			indiceBuffer.position(0);
-
 			// gera IDs de buffer(VBO e IBO)
 			int vboId = GL.gerarVBO(vertBuffer);
 			int iboId = GL.gerarIBO(indiceBuffer);
-
 			// desvincula VBO(IBO fica associado ao VAO)
 			GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 			GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
-
 			grupos.add(new VBOGrupo(texturaId, vboId, iboId, totalVertices));
 		}
 		return grupos;
@@ -439,84 +440,70 @@ public class GLRender implements GLSurfaceView.Renderer {
 		this.pacoteTex = pacoteTex;
     }
 	
-	public Botao2D[] slots = new Botao2D[4];
-	public Botao2D[] botoes = new Botao2D[6];
+	public Botao2D[] botoes = new Botao2D[10];
 	
-	public void carregarUI(Context ctx) {
-		// slots
-		slots[0] = new Botao2D(new Objeto2D(125 * 4 + 100, 10, 100, 100, Texturas.texturaBranca()));  
-
-		slots[0].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "AR";  
-				}  
-			});
-
-		slots[1] = new Botao2D(new Objeto2D(125 * 3 + 100, 10, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));  
-
-		slots[1].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "PEDREGULHO";  
-				}  
-			});
-
-		slots[2] = new Botao2D(new Objeto2D(125 * 2 + 100, 10, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));  
-
-		slots[2].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "TABUAS_CARVALHO";  
-				}  
-			});
-
-		slots[3] = new Botao2D(new Objeto2D(125 + 100, 10, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));  
-
-		slots[3].definirAcao(new Runnable() {  
-				public void run() {  
-					camera.itemMao = "TRONCO_CARVALHO";  
-				}  
-			});  
-		// mira:
-		mira = new Objeto2D(0, 0, 50, 50, Texturas.carregarAsset(ctx, "texturas/evolva/ui/mira.png"));
-		
-		// movimentacao
-		botoes[0] = new Botao2D(new Objeto2D(750, botoesTam+10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_d.png")));
-		botoes[0].definirAcao(new Runnable() {  
-				public void run() {  
-					moverDireita();
-				}  
-			});  
-		botoes[1] = new Botao2D(new Objeto2D(botoesTam+botoesTam+750, botoesTam+10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_e.png")));
-		botoes[1].definirAcao(new Runnable() {  
-				public void run() {  
-					moverEsquerda();
-				}  
-			});  
-		botoes[2] = new Botao2D(new Objeto2D(botoesTam+750, 10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_t.png")));
-		botoes[2].definirAcao(new Runnable() {  
-				public void run() {  
-					moverTras();
-				}  
-			});  
-		botoes[3] = new Botao2D(new Objeto2D(botoesTam+750, (botoesTam*2)+10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));
-		botoes[3].definirAcao(new Runnable() {  
-				public void run() {  
-					moverFrente();
-				}  
-			});  
-			
-		botoes[4] = new Botao2D(new Objeto2D(-1000, 10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));
-		botoes[4].definirAcao(new Runnable() {  
-				public void run() {  
-					pular();
-				}  
-			});  
-			
-		botoes[5] = new Botao2D(new Objeto2D(-1000, (botoesTam*3)+10, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/clique.png")));
-		botoes[5].definirAcao(new Runnable() {  
-				public void run() {  
-					colocarBloco();
-				}  
-			});  
+	public void defBotao(int i, float x, float y) {
+		try {
+			botoes[i].objeto.x = x;
+			botoes[i].objeto.y = y;
+		} catch(Exception e) {
+			System.out.println("erro: "+e);
+		}
+	}
+	public void defMobPos(int i, float x, float y, float z) {
+		try {
+			mundo.mobs.get(i).posicao[0] = x;
+			mundo.mobs.get(i).posicao[1] = y;
+			mundo.mobs.get(i).posicao[2] = z;
+		} catch(Exception e) {
+			System.out.println("erro: "+e);
+		}
+	}
+	public void carregarUI(Context ctx) {      
+		// mira:      
+		mira = new Objeto2D(0, 0, 50, 50, Texturas.carregarAsset(ctx, "texturas/evolva/ui/mira.png"));      
+		// movimentacao      
+		botoes[0] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_d.png")));
+		botoes[0].definirAcao(new Runnable() {
+			public void run() { moverDireita(); }
+		});
+		botoes[1] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_e.png")));
+		botoes[1].definirAcao(new Runnable() {
+			public void run() { moverEsquerda(); }
+		});
+		botoes[2] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_t.png")));
+		botoes[2].definirAcao(new Runnable() {
+			public void run() { moverTras(); }
+		});
+		botoes[3] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));
+		botoes[3].definirAcao(new Runnable() {
+			public void run() { moverFrente(); }
+		});
+		botoes[4] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));      
+		botoes[4].definirAcao(new Runnable() {        
+			public void run() { pular(); }        
+		});        
+		botoes[5] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/clique.png")));      
+		botoes[5].definirAcao(new Runnable() {
+			public void run() { colocarBloco(); }        
+		});        
+		// slots      
+		botoes[6] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaBranca()));
+		botoes[6].definirAcao(new Runnable() {        
+			public void run() { camera.itemMao = "AR"; }        
+		});      
+		botoes[7] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));
+		botoes[7].definirAcao(new Runnable() {        
+			public void run() { camera.itemMao = "PEDREGULHO"; }        
+		});      
+		botoes[8] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));        
+		botoes[8].definirAcao(new Runnable() {        
+			public void run() { camera.itemMao = "TABUAS_CARVALHO"; }        
+		});      
+		botoes[9] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));        
+		botoes[9].definirAcao(new Runnable() {        
+			public void run() { camera.itemMao = "TRONCO_CARVALHO"; }        
+		});
 	}
 	
 	public Objeto2D mira;
@@ -528,20 +515,33 @@ public class GLRender implements GLSurfaceView.Renderer {
         GLES30.glEnable(GLES30.GL_DEPTH_TEST);  
 		GLES30.glEnable(GLES30.GL_BLEND);
 
-        this.mundo = new Mundo(  
-			this.tela, this.seed, this.nome,  
-			this.tipo, this.pacoteTex  
-		);  
+        this.mundo = new Mundo(this.seed, this.nome, this.tipo, this.pacoteTex);  
 		crMundo(this.mundo);  
 		
         this.carregarShaders(contexto);  
         this.carregarTexturas(contexto);
+		float[] vertices = {
+			// x, y, z, nx, ny, nz, u, v
+			-0.5f, 0, -0.5f, 0,1,0, 0,0,
+			0.5f, 0, -0.5f, 0,1,0, 1,0,
+			0.5f, 0,  0.5f, 0,1,0, 1,1,
+			-0.5f, 0,  0.5f, 0,1,0, 0,1
+		};
+		FloatBuffer vb = GL.criarFloatBuffer(32);
+		vb.put(vertices).position(0);
+		ShortBuffer ib = GL.criarShortBuffer(6);
+		ib.put(new short[]{0,1,2, 2,3,0}).position(0);
+		
+		int vboId = GL.gerarVBO(vb);
+		int iboId = GL.gerarIBO(ib);
+		int texId = Texturas.texturaCor(1f, 0f, 0f, 1f); // vermelho
+
+		mundo.mobs.add(new Mob(5, 120, 5, new VBOGrupo(texId, vboId, iboId, 6), texId));
 		if(UI) {
 			this.carregarUI(contexto);
 			ui = new Cena2D();
 			ui.iniciar();
 			ui.add(mira);
-			ui.add(slots);
 			ui.add(botoes);
 		}	
 		rt = Runtime.getRuntime();
@@ -549,7 +549,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 	
 	public Runtime rt;
 	public double livre, total, usado;
-
+	
 	@Override  
     public void onDrawFrame(GL10 gl) {  
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
@@ -564,26 +564,17 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(pronto==true) {
 			atualizarGravidade();
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
-			if(UI) {
-				ui.render();
-			}
+			if(UI) ui.render();
 			renderizar();  
-
+			renderizarMobs();
 			atualizarViewMatriz();  
 			if(mundo.noChao(camera) || mundo.chunksAtivos.size() < 4) {  
 				camera.noAr = false;  
 				pesoConta = 0.1f;  
-			} else {  
-				camera.noAr = true;  
-			}  
+			} else camera.noAr = true;  
 		}  
-		if(gc == true) {  
-			ativarGC();  
-		}  
-		
-		if(debug == true) {  
-			renderHitbox();  
-		} 
+		if(gc == true)  ativarGC();  
+		if(debug == true) renderHitbox();  
     }  
 
 	@Override  
@@ -596,32 +587,41 @@ public class GLRender implements GLSurfaceView.Renderer {
 			mira.y = v / 2 - mira.altura / 2;
 			mira.x = h / 2 - mira.largura / 2;
 		}
+		if(v > h) {
+			// movimento:
+			defBotao(0, 350, 1200);
+			defBotao(1, 50, 1200);
+			defBotao(2, 200, 1350);
+			defBotao(3, 200, 1050);
+			// acoes:
+			defBotao(4, 900, 1200);
+			defBotao(5, 900, 900);
+			// slots:
+			defBotao(6, 500, 1400);
+			defBotao(7, 620, 1400);
+			defBotao(8, 740, 1400);
+			defBotao(9, 855, 1400);
+		} else {
+			
+		}
     }
 	
 	public void atualizarGravidade() {
 		if(camera.noAr == false) return;
 		if(!gravidade || camera.peso == 0) return;
-
 		// aplica gravidade
 		camera.velocidadeY += camera.GRAVIDADE;
 		if(camera.velocidadeY < camera.velocidadeY_limite)
 			camera.velocidadeY = camera.velocidadeY_limite;
-
 		float novaY = camera.posicao[1] + camera.velocidadeY;
-
 		// verifica colisão
-		float[] pos = mundo.verificarColisao(camera, camera.posicao[0], novaY, camera.posicao[2]);
-		boolean bateuChao = pos[1] > novaY;
-
-		camera.posicao[1] = pos[1];
-
+		mundo.verificarColisao(camera, camera.posicao[0], novaY, camera.posicao[2]);
+		boolean bateuChao =camera. posicao[1] > novaY;
 		// atualiza o esytado do jogador
 		if(bateuChao) {
 			camera.velocidadeY = 0;
 			camera.noAr = false;
-		} else {
-			camera.noAr = true;
-		}
+		} else camera.noAr = true;
 	}
 
     public void atualizarChunks() {
@@ -645,7 +645,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 					}
 			}
 		}
-
 		PriorityQueue<ChunkCandidato> fila = new PriorityQueue<ChunkCandidato>(10, new Comparator<ChunkCandidato>() {
 				public int compare(ChunkCandidato a, ChunkCandidato b) {
 					return Double.compare(a.distancia, b.distancia);
@@ -661,7 +660,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}
 			}
 		}
-
 		int carregados = 0;
 		if(livre >= 10.0 || !trava || total <= 30.0) {
 			while(!fila.isEmpty() && carregados < chunksPorVez) {
@@ -682,9 +680,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				carregados++;
 			}
 			if(!pronto) pronto = true;
-		} else {
-			ativarGC();
-		}
+		} else ativarGC();
 	}
 	
 	public static void ativarGC() {
@@ -727,18 +723,17 @@ public class GLRender implements GLSurfaceView.Renderer {
 					recursosUnicos.add(recurso);
 			}
 		}
-
 		ArrayList<String> listaRecursos = new ArrayList<>(recursosUnicos);
 		int numTexturas = listaRecursos.size();
 		int atlasCols = (int) Math.ceil(Math.sqrt(numTexturas));
-		int atlasRows = (int) Math.ceil((double) numTexturas / atlasCols);
+		int atlasLinhas = (int) Math.ceil((double) numTexturas / atlasCols);
 
 		Bitmap tempBitmap = null;
 		try {
-			AssetManager assetManager = contexto.getAssets();
-			InputStream inputStream = assetManager.open(pacoteTex+listaRecursos.get(0));
-			tempBitmap = BitmapFactory.decodeStream(inputStream);
-			inputStream.close();
+			AssetManager ctxAssets = contexto.getAssets();
+			InputStream tex = ctxAssets.open(pacoteTex+listaRecursos.get(0));
+			tempBitmap = BitmapFactory.decodeStream(tex);
+			tex.close();
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -748,28 +743,28 @@ public class GLRender implements GLSurfaceView.Renderer {
 		tempBitmap.recycle();
 
 		int atlasV = atlasCols * texV;
-		int atlasH = atlasRows * texH;
+		int atlasH = atlasLinhas * texH;
 		Bitmap atlasBitmap = Bitmap.createBitmap(atlasV, atlasH, Bitmap.Config.ARGB_8888);
 		Canvas canvas = new Canvas(atlasBitmap);
-		Paint paint = new Paint();
-		paint.setFilterBitmap(false);
+		Paint pincel = new Paint();
+		pincel.setFilterBitmap(false);
 
 		for(int i = 0; i < listaRecursos.size(); i++) {
 			String recurso = listaRecursos.get(i);
 			int col = i % atlasCols;
-			int row = i / atlasCols;
+			int linha = i / atlasCols;
 			int x = col * texV;
-			int y = row * texH;
+			int y = linha * texH;
 			Bitmap bitmap = null;
 			try {
-				AssetManager assetManager = contexto.getAssets();
-				InputStream inputStream = assetManager.open(pacoteTex+recurso);
-				bitmap = BitmapFactory.decodeStream(inputStream);
-				inputStream.close();
+				AssetManager ctxAssets = contexto.getAssets();
+				InputStream tex = ctxAssets.open(pacoteTex+recurso);
+				bitmap = BitmapFactory.decodeStream(tex);
+				tex.close();
 			} catch(IOException e) {
 				e.printStackTrace();
 			}
-			canvas.drawBitmap(bitmap, x, y, paint);
+			canvas.drawBitmap(bitmap, x, y, pincel);
 			bitmap.recycle();
 
 			float u_min = (float) x / atlasV;
@@ -778,7 +773,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 			float v_max = (float) (y + texH) / atlasH;
 			mundo.atlasUVMapa.put(recurso, new float[]{u_min, v_min, u_max, v_max});
 		}
-
 		int[] texturaIds = new int[1];
 		GLES30.glGenTextures(1, texturaIds, 0);
 		mundo.atlasTexturaId = texturaIds[0];
@@ -838,36 +832,22 @@ public class GLRender implements GLSurfaceView.Renderer {
 				ladoDistZ += deltaDistZ;
 				hitAxis = 2;
 			}
-
 			if(mundo.eBlocoSolido(mapaX, mapaY, mapaZ)) {
 				if(!camera.itemMao.equals("AR")) {
 					int blocoX = mapaX + (hitAxis == 0 ? -passoX : 0);
 					int blocoY = mapaY + (hitAxis == 1 ? -passoY : 0);
 					int blocoZ = mapaZ + (hitAxis == 2 ? -passoZ : 0);
 					mundo.colocarBloco(blocoX, blocoY, blocoZ, camera);
-				} else {
-					mundo.destruirBloco(mapaX, mapaY, mapaZ, camera);
-				}
+				} else mundo.destruirBloco(mapaX, mapaY, mapaZ, camera);
 				return;
 			}
 		}
 	}
 	
-	public void moverFrente() {
-		mover(camera.foco[0], camera.foco[2]);
-	}
-
-	public void moverTras() {
-		mover(-camera.foco[0], -camera.foco[2]);
-	}
-
-	public void moverDireita() {
-		mover(-camera.foco[2], camera.foco[0]);
-	}
-
-	public void moverEsquerda() {
-		mover(camera.foco[2], -camera.foco[0]);
-	}
+	public void moverFrente() { mover(camera.foco[0], camera.foco[2]); }
+	public void moverTras() { mover(-camera.foco[0], -camera.foco[2]); }
+	public void moverDireita() { mover(-camera.foco[2], camera.foco[0]); }
+	public void moverEsquerda() { mover(camera.foco[2], -camera.foco[0]); }
 
 	public void mover(float dirX, float dirZ) {
 		float magSq = dirX * dirX + dirZ * dirZ;
@@ -879,30 +859,28 @@ public class GLRender implements GLSurfaceView.Renderer {
 
 		float velocidade = camera.velocidadeX;
 		float[] pos = camera.posicao;
-		float halfSize = camera.hitbox[1] * 0.5f;
-		
-		float nx = pos[0] + dirX * velocidade;
-		float nz = pos[2] + dirZ * velocidade;
-		
-		int by = (int) Math.floor(pos[1] - 1);
-		
-		float[] corners = {
-			nx - halfSize, nz - halfSize,
-			nx - halfSize, nz + halfSize,
-			nx + halfSize, nz - halfSize,
-			nx + halfSize, nz + halfSize
-		};
 
-		for(int i = 0; i < 8; i += 2) {
-			int bx = (int) Math.floor(corners[i]);
-			int bz = (int) Math.floor(corners[i + 1]);
+		float altura = camera.hitbox[0];
+		float raio = camera.hitbox[1] / 2f;
+		float[] novaPos = {pos[0], pos[1], pos[2]};
 
-			if(mundo.eBlocoSolido(bx, by, bz)) {
-				return;
+		for(int iteracao = 0; iteracao < 3; iteracao++) {
+			float[] movimento = {
+				dirX * velocidade/2,
+				0,
+				dirZ * velocidade/2
+			};
+
+			for(int eixo = 0; eixo < 3; eixo++) {
+				if(movimento[eixo] == 0) continue;
+
+				float[] testePos = novaPos.clone();
+				testePos[eixo] += movimento[eixo];
+
+				if(!mundo.colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) novaPos[eixo] = testePos[eixo];
 			}
 		}
-		pos[0] = nx;
-		pos[2] = nz;
+		camera.posicao = novaPos;
 	}
 	
 	public void pular() {
@@ -956,7 +934,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 
 		// seed
 		dos.writeInt(seed);
-
 		// quantos chunks salvos
 		dos.writeInt(chunksCarregados.size());
 
@@ -966,15 +943,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 			int cx = chunk.length;
 			int cy = chunk[0].length;
 			int cz = chunk[0][0].length;
-
 			// salva a chave da chunk
 			dos.writeUTF(chave);
-
 			// escreve o tamanho da chunk
 			dos.writeInt(cx);
 			dos.writeInt(cy);
 			dos.writeInt(cz);
-
 			// conta quantos bloxos tem na chunk
 			int totalNaoAr = 0;
 			for(int x = 0; x < cx; x++) {
@@ -988,7 +962,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}
 			}
 			dos.writeInt(totalNaoAr);
-
 			// salva os dados dos blocos
 			for(int x = 0; x < cx; x++) {
 				for(int y = 0; y < cy; y++) {
@@ -1031,12 +1004,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 			int cy = dis.readInt();
 			int cz = dis.readInt();
 			Bloco[][][] chunk = new Bloco[cx][cy][cz];
-
 			// eztraindo a chave da xhunk
 			String[] partesChave = chave.split(",");
 			int chunkX = Integer.parseInt(partesChave[0]);
 			int chunkZ = Integer.parseInt(partesChave[1]);
-
 			// constroi a chunk
 			for(int x = 0; x < cx; x++) {
 				for(int y = 0; y < cy; y++) {
@@ -1053,7 +1024,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 				int y = dis.readInt();
 				int z = dis.readInt();
 				String id = dis.readUTF();
-
 				// convertendo pra coordenadas globais
 				int globalX = chunkX * mundo.CHUNK_TAMANHO + x;
 				int globalZ = chunkZ * mundo.CHUNK_TAMANHO + z;
@@ -1079,3 +1049,20 @@ public class GLRender implements GLSurfaceView.Renderer {
 		dis.close();
 	}
 }
+class Mob extends Player {
+		public VBOGrupo modelo;
+		public int texturaId;
+
+		public Mob(float x, float y, float z, VBOGrupo modelo, int texturaId) {
+			this.modelo = modelo;
+			this.texturaId = texturaId;
+
+			this.posicao[0] = x;
+			this.posicao[1] = y;
+			this.posicao[2] = z;
+			this.peso = 1f;
+			this.velocidadeX = 0.09f;
+			this.hitbox[0] = 1.7f;
+			this.hitbox[1] = 0.8f;
+		}
+	}

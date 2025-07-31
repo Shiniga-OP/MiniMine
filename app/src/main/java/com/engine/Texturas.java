@@ -1,4 +1,5 @@
 package com.engine;
+
 import android.opengl.GLES30;
 import java.nio.ByteBuffer;
 import android.content.Context;
@@ -61,7 +62,6 @@ public class Texturas {
 
 		GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
 		GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
-
 		return tex[0];
 	}
 }

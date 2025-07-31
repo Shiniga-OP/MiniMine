@@ -43,10 +43,17 @@ public class GL {
 	}
 
 	// memoria:
+	public static void ativarVBO(int vbo, int stride) {
+		GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo);
+		GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, stride, 0);
+		GLES30.glEnableVertexAttribArray(0);
+		GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, stride, 12);
+		GLES30.glEnableVertexAttribArray(1);
+	}
+	
 	public static int gerarVBO(float[] vertices) {
 		FloatBuffer buffer = criarFloatBuffer(vertices.length);
-		buffer.put(vertices);
-		buffer.position(0);
+		buffer.put(vertices).position(0);
 		return gerarVBO(buffer);
 	}
 
@@ -83,8 +90,7 @@ public class GL {
 
 	public static int gerarIBO(short[] indices) {
 		ShortBuffer buffer = criarShortBuffer(indices.length);
-		buffer.put(indices);
-		buffer.position(0);
+		buffer.put(indices).position(0);
 		return gerarIBO(buffer);
 	}
 

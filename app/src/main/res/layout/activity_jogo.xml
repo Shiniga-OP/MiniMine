@@ -4,12 +4,10 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	android:orientation="horizontal">
-
 	<android.opengl.GLSurfaceView
 		android:id="@+id/tela"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"/>
-
 	<EditText
 		android:id="@+id/chat"
 		android:layout_width="match_parent"
@@ -21,18 +19,16 @@
 		android:lines="1"
 		android:maxLines="1"
 		android:inputType="textWebEditText"/>
-
 	<TextView
 		android:id="@+id/coordenadas"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:textColor="#232323"
 		android:text="X: 0 Y: 0 Z: 0"
-		android:textSize="16sp"
+		android:textSize="20sp"
 		android:layout_alignParentTop="true"
 		android:layout_alignParentRight="true"
 		android:layout_margin="10dp"/>
-
 	<EditText
 		android:id="@+id/logs"
 		android:layout_width="200dp"

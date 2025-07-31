@@ -7,19 +7,13 @@ import android.os.Bundle;
 import com.engine.Audio;
 import android.view.View;
 import android.content.Intent;
-import android.os.Build;
-import android.os.Environment;
-import android.provider.Settings;
-import android.net.Uri;
-import android.Manifest;
-import android.widget.Toast;
-import android.content.pm.PackageManager;
 import com.engine.Sistema;
+import android.os.Handler;
 
 public class MainActivity extends Activity {
-	public int PERMISSAO;
 	public GLSurfaceView tela;
 	public GLRender render;
+	public boolean dev = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,43 +21,52 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 		
 		Sistema.pedirArmazTotal(this);
-		
-		tela = findViewById(R.id.tela);
-		
-		if(Math.random() < 0.5) {
-			Audio.tocarMusica(this, "musicas/igor.m4a", false);
+		if(dev) {
+			new Handler().postDelayed(new Runnable() {
+				public void run() {
+					paraMundo(null);
+				}
+			}, 1);
 		} else {
-			Audio.tocarMusica(this, "musicas/igor-2.m4a", false);
+			tela = findViewById(R.id.tela);
+
+			if(Math.random() < 0.5) Audio.tocarMusica(this, "musicas/igor.m4a", false);
+			else Audio.tocarMusica(this, "musicas/igor-2.m4a", false);
+
+			tela.setEGLContextClientVersion(3);
+			render = new GLRender(this, tela, 77734, "novo mundo", "normal", "texturas/evolva/");
+			render.UI = false;
+			render.trava = false;
+			tela.setRenderer(render);
+			tela.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 		}
-		
-		tela.setEGLContextClientVersion(3);
-        render = new GLRender(this, tela, 77734, "novo mundo", "normal", "texturas/"+"evolva"+"/");
-		render.UI = false;
-		render.trava = false;
-        tela.setRenderer(render);
-        tela.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
-	}
-	
-	public void iniciar() {
-		
 	}
 	
 	public void paraMundo(View v) {
-		Intent intent = new Intent(this, InicioActivity.class);
-		startActivity(intent);
+		if(dev) {
+			Intent cache = new Intent(this, MundoActivity.class);
+			cache.putExtra("dev", dev);
+			startActivity(cache);
+		} else {
+			Intent cache = new Intent(this, InicioActivity.class);
+			cache.putExtra("dev", dev);
+			startActivity(cache);
+		}
 	}
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        tela.onResume();
-    }
+	protected void onResume() {
+		super.onResume();
+		if(tela != null) tela.onResume();
+	}
 
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 		Audio.pararMusicas();
-		render.limparTexturas();
-		render.destruir();
+		if(render != null) {
+			render.limparTexturas();
+			render.destruir();
+		}
 	}
 }

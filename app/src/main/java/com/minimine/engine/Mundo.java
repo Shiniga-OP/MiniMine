@@ -1,28 +1,18 @@
 package com.minimine.engine;
 
-import android.opengl.GLSurfaceView;
-import java.nio.FloatBuffer;
-import java.util.List;
+import com.engine.Camera3D;
+import java.util.Random;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+import com.engine.PerlinNoise3D;
+import com.engine.PerlinNoise2D;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.ArrayList;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
 import org.json.JSONObject;
 import org.json.JSONArray;
-import org.json.JSONException;
-import java.nio.ByteBuffer;
-import android.opengl.GLES30;
-import java.nio.ByteOrder;
-import java.util.Random;
-import com.engine.PerlinNoise2D;
-import com.engine.PerlinNoise3D;
-import com.engine.Camera3D;
 
 public class Mundo {
-	public GLSurfaceView tela;
-
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
     public int MUNDO_LATERAL = 64; // padrao: 64, testes: 32
     public int RAIO_CARREGAMENTO = 5; // padrao: 3, testes: 2, inicial: 15
@@ -42,6 +32,7 @@ public class Mundo {
 	public String pacoteTex;
 	
 	public List<String> estruturas = new ArrayList<>();
+	public List<Mob> mobs = new ArrayList<Mob>();
 	
 	public static final int PLANICIE = 0;
     public static final int DESERTO = 1;
@@ -122,8 +113,7 @@ public class Mundo {
 	
 	public final float[] UV_PADRAO = {0f, 0f, 1f, 1f};
 
-	public Mundo(GLSurfaceView tela, int seed, String nome, String tipo, String pacoteTex) {
-		this.tela = tela;
+	public Mundo(int seed, String nome, String tipo, String pacoteTex) {
 		this.seed = seed;
 		this.nome = nome;
 	    this.tipo = tipo;
@@ -366,7 +356,7 @@ public class Mundo {
 
 				addBloco(bx, by, bz, bloco.getString("tipo"), chunk);
 			}
-		} catch(JSONException e) {
+		} catch(Exception e) {
 			System.out.println("erro ao carregar o json estrutura: "+e);
 		}
 	}
@@ -539,11 +529,11 @@ public class Mundo {
 		float yTeste = posPes - 0.1f;
 		int by = (int) Math.floor(yTeste);
 
-		float halfLargura = camera.hitbox[1] / 2f;
-		int bx1 = (int) Math.floor(camera.posicao[0] - halfLargura);
-		int bx2 = (int) Math.floor(camera.posicao[0] + halfLargura);
-		int bz1 = (int) Math.floor(camera.posicao[2] - halfLargura);
-		int bz2 = (int) Math.floor(camera.posicao[2] + halfLargura);
+		float metadeLargura = camera.hitbox[1] / 2f;
+		int bx1 = (int) Math.floor(camera.posicao[0] - metadeLargura);
+		int bx2 = (int) Math.floor(camera.posicao[0] + metadeLargura);
+		int bz1 = (int) Math.floor(camera.posicao[2] - metadeLargura);
+		int bz2 = (int) Math.floor(camera.posicao[2] + metadeLargura);
 
 		for(int bx = bx1; bx <= bx2; bx++) {
 			for(int bz = bz1; bz <= bz2; bz++) {
@@ -573,65 +563,67 @@ public class Mundo {
 		}
 	}
 
-	public float[] verificarColisao(Camera3D camera, float novoTx, float novoTy, float novoTz) {
-		float altura = camera.hitbox[0];
-		float largura = camera.hitbox[1];
-		float metadeLargura = largura / 2f;
-		float novoX = novoTx;
-		float novoY = novoTy - 1.5f; // para verificar abaixo do jogador
-		float novoZ = novoTz;
-		float EPSILON = 0.0001f;
+	public void verificarColisao(Camera3D cam, float tx, float ty, float tz) {
+		float[] pos = cam.posicao;
+		float h = cam.hitbox[0];       //altura
+		float r = cam.hitbox[1] / 2f;  //metade da largura
 
-		for(int iter = 0; iter < 5; iter++) {
-			float minX = novoX - metadeLargura;
-			float maxX = novoX + metadeLargura;
-			float minY = novoY;
-			float maxY = novoY + altura;
-			float minZ = novoZ - metadeLargura;
-			float maxZ = novoZ + metadeLargura;
+		// processa cada eixo separadamente na ordem correta
+		float[] novo = {tx, pos[1], pos[2]};
+		novo = ajustarColisao(cam, novo, r, h, 0); // X primeiro
 
-			int startX = (int) Math.floor(minX);
-			int endX   = (int) Math.floor(maxX);
-			int startY = (int) Math.floor(minY);
-			int endY   = (int) Math.floor(maxY);
-			int startZ = (int) Math.floor(minZ);
-			int endZ   = (int) Math.floor(maxZ);
+		novo[2] = tz;
+		novo = ajustarColisao(cam, novo, r, h, 2); // Z segundo
 
-			boolean colidiu = false;
-			boolean ajustouEixo = false;
+		novo[1] = ty;
+		novo = ajustarColisao(cam, novo, r, h, 1); // Y por ultimo
 
-			for(int bx = startX; bx <= endX; bx++) {
-				for(int by = startY; by <= endY; by++) {
-					for(int bz = startZ; bz <= endZ; bz++) {
-						if(!eBlocoSolido(bx, by, bz)) continue;
+		cam.posicao = novo;
+	}
 
-						float blocoMinX = bx;
-						float blocoMaxX = bx + 1f;
-						float blocoMinY = by;
-						float blocoMaxY = by + 1f;
-						float blocoMinZ = bz;
-						float blocoMaxZ = bz + 1f;
+	public float[] ajustarColisao(Camera3D cam, float[] pos, float raio, float altura, int eixo) {
+		float[] original = cam.posicao;
+		float[] testePos = pos.clone();
 
-						float sobreposX = Math.max(0f, Math.min(maxX, blocoMaxX) - Math.max(minX, blocoMinX));
-						float sobreposY = Math.max(0f, Math.min(maxY, blocoMaxY) - Math.max(minY, blocoMinY));
-						float sobreposZ = Math.max(0f, Math.min(maxZ, blocoMaxZ) - Math.max(minZ, blocoMinZ));
+		final int PASSOS = 3;
+		float incremento = (pos[eixo] - original[eixo]) / PASSOS;
 
-						if(sobreposX > EPSILON && sobreposX < sobreposY && sobreposX < sobreposZ) {
-							novoX += (novoX < bx + 0.5f) ? -sobreposX : sobreposX;
-							ajustouEixo = true;
-						} else if(sobreposY > EPSILON && sobreposY < sobreposX && sobreposY < sobreposZ) {
-							novoY += (novoY < by + 0.5f) ? -sobreposY : sobreposY;
-							ajustouEixo = true;
-						} else if(sobreposZ > EPSILON) {
-							novoZ += (novoZ < bz + 0.5f) ? -sobreposZ : sobreposZ;
-							ajustouEixo = true;
-						}
-						colidiu = true;
+		for(int i = 1; i <= PASSOS; i++) {
+			testePos[eixo] = original[eixo] + incremento * i;
+
+			if(!colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) {
+				continue;
+			}
+
+			// colisao detectada, volta ao ultimo passo valido
+			testePos[eixo] = original[eixo] + incremento * (i - 1);
+			break;
+		}
+		return testePos;
+	}
+
+	public boolean colidiria(float cx, float cy, float cz, float altura, float raio) {
+		float pe = cy - 1.5f;
+		float cabeca = pe + altura;
+
+		// verifica 9 pontos critcos na hitbox
+		for(int x = -1; x <= 1; x++) {
+			for(int z = -1; z <= 1; z++) {
+				float px = cx + x * raio;
+				float pz = cz + z * raio;
+
+				//do pé à cabeça
+				for(float py = pe; py <= cabeca; py += altura / 2f) {
+					int bx = (int) Math.floor(px);
+					int by = (int) Math.floor(py);
+					int bz = (int) Math.floor(pz);
+
+					if(eBlocoSolido(bx, by, bz)) {
+						return true;
 					}
 				}
 			}
-			if(!colidiu || !ajustouEixo) break;
 		}
-		return new float[] { novoX, novoY + 1.5f, novoZ }; // + 1.5f para a camera continuar em cima e não nos pés
+		return false;
 	}
 }
