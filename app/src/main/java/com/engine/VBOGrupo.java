@@ -1,4 +1,4 @@
-package com.minimine.engine;
+package com.engine;
 
 public class VBOGrupo {
     public int texturaId;

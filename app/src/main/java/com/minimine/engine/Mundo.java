@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import org.json.JSONObject;
 import org.json.JSONArray;
+import com.engine.Modelador;
+import com.engine.VBOGrupo;
 
 public class Mundo {
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
@@ -244,7 +246,7 @@ public class Mundo {
 					Bloco bloco = chunk[x][y][z];
 					if(bloco == null || "0".equals(bloco.tipo[0])) continue;
 
-					float[] vertices = bloco.obterVertices();
+					float[] vertices = Modelador.criarBloco(bloco.x, bloco.y, bloco.z);
 					for(int face = 0; face < 6; face++) {
 						if(!faceVisivel(bloco.x, bloco.y, bloco.z, face)) continue;
 

@@ -11,8 +11,7 @@ import android.opengl.GLUtils;
 public class Texturas {
 	public static int carregarAsset(Context ctx, String nomeArquivo) {
 		try {
-			InputStream is = ctx.getAssets().open(nomeArquivo);
-			Bitmap bmp = BitmapFactory.decodeStream(is);
+			Bitmap bmp = ArmUtils.lerImgAssets(ctx, nomeArquivo);
 			int[] texID = new int[1];
 			GLES30.glGenTextures(1, texID, 0);
 			GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texID[0]);

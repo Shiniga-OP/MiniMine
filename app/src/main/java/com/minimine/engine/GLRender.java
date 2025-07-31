@@ -49,9 +49,14 @@ import android.app.Activity;
 import com.engine.GL;
 import com.engine.Sistema;
 import com.engine.ShaderUtils;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import com.engine.ArmUtils;
+import com.engine.Modelador;
+import com.engine.VBOGrupo;
 
 public class GLRender implements GLSurfaceView.Renderer {
-    public Context contexto;
+    public Context ctx;
     public final GLSurfaceView tela;
     public float[] projMatriz = new float[16];
     public float[] viewMatriz = new float[16];
@@ -348,7 +353,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 
 			Matrix.setIdentityM(modeloMatriz, 0);
 			Matrix.translateM(modeloMatriz, 0, mob.posicao[0], mob.posicao[1], mob.posicao[2]);
-			Matrix.scaleM(modeloMatriz, 0, 1f, 1f, 1f); // se quiser escalar mob
+			Matrix.scaleM(modeloMatriz, 0, 0.09f, 0.09f, 0.09f);
 
 			Matrix.multiplyMM(mvpMatriz, 0, vpMatriz, 0, modeloMatriz, 0);
 			GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, mvpMatriz, 0);
@@ -431,8 +436,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 	
 	public boolean pronto = false;
 	
-    public GLRender(Context contexto, GLSurfaceView tela, int seed, String nome, String tipo, String pacoteTex) {
-        this.contexto = contexto;
+    public GLRender(Context ctx, GLSurfaceView tela, int seed, String nome, String tipo, String pacoteTex) {
+        this.ctx = ctx;
         this.tela = tela;
 		this.seed = seed;
 		this.nome = nome;
@@ -463,27 +468,27 @@ public class GLRender implements GLSurfaceView.Renderer {
 		// mira:      
 		mira = new Objeto2D(0, 0, 50, 50, Texturas.carregarAsset(ctx, "texturas/evolva/ui/mira.png"));      
 		// movimentacao      
-		botoes[0] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_d.png")));
+		botoes[0] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_d.png")));
 		botoes[0].definirAcao(new Runnable() {
 			public void run() { moverDireita(); }
 		});
-		botoes[1] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_e.png")));
+		botoes[1] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_e.png")));
 		botoes[1].definirAcao(new Runnable() {
 			public void run() { moverEsquerda(); }
 		});
-		botoes[2] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_t.png")));
+		botoes[2] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_t.png")));
 		botoes[2].definirAcao(new Runnable() {
 			public void run() { moverTras(); }
 		});
-		botoes[3] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));
+		botoes[3] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_f.png")));
 		botoes[3].definirAcao(new Runnable() {
 			public void run() { moverFrente(); }
 		});
-		botoes[4] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/botao_f.png")));      
+		botoes[4] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_f.png")));      
 		botoes[4].definirAcao(new Runnable() {        
 			public void run() { pular(); }        
 		});        
-		botoes[5] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(contexto, "texturas/evolva/ui/clique.png")));      
+		botoes[5] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/clique.png")));      
 		botoes[5].definirAcao(new Runnable() {
 			public void run() { colocarBloco(); }        
 		});        
@@ -518,27 +523,13 @@ public class GLRender implements GLSurfaceView.Renderer {
         this.mundo = new Mundo(this.seed, this.nome, this.tipo, this.pacoteTex);  
 		crMundo(this.mundo);  
 		
-        this.carregarShaders(contexto);  
-        this.carregarTexturas(contexto);
-		float[] vertices = {
-			// x, y, z, nx, ny, nz, u, v
-			-0.5f, 0, -0.5f, 0,1,0, 0,0,
-			0.5f, 0, -0.5f, 0,1,0, 1,0,
-			0.5f, 0,  0.5f, 0,1,0, 1,1,
-			-0.5f, 0,  0.5f, 0,1,0, 0,1
-		};
-		FloatBuffer vb = GL.criarFloatBuffer(32);
-		vb.put(vertices).position(0);
-		ShortBuffer ib = GL.criarShortBuffer(6);
-		ib.put(new short[]{0,1,2, 2,3,0}).position(0);
-		
-		int vboId = GL.gerarVBO(vb);
-		int iboId = GL.gerarIBO(ib);
-		int texId = Texturas.texturaCor(1f, 0f, 0f, 1f); // vermelho
-
-		mundo.mobs.add(new Mob(5, 120, 5, new VBOGrupo(texId, vboId, iboId, 6), texId));
+        this.carregarShaders(ctx);  
+        this.carregarTexturas(ctx);
+		int texId = Texturas.carregarAsset(ctx, "texturas/teste.png");
+		VBOGrupo modelo = Modelador.carregarModelo(ArmUtils.lerTextoAssets(ctx, "modelos/teste.json"), texId);
+		mundo.mobs.add(new Mob(5, 120, 5, modelo, texId));
 		if(UI) {
-			this.carregarUI(contexto);
+			this.carregarUI(ctx);
 			ui = new Cena2D();
 			ui.iniciar();
 			ui.add(mira);
@@ -562,7 +553,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 		atualizarChunks();
 
 		if(pronto==true) {
-			atualizarGravidade();
+			atualizarGravidade(camera);
+			for(Mob mob : mundo.mobs) atualizarGravidade(mob);
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
 			if(UI) ui.render();
 			renderizar();  
@@ -606,7 +598,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
     }
 	
-	public void atualizarGravidade() {
+	public void atualizarGravidade(Player camera) {
 		if(camera.noAr == false) return;
 		if(!gravidade || camera.peso == 0) return;
 		// aplica gravidade
@@ -755,15 +747,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			int linha = i / atlasCols;
 			int x = col * texV;
 			int y = linha * texH;
-			Bitmap bitmap = null;
-			try {
-				AssetManager ctxAssets = contexto.getAssets();
-				InputStream tex = ctxAssets.open(pacoteTex+recurso);
-				bitmap = BitmapFactory.decodeStream(tex);
-				tex.close();
-			} catch(IOException e) {
-				e.printStackTrace();
-			}
+			Bitmap bitmap = ArmUtils.lerImgAssets(ctx, pacoteTex+recurso);
 			canvas.drawBitmap(bitmap, x, y, pincel);
 			bitmap.recycle();
 

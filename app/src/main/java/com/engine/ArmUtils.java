@@ -10,15 +10,41 @@ import java.util.List;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.FileWriter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 public class ArmUtils {
+	public static String lerTextoAssets(Context ctx, String nomeArquivo) {
+		try {
+			InputStream is = ctx.getAssets().open(nomeArquivo);
+			int tamanho = is.available();
+			byte[] buffer = new byte[tamanho];
+			is.read(buffer);
+			is.close();
+			return new String(buffer, "UTF-8");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public static Bitmap lerImgAssets(Context ctx, String nomeArquivo) {
+		try {
+			InputStream is = ctx.getAssets().open(nomeArquivo);
+			Bitmap bmp = BitmapFactory.decodeStream(is);
+			is.close();
+			return bmp;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 	public static String lerArquivo(File arquivo) throws Exception {
 		BufferedReader br = new BufferedReader(new FileReader(arquivo));
 		StringBuilder sb = new StringBuilder();
 		String linha;
-		while((linha = br.readLine()) != null) {
-			sb.append(linha);
-		}
+		while((linha = br.readLine()) != null) sb.append(linha);
 		br.close();
 		return sb.toString();
 	}
@@ -51,9 +77,7 @@ public class ArmUtils {
             char[] buff = new char[1024];
             int tamanho = 0;
 
-            while((tamanho = fr.read(buff)) > 0) {
-                sb.append(new String(buff, 0, tamanho));
-            }
+            while((tamanho = fr.read(buff)) > 0) sb.append(new String(buff, 0, tamanho));
         } catch(Exception e) {
             e.printStackTrace();
         } finally {
@@ -71,7 +95,6 @@ public class ArmUtils {
     public static void escreverArquivo(String caminho, String texto) {
         criarArquivo(caminho);
         FileWriter escritor = null;
-
         try {
             escritor = new FileWriter(new File(caminho), false);
             escritor.write(texto);
@@ -80,8 +103,7 @@ public class ArmUtils {
             e.printStackTrace();
         } finally {
             try {
-                if(escritor != null)
-                    escritor.close();
+                if(escritor != null) escritor.close();
             } catch(Exception e) {
                 e.printStackTrace();
             }
@@ -94,19 +116,14 @@ public class ArmUtils {
 
 			if(arquivos != null && arquivos.length > 0) {
 				File pastaDestino = new File(caminhoDestino);
-				if (!pastaDestino.exists()) {
-					pastaDestino.mkdirs();
-				}
+				if (!pastaDestino.exists()) pastaDestino.mkdirs();
 
 				for(String arquivo : arquivos) {
 					String novoCaminhoAssets = caminhoAssets + "/" + arquivo;
 					String novoCaminhoDestino = caminhoDestino + "/" + arquivo;
 
-					if(contexto.getAssets().list(novoCaminhoAssets).length > 0) {
-						copiarPastaAssets(contexto, novoCaminhoDestino, novoCaminhoAssets);
-					} else {
-						copiarArquivoAssets(contexto, novoCaminhoDestino, novoCaminhoAssets);
-					}
+					if(contexto.getAssets().list(novoCaminhoAssets).length > 0) copiarPastaAssets(contexto, novoCaminhoDestino, novoCaminhoAssets);
+					else copiarArquivoAssets(contexto, novoCaminhoDestino, novoCaminhoAssets);
 				}
 			}
 		} catch(Exception e) {
@@ -266,7 +283,7 @@ public class ArmUtils {
         }
     }
 
-    public static void listarArquivosAbsoluto(String caminho, List<String> lista) {
+    public static void listarArquivosAbs(String caminho, List<String> lista) {
         File dir = new File(caminho);
         if(!dir.exists() || dir.isFile()) return;
 
@@ -280,7 +297,7 @@ public class ArmUtils {
         }
     }
 
-    public static boolean eDiretorio(String caminho) {
+    public static boolean eDir(String caminho) {
         if(!existeArquivo(caminho)) return false;
         return new File(caminho).isDirectory();
     }
@@ -290,7 +307,7 @@ public class ArmUtils {
         return new File(caminho).isFile();
     }
 
-    public static long obterTamanhoArquivo(String caminho) {
+    public static long obterArquivoTam(String caminho) {
         if(!existeArquivo(caminho)) return 0;
         return new File(caminho).length();
     }
@@ -303,7 +320,7 @@ public class ArmUtils {
         return contexto.getExternalFilesDir(null).getAbsolutePath();
     }
 
-    public static String obterDiretorioPublico(String tipo) {
+    public static String obterDirPublico(String tipo) {
         return Environment.getExternalStoragePublicDirectory(tipo).getAbsolutePath();
     }
 }
