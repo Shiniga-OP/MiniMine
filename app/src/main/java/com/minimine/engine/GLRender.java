@@ -62,8 +62,8 @@ public class GLRender implements GLSurfaceView.Renderer {
     public float[] viewMatriz = new float[16];
     public float[] vpMatriz = new float[16];
 	
-    public Player camera = new Player();
-    public ExecutorService executor = Executors.newFixedThreadPool(4);
+    public Player player = new Player();
+    public ExecutorService executor = Executors.newFixedThreadPool(2);
 	public float pesoConta = 0f;
 	// interface
 	public Cena2D ui;
@@ -83,7 +83,7 @@ public class GLRender implements GLSurfaceView.Renderer {
     public int lidarNormal;
     public float[] luzDirecao = {0.5f, 1.0f, 0.5f};
 	public float luz = 0.93f;
-	public int chunksPorVez = 1;
+	public int chunksPorVez = 2;
 	// céu:
 	public float tempo = 0.40f;
 	public float tempoVelo = 0.00001f;
@@ -296,15 +296,15 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 	
 	public void renderHitbox() {
-		float altura = camera.hitbox[0];
-		float largura = camera.hitbox[1];
+		float altura = player.hitbox[0];
+		float largura = player.hitbox[1];
 		float metadeLargura = largura / 2f;
-		float minX = camera.posicao[0] - metadeLargura;
-		float maxX = camera.posicao[0] + metadeLargura;
-		float minY = camera.posicao[1] - 1.5f;
-		float maxY = camera.posicao[1] + altura;
-		float minZ = camera.posicao[2] - metadeLargura;
-		float maxZ = camera.posicao[2] + metadeLargura;
+		float minX = player.pos[0] - metadeLargura;
+		float maxX = player.pos[0] + metadeLargura;
+		float minY = player.pos[1] - 1.5f;
+		float maxY = player.pos[1] + altura;
+		float minZ = player.pos[2] - metadeLargura;
+		float maxZ = player.pos[2] + metadeLargura;
 		
 		float[] vertices = {
 			minX, minY, minZ,  maxX, minY, minZ,
@@ -346,14 +346,15 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glUniform1f(lidarLuzIntensidade, luz);
 		GLES30.glUniform3fv(lidarLuzDirecao, 1, luzDirecao, 0);
 
-		for(Mob mob : mundo.mobs) {
+		for(Mob mob : mundo.entidades) {
+			if(mob == player) continue;
 			// matriz modelo * view * projeção
 			float[] modeloMatriz = new float[16];
 			float[] mvpMatriz = new float[16];
 
 			Matrix.setIdentityM(modeloMatriz, 0);
-			Matrix.translateM(modeloMatriz, 0, mob.posicao[0], mob.posicao[1], mob.posicao[2]);
-			Matrix.scaleM(modeloMatriz, 0, 0.09f, 0.09f, 0.09f);
+			Matrix.translateM(modeloMatriz, 0, mob.pos[0], mob.pos[1], mob.pos[2]);
+			Matrix.scaleM(modeloMatriz, 0, 0.06f, 0.06f, 0.06f);
 
 			Matrix.multiplyMM(mvpMatriz, 0, vpMatriz, 0, modeloMatriz, 0);
 			GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, mvpMatriz, 0);
@@ -408,7 +409,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 	
 	public List<VBOGrupo> gerarVBO(Map<Integer, List<float[]>> dadosPorTextura) {
 		List<VBOGrupo> grupos = new ArrayList<>();
-		
 		for(Map.Entry<Integer, List<float[]>> entry : dadosPorTextura.entrySet()) {
 			int texturaId = entry.getKey();
 			//  calcula total de vertices em todas as listas float[]
@@ -457,9 +457,9 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 	public void defMobPos(int i, float x, float y, float z) {
 		try {
-			mundo.mobs.get(i).posicao[0] = x;
-			mundo.mobs.get(i).posicao[1] = y;
-			mundo.mobs.get(i).posicao[2] = z;
+			mundo.entidades.get(i).pos[0] = x;
+			mundo.entidades.get(i).pos[1] = y;
+			mundo.entidades.get(i).pos[2] = z;
 		} catch(Exception e) {
 			System.out.println("erro: "+e);
 		}
@@ -495,19 +495,19 @@ public class GLRender implements GLSurfaceView.Renderer {
 		// slots      
 		botoes[6] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaBranca()));
 		botoes[6].definirAcao(new Runnable() {        
-			public void run() { camera.itemMao = "AR"; }        
+			public void run() { player.itemMao = "AR"; }        
 		});      
 		botoes[7] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaCor(0.5f, 1f, 0.9f, 1f)));
 		botoes[7].definirAcao(new Runnable() {        
-			public void run() { camera.itemMao = "PEDREGULHO"; }        
+			public void run() { player.itemMao = "PEDREGULHO"; }        
 		});      
 		botoes[8] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaCor(1f, 0.5f, 0.2f, 1f)));        
 		botoes[8].definirAcao(new Runnable() {        
-			public void run() { camera.itemMao = "TABUAS_CARVALHO"; }        
+			public void run() { player.itemMao = "TABUAS_CARVALHO"; }        
 		});      
 		botoes[9] = new Botao2D(new Objeto2D(0, 0, 100, 100, Texturas.texturaCor(0.8f, 0.3f, 1f, 1f)));        
 		botoes[9].definirAcao(new Runnable() {        
-			public void run() { camera.itemMao = "TRONCO_CARVALHO"; }        
+			public void run() { player.itemMao = "TRONCO_CARVALHO"; }        
 		});
 	}
 	
@@ -527,7 +527,7 @@ public class GLRender implements GLSurfaceView.Renderer {
         this.carregarTexturas(ctx);
 		int texId = Texturas.carregarAsset(ctx, "texturas/teste.png");
 		VBOGrupo modelo = Modelador.carregarModelo(ArmUtils.lerTextoAssets(ctx, "modelos/teste.json"), texId);
-		mundo.mobs.add(new Mob(5, 120, 5, modelo, texId));
+		mundo.entidades.add(new Mob(5, 120, 5, modelo, texId));
 		if(UI) {
 			this.carregarUI(ctx);
 			ui = new Cena2D();
@@ -553,17 +553,22 @@ public class GLRender implements GLSurfaceView.Renderer {
 		atualizarChunks();
 
 		if(pronto==true) {
-			atualizarGravidade(camera);
-			for(Mob mob : mundo.mobs) atualizarGravidade(mob);
+			atualizarGravidade(player);
+			player.atualizar();
+			for(int i = 0; i < mundo.entidades.size(); i++) {
+				Player mob = mundo.entidades.get(i);
+				mob.atualizar();
+				atualizarGravidade(mob);
+			}
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
 			if(UI) ui.render();
 			renderizar();  
 			renderizarMobs();
 			atualizarViewMatriz();  
-			if(mundo.noChao(camera) || mundo.chunksAtivos.size() < 4) {  
-				camera.noAr = false;  
+			if(mundo.noChao(player) || mundo.chunksAtivos.size() < 4) {  
+				player.noAr = false;  
 				pesoConta = 0.1f;  
-			} else camera.noAr = true;  
+			} else player.noAr = true;  
 		}  
 		if(gc == true)  ativarGC();  
 		if(debug == true) renderHitbox();  
@@ -605,10 +610,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 		camera.velocidadeY += camera.GRAVIDADE;
 		if(camera.velocidadeY < camera.velocidadeY_limite)
 			camera.velocidadeY = camera.velocidadeY_limite;
-		float novaY = camera.posicao[1] + camera.velocidadeY;
+		float novaY = camera.pos[1] + camera.velocidadeY;
 		// verifica colisão
-		mundo.verificarColisao(camera, camera.posicao[0], novaY, camera.posicao[2]);
-		boolean bateuChao =camera. posicao[1] > novaY;
+		camera.pos = mundo.verificarColisao(camera, camera.pos[0], novaY, camera.pos[2]);
+		boolean bateuChao =camera. pos[1] > novaY;
 		// atualiza o esytado do jogador
 		if(bateuChao) {
 			camera.velocidadeY = 0;
@@ -617,8 +622,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 
     public void atualizarChunks() {
-		int chunkJogadorX = (int)(camera.posicao[0] / mundo.CHUNK_TAMANHO);
-		int chunkJogadorZ = (int)(camera.posicao[2] / mundo.CHUNK_TAMANHO);
+		int chunkJogadorX = (int)(player.pos[0] / mundo.CHUNK_TAMANHO);
+		int chunkJogadorZ = (int)(player.pos[2] / mundo.CHUNK_TAMANHO);
 
 		Iterator<Map.Entry<String, Bloco[][][]>> it = mundo.chunksAtivos.entrySet().iterator();
 		while(it.hasNext()) {
@@ -769,16 +774,16 @@ public class GLRender implements GLSurfaceView.Renderer {
 	}
 	
 	public void colocarBloco() {
-		float[] pos = camera.posicao;
+		float[] pos = player.camera.pos;
 
-		float yaw = camera.yaw;
-		float tom = camera.tom;
+		float yaw = player.camera.yaw;
+		float tom = player.camera.tom;
 
 		float dx = (float) (Math.cos(Math.toRadians(tom)) * Math.cos(Math.toRadians(yaw)));
 		float dy = (float) Math.sin(Math.toRadians(tom));
 		float dz = (float) (Math.cos(Math.toRadians(tom)) * Math.sin(Math.toRadians(yaw)));
 
-		float maxDist = camera.alcance;
+		float maxDist = player.alcance;
 
 		int mapaX = (int) Math.floor(pos[0]);
 		int mapaY = (int) Math.floor(pos[1]);
@@ -817,21 +822,21 @@ public class GLRender implements GLSurfaceView.Renderer {
 				hitAxis = 2;
 			}
 			if(mundo.eBlocoSolido(mapaX, mapaY, mapaZ)) {
-				if(!camera.itemMao.equals("AR")) {
+				if(!player.itemMao.equals("AR")) {
 					int blocoX = mapaX + (hitAxis == 0 ? -passoX : 0);
 					int blocoY = mapaY + (hitAxis == 1 ? -passoY : 0);
 					int blocoZ = mapaZ + (hitAxis == 2 ? -passoZ : 0);
-					mundo.colocarBloco(blocoX, blocoY, blocoZ, camera);
-				} else mundo.destruirBloco(mapaX, mapaY, mapaZ, camera);
+					mundo.colocarBloco(blocoX, blocoY, blocoZ, player);
+				} else mundo.destruirBloco(mapaX, mapaY, mapaZ, player);
 				return;
 			}
 		}
 	}
 	
-	public void moverFrente() { mover(camera.foco[0], camera.foco[2]); }
-	public void moverTras() { mover(-camera.foco[0], -camera.foco[2]); }
-	public void moverDireita() { mover(-camera.foco[2], camera.foco[0]); }
-	public void moverEsquerda() { mover(camera.foco[2], -camera.foco[0]); }
+	public void moverFrente() { mover(player.camera.foco[0], player.camera.foco[2]); }
+	public void moverTras() { mover(-player.camera.foco[0], -player.camera.foco[2]); }
+	public void moverDireita() { mover(-player.camera.foco[2], player.camera.foco[0]); }
+	public void moverEsquerda() { mover(player.camera.foco[2], -player.camera.foco[0]); }
 
 	public void mover(float dirX, float dirZ) {
 		float magSq = dirX * dirX + dirZ * dirZ;
@@ -841,11 +846,11 @@ public class GLRender implements GLSurfaceView.Renderer {
 		dirX *= invMag;
 		dirZ *= invMag;
 
-		float velocidade = camera.velocidadeX;
-		float[] pos = camera.posicao;
+		float velocidade = player.velocidadeX;
+		float[] pos = player.pos;
 
-		float altura = camera.hitbox[0];
-		float raio = camera.hitbox[1] / 2f;
+		float altura = player.hitbox[0];
+		float raio = player.hitbox[1];
 		float[] novaPos = {pos[0], pos[1], pos[2]};
 
 		for(int iteracao = 0; iteracao < 3; iteracao++) {
@@ -864,23 +869,23 @@ public class GLRender implements GLSurfaceView.Renderer {
 				if(!mundo.colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) novaPos[eixo] = testePos[eixo];
 			}
 		}
-		camera.posicao = novaPos;
+		player.pos = novaPos;
 	}
 	
 	public void pular() {
-		if(!camera.noAr && gravidade && camera.peso > 0) {
-			camera.velocidadeY = camera.salto;
-			camera.noAr = true;
+		if(!player.noAr && gravidade && player.peso > 0) {
+			player.velocidadeY = player.salto;
+			player.noAr = true;
 		}
 	}
 
     public void atualizarViewMatriz() {
         Matrix.setLookAtM(viewMatriz, 0,
-                          camera.posicao[0], camera.posicao[1], camera.posicao[2],
-                          camera.posicao[0] + camera.foco[0],
-                          camera.posicao[1] + camera.foco[1],
-                          camera.posicao[2] + camera.foco[2],
-                          camera.up[0], camera.up[1], camera.up[2]);
+		player.camera.pos[0], player.camera.pos[1], player.camera.pos[2],
+		player.camera.pos[0] + player.camera.foco[0],
+		player.camera.pos[1] + player.camera.foco[1],
+		player.camera.pos[2] + player.camera.foco[2],
+		player.camera.up[0], player.camera.up[1], player.camera.up[2]);
     }
 	
 	public void svMundo(Mundo mundo) {
@@ -904,7 +909,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 				pronto = true;
 				return;
 			}
-
 			FileInputStream fis = new FileInputStream(arquivo);
 			carregarMundo(fis, mundo);
 			fis.close();
@@ -915,7 +919,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 
 	public void salvarMundo(OutputStream out, int seed, Map<String, Bloco[][][]> chunksCarregados) throws IOException {
 		DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(out));
-
 		// seed
 		dos.writeInt(seed);
 		// quantos chunks salvos
@@ -939,9 +942,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				for(int y = 0; y < cy; y++) {
 					for(int z = 0; z < cz; z++) {
 						Bloco b = chunk[x][y][z];
-						if(b != null && !b.id.equals("AR")) {
-							totalNaoAr++;
-						}
+						if(b != null && !b.id.equals("AR")) totalNaoAr++;
 					}
 				}
 			}
@@ -961,12 +962,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}
 			}
 		}
-		dos.writeFloat(camera.posicao[0]);
-		dos.writeFloat(camera.posicao[1]);
-		dos.writeFloat(camera.posicao[2]);
+		dos.writeFloat(player.camera.pos[0]);
+		dos.writeFloat(player.camera.pos[1]);
+		dos.writeFloat(player.camera.pos[2]);
 		
-		dos.writeFloat(camera.yaw);
-		dos.writeFloat(camera.tom);
+		dos.writeFloat(player.camera.yaw);
+		dos.writeFloat(player.camera.tom);
 		
 		dos.writeFloat(tempo);
 		dos.writeUTF(mundo.tipo);
@@ -1017,17 +1018,15 @@ public class GLRender implements GLSurfaceView.Renderer {
 			mundo.chunksModificados.put(chave, chunk);
 			mundo.chunksCarregados.put(chave, chunk);
 		}
-		camera.posicao[0] = dis.readFloat();
-		camera.posicao[1] = dis.readFloat();
-		camera.posicao[2] = dis.readFloat();
+		player.pos[0] = dis.readFloat();
+		player.pos[1] = dis.readFloat();
+		player.pos[2] = dis.readFloat();
 		
-		camera.yaw = dis.readFloat();
-		camera.tom = dis.readFloat();
+		player.camera.yaw = dis.readFloat();
+		player.camera.tom = dis.readFloat();
 		
-		camera.rotacionar(0f, 0f);
-		
-		tempo = dis.readFloat();
-		
+		player.camera.rotacionar(0f, 0f);
+		tempo = dis.readFloat();	
 		mundo.tipo = dis.readUTF();
 		
 		dis.close();
@@ -1040,10 +1039,9 @@ class Mob extends Player {
 		public Mob(float x, float y, float z, VBOGrupo modelo, int texturaId) {
 			this.modelo = modelo;
 			this.texturaId = texturaId;
-
-			this.posicao[0] = x;
-			this.posicao[1] = y;
-			this.posicao[2] = z;
+			this.pos[0] = x;
+			this.pos[1] = y;
+			this.pos[2] = z;
 			this.peso = 1f;
 			this.velocidadeX = 0.09f;
 			this.hitbox[0] = 1.7f;

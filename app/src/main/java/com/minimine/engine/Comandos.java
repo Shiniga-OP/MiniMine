@@ -19,12 +19,12 @@ public class Comandos {
 				comando = comando.replace("/tp ", "");
 				String[] tokens = comando.split(" ");
 
-				float x = Float.parseFloat(tokens[0].replace("~", String.valueOf(render.camera.posicao[0])));
-				float y = Float.parseFloat(tokens[1].replace("~", String.valueOf(render.camera.posicao[1])));
-				float z = Float.parseFloat(tokens[2].replace("~", String.valueOf(render.camera.posicao[2])));
-				render.camera.posicao[0] = x;
-				render.camera.posicao[1] = y;
-				render.camera.posicao[2] = z;
+				float x = Float.parseFloat(tokens[0].replace("~", String.valueOf(render.player.pos[0])));
+				float y = Float.parseFloat(tokens[1].replace("~", String.valueOf(render.player.pos[1])));
+				float z = Float.parseFloat(tokens[2].replace("~", String.valueOf(render.player.pos[2])));
+				render.player.pos[0] = x;
+				render.player.pos[1] = y;
+				render.player.pos[2] = z;
 
 				comando = "jogador teleportado para X: "+x+", Y: "+y+", Z: "+z;
 				// chunk:
@@ -50,7 +50,7 @@ public class Comandos {
 			} else if(comando.startsWith("/player mao")) {
 				comando = comando.replace("/player mao ", "");
 
-				if(TipoBloco.tipos.containsKey(comando)) render.camera.itemMao = comando;
+				if(TipoBloco.tipos.containsKey(comando)) render.player.itemMao = comando;
 				else {
 					comando = "esse tipo de bloco não existe, tipos existentes:\n\n";
 					for(String bloco : TipoBloco.tipos.keySet()) {
@@ -59,22 +59,22 @@ public class Comandos {
 				}
 			} else if(comando.startsWith("/player passo ")) {
 				comando = comando.replace("/player passo ", "");
-				render.camera.velocidadeX = Float.parseFloat(comando);
+				render.player.velocidadeX = Float.parseFloat(comando);
 			} else if(comando.startsWith("/player salto ")) {
 				comando = comando.replace("/player salto ", "");
-				render.camera.salto = Float.parseFloat(comando);
+				render.player.salto = Float.parseFloat(comando);
 			}  else if(comando.startsWith("/player peso ")) {
 				comando = comando.replace("/player peso ", "");
 
-				render.camera.peso = Float.parseFloat(comando);
+				render.player.peso = Float.parseFloat(comando);
 			} else if(comando.startsWith("/player hitbox[0] ")) {
 				comando = comando.replace("/player hitbox[0] ", "");
 
-				render.camera.hitbox[0] = Float.parseFloat(comando);
+				render.player.hitbox[0] = Float.parseFloat(comando);
 			} else if(comando.startsWith("/player hitbox[1] ")) {
 				comando = comando.replace("/player hitbox[1] ", "");
 
-				render.camera.hitbox[1] = Float.parseFloat(comando);
+				render.player.hitbox[1] = Float.parseFloat(comando);
 				// debug:
 			} else if(comando.startsWith("/debug ")) {
 				comando = comando.replace("/debug ", "");

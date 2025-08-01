@@ -60,10 +60,10 @@ public class Cena3D {
 
     public void atualizarCamera() {  
         Matrix.setLookAtM(matrizView, 0,  
-						  camera.posicao[0], camera.posicao[1], camera.posicao[2],  
-						  camera.posicao[0] + camera.foco[0],  
-						  camera.posicao[1] + camera.foco[1],  
-						  camera.posicao[2] + camera.foco[2],  
+						  camera.pos[0], camera.pos[1], camera.pos[2],  
+						  camera.pos[0] + camera.foco[0],  
+						  camera.pos[1] + camera.foco[1],  
+						  camera.pos[2] + camera.foco[2],  
 						  camera.up[0], camera.up[1], camera.up[2]);  
     }  
 

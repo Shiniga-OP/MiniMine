@@ -34,7 +34,7 @@ public class Mundo {
 	public String pacoteTex;
 	
 	public List<String> estruturas = new ArrayList<>();
-	public List<Mob> mobs = new ArrayList<Mob>();
+	public List<Mob> entidades = new ArrayList<>();
 	
 	public static final int PLANICIE = 0;
     public static final int DESERTO = 1;
@@ -525,24 +525,20 @@ public class Mundo {
 		}
 	}
 
-	public boolean noChao(Camera3D camera) {
-		float posPes = camera.posicao[1] - 1 - (camera.hitbox[0] / 2f);
+	public boolean noChao(Player camera) {
+		float posPes = camera.pos[1];
 
 		float yTeste = posPes - 0.1f;
 		int by = (int) Math.floor(yTeste);
 
-		float metadeLargura = camera.hitbox[1] / 2f;
-		int bx1 = (int) Math.floor(camera.posicao[0] - metadeLargura);
-		int bx2 = (int) Math.floor(camera.posicao[0] + metadeLargura);
-		int bz1 = (int) Math.floor(camera.posicao[2] - metadeLargura);
-		int bz2 = (int) Math.floor(camera.posicao[2] + metadeLargura);
+		float metadeLargura = camera.hitbox[1];
+		int bx1 = (int) Math.floor(camera.pos[0] - metadeLargura);
+		int bx2 = (int) Math.floor(camera.pos[0] + metadeLargura);
+		int bz1 = (int) Math.floor(camera.pos[2] - metadeLargura);
+		int bz2 = (int) Math.floor(camera.pos[2] + metadeLargura);
 
 		for(int bx = bx1; bx <= bx2; bx++) {
-			for(int bz = bz1; bz <= bz2; bz++) {
-				if(eBlocoSolido(bx, by, bz)) {
-					return true;
-				}
-			}
+			for(int bz = bz1; bz <= bz2; bz++) if(eBlocoSolido(bx, by, bz)) return true;
 		}
 		return false;
 	}
@@ -565,9 +561,9 @@ public class Mundo {
 		}
 	}
 
-	public void verificarColisao(Camera3D cam, float tx, float ty, float tz) {
-		float[] pos = cam.posicao;
-		float h = cam.hitbox[0];       //altura
+	public float[] verificarColisao(Player cam, float tx, float ty, float tz) {
+		float[] pos = cam.pos;
+		float h = cam.hitbox[0]; //altura
 		float r = cam.hitbox[1] / 2f;  //metade da largura
 
 		// processa cada eixo separadamente na ordem correta
@@ -580,11 +576,11 @@ public class Mundo {
 		novo[1] = ty;
 		novo = ajustarColisao(cam, novo, r, h, 1); // Y por ultimo
 
-		cam.posicao = novo;
+		return novo;
 	}
 
 	public float[] ajustarColisao(Camera3D cam, float[] pos, float raio, float altura, int eixo) {
-		float[] original = cam.posicao;
+		float[] original = cam.pos;
 		float[] testePos = pos.clone();
 
 		final int PASSOS = 3;
@@ -593,9 +589,7 @@ public class Mundo {
 		for(int i = 1; i <= PASSOS; i++) {
 			testePos[eixo] = original[eixo] + incremento * i;
 
-			if(!colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) {
-				continue;
-			}
+			if(!colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) continue;
 
 			// colisao detectada, volta ao ultimo passo valido
 			testePos[eixo] = original[eixo] + incremento * (i - 1);
@@ -605,7 +599,7 @@ public class Mundo {
 	}
 
 	public boolean colidiria(float cx, float cy, float cz, float altura, float raio) {
-		float pe = cy - 1.5f;
+		float pe = cy;
 		float cabeca = pe + altura;
 
 		// verifica 9 pontos critcos na hitbox
@@ -620,9 +614,7 @@ public class Mundo {
 					int by = (int) Math.floor(py);
 					int bz = (int) Math.floor(pz);
 
-					if(eBlocoSolido(bx, by, bz)) {
-						return true;
-					}
+					if(eBlocoSolido(bx, by, bz)) return true;
 				}
 			}
 		}

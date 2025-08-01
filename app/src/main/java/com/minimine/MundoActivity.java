@@ -63,14 +63,14 @@ public class MundoActivity extends Activity {
 		console.setText(String.valueOf(seed));
         render = new GLRender(this, tela, seed, (nome == null) ? "novo mundo" : nome, (tipoMundo == null) ? "plano" : tipoMundo, "texturas/".concat((pacoteTex == null) ? "evolva" : pacoteTex)+"/");
 		GL.definirRender(tela, render);
-        render.camera.mover(0.5f);
+        render.player.mover(0.5f);
 		comandos =  new Comandos(render, chat);
 		
 		tarefaDebug = new Runnable() {
 			public void run() {
-				String posicao = "X: "+render.camera.posicao[0]+
-					", Y: "+render.camera.posicao[1]+
-					", Z: "+render.camera.posicao[2];
+				String posicao = "X: "+render.player.pos[0]+
+					", Y: "+render.player.pos[1]+
+					", Z: "+render.player.pos[2];
 				if(render.debug) {
 					String debug =
 						"memória livre: " + String.format("%.2f", render.livre) + " MB" +
@@ -86,10 +86,10 @@ public class MundoActivity extends Activity {
 						"\n\ntempo: " + render.tempo +
 						"\nciclo diario: " + render.ciclo +
 						"\n\nplayer atual:\nposicao: " + posicao +
-						"\nmão: "+render.camera.itemMao+
-						"\nhitbox: vertical: " + render.camera.hitbox[0] +
-						", horizontal: " + render.camera.hitbox[1] +
-						"\nslots: " + render.camera.inventario.size();
+						"\nmão: "+render.player.itemMao+
+						"\nhitbox: vertical: " + render.player.hitbox[0] +
+						", horizontal: " + render.player.hitbox[1] +
+						"\nslots: " + render.player.inventario.size();
 					coordenadas.setText(debug);
 				} else coordenadas.setText(posicao);
 				atualizador.postDelayed(this, 200);
@@ -123,7 +123,7 @@ public class MundoActivity extends Activity {
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        Toque.cameraOlhar(render.camera, e);
+        Toque.cameraOlhar(render.player.camera, e);
 		for(int i = 0; i < render.ui.botoes.size(); i++) render.ui.botoes.get(i).verificarToque(e);
 		return true;
     }
