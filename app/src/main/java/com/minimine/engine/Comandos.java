@@ -2,6 +2,7 @@ package com.minimine.engine;
 
 import android.widget.EditText;
 import com.engine.Logs;
+import java.util.Map;
 
 public class Comandos {
 	public GLRender render;
@@ -29,16 +30,15 @@ public class Comandos {
 				comando = "jogador teleportado para X: "+x+", Y: "+y+", Z: "+z;
 				// chunk:
 			} else if(comando.startsWith("/chunk raio ")) {
-				comando = comando.replace("/chunk raio ", "");
-
 				render.mundo.RAIO_CARREGAMENTO = Integer.parseInt(comando);
-
 				comando = "chunks ao redor do jogador: "+render.mundo.CHUNK_TAMANHO*render.mundo.RAIO_CARREGAMENTO;
-			} else if(comando.startsWith("/chunk tamanho")) {
-				comando = comando.replace("/chunk tamanho ", "");
-
+			} else if(comando.startsWith("/chunk att")) {
+				Map<String, Bloco[][][]> chunks = render.mundo.chunksAtivos;
+				render.mundo.chunksAtivos.clear();
+				render.mundo.chunksAtivos = chunks;
+				comando = "chunks atualizados";
+			}  else if(comando.startsWith("/chunk tamanho")) {
 				render.mundo.CHUNK_TAMANHO = Integer.parseInt(comando);
-
 				comando = "tamanho de chunk definido para "+render.mundo.CHUNK_TAMANHO+" blocos de largura";
 				// bloco:
 			} else if(comando.equals("/bloco ids")) {

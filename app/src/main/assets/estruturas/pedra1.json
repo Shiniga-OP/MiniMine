@@ -1,0 +1,13 @@
+{
+  "nome": "pedra1",
+  "blocos": [
+    { "x": 0, "y": 0, "z": 0, "tipo": "PEDRA" },
+    { "x": 1, "y": 0, "z": 0, "tipo": "PEDREGULHO" },
+    { "x": 1, "y": 0, "z": 1, "tipo": "PEDRA" },
+    { "x": -1, "y": 0, "z": 0, "tipo": "PEDREGULHO" },
+    { "x": 1, "y": 0, "z": 1, "tipo": "PEDREGULHO" },
+    { "x": 0, "y": 0, "z": 1, "tipo": "PEDREGULHO" },
+    { "x": 0, "y": 1, "z": 0, "tipo": "PEDRA" },
+    { "x": 0, "y": 1, "z": 1, "tipo": "PEDREGULHO" }
+  ]
+}

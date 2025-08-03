@@ -17,9 +17,7 @@ import com.engine.VBOGrupo;
 public class Mundo {
     public int CHUNK_TAMANHO = 16; // padrao: 16, testes: 8
     public int MUNDO_LATERAL = 64; // padrao: 64, testes: 32
-    public int RAIO_CARREGAMENTO = 5; // padrao: 3, testes: 2, inicial: 15
-
-    public final int FACES_POR_BLOCO = 6;
+    public int RAIO_CARREGAMENTO = 7; // padrao: 8, testes: 7
 
 	public int atlasTexturaId = -1;
 	public Map<String, float[]> atlasUVMapa = new HashMap<>();
@@ -29,7 +27,7 @@ public class Mundo {
 	public Map<String, Boolean> chunksAlterados = new HashMap<>();
 	public Map<String, Bloco[][][]> chunksModificados = new HashMap<>();
     public Map<String, Bloco[][][]> chunksCarregados = new HashMap<>();
-	public String nome = "novo mundo", tipo = "plano";
+	public String nome = "novo mundo", tipo = "normal";
 	public int seed;
 	public String pacoteTex;
 	
@@ -43,38 +41,7 @@ public class Mundo {
 	public static final int FLORESTA_LAGOAS = 5;
     public static final int LAGO = 4;
 
-	Bioma[] BIOMAS = new Bioma[] {
-		// planicie
-		new Bioma(22f, 4f, // altura base e variação
-		0.03f, 0.14f, // escalas 2D e 3D
-		"GRAMA", "TERRA", "PEDRA", // camadas
-		0.12f), // limite de cavernas
-		// deserto
-		new Bioma(20f, 5f,
-		0.04f, 0.1f,
-		"AREIA", "AREIA", "PEDRA",
-		0.01f),
-		// montanha
-		new Bioma(24f, 10f,
-		0.02f, 0.16f,
-		"PEDRA", "PEDRA", "PEDRA",
-		0.15f),
-		// floresta
-		new Bioma(22f, 3f,
-		0.05f, 0.1f,
-		"GRAMA", "TERRA", "PEDRA",
-		0.15f),
-		// floresta de lagos
-		new Bioma(22f, 3f,
-		0.05f, 0.1f,
-		"GRAMA", "TERRA", "PEDRA",
-		0.15f),
-		// lago
-		new Bioma(20f, 1f,
-		0.01f, 0.12f,
-		"AGUA", "AREIA", "PEDRA",
-		0.1f)
-	};
+	List<Bioma> BIOMAS = new ArrayList<>(); 
 	
     public class Bioma {
 		public final float altBase;
@@ -85,7 +52,6 @@ public class Mundo {
 		public final String blocoSub;
 		public final String blocoCaver;
 		public final float caverna;
-		
 		public Bioma(float altBase, float variacao, float escala2D, float escala3D, String blocoSup, String blocoSub, String blocoCaver, float caverna) {
 			this.altBase = altBase;
 			this.variacao = variacao;
@@ -114,132 +80,110 @@ public class Mundo {
 	public final Map<String, float[]> uvCache = new HashMap<String, float[]>(64);
 	
 	public final float[] UV_PADRAO = {0f, 0f, 1f, 1f};
+	
+	public Bloco obterBloco(int x, int y, int z) {
+		if(y < 0 || y >= MUNDO_LATERAL) return null;
+
+		int chunkX = (int) Math.floor(x / (float) CHUNK_TAMANHO);
+		int chunkZ = (int) Math.floor(z / (float) CHUNK_TAMANHO);
+		String chave = chunkX + "," + chunkZ;
+
+		Bloco[][][] chunk = chunksAtivos.get(chave);
+		if(chunk == null) return null;
+
+		int localX = x - chunkX * CHUNK_TAMANHO;
+		int localZ = z - chunkZ * CHUNK_TAMANHO;
+
+		if(localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return null;
+		return chunk[localX][y][localZ];
+	}
 
 	public Mundo(int seed, String nome, String tipo, String pacoteTex) {
 		this.seed = seed;
 		this.nome = nome;
 	    this.tipo = tipo;
 		this.pacoteTex = pacoteTex;
-		this.definirEstruturas();
+		this.definirBiomas();
 	}
 	
 	public Bloco[][][] gerarChunk(final int chunkX, final int chunkZ) {
 		final int baseX = chunkX * CHUNK_TAMANHO;
 		final int baseZ = chunkZ * CHUNK_TAMANHO;
 		final Bloco[][][] chunk = new Bloco[CHUNK_TAMANHO][MUNDO_LATERAL][CHUNK_TAMANHO];
-
 		if(tipo.equals("plano")) {
 			for(int x = 0; x < CHUNK_TAMANHO; x++) {
-				int globalX = baseX + x;
 				for(int z = 0; z < CHUNK_TAMANHO; z++) {
-					int globalZ = baseZ + z;
-					for(int y = 0; y < 3; y++) {
-						String tipoBloco = (y == 0) ? "BEDROCK" : (y < 2) ? "TERRA" : "GRAMA";
-						try {
-						chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
-						} catch(Exception e) {
-							System.out.println("erro: "+e);
-						}
-					}
+					chunk[x][0][z] = new Bloco(baseX + x, 0, baseZ + z, "BEDROCK");
+					chunk[x][1][z] = new Bloco(baseX + x, 1, baseZ + z, "TERRA");
+					chunk[x][2][z] = new Bloco(baseX + x, 2, baseZ + z, "GRAMA");
 				}
 			}
 			return chunk;
 		}
-
 		int[][] alturas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
 		int[][] biomas = new int[CHUNK_TAMANHO][CHUNK_TAMANHO];
-
+		long sementeChunk = ((long) chunkX * 341873128712L) ^ ((long) chunkZ * 132897987541L) ^ seed;
+		Random rnd = new Random(sementeChunk);
+		// determina alturas e biomas
 		for(int x = 0; x < CHUNK_TAMANHO; x++) {
 			int globalX = baseX + x;
 			for(int z = 0; z < CHUNK_TAMANHO; z++) {
 				int globalZ = baseZ + z;
-				float ruidoBioma = PerlinNoise2D.ruido(globalX * 0.01f, globalZ * 0.01f, seed);
+				float ruidoBioma = PerlinNoise2D.ruido(globalX * 0.007f, globalZ * 0.007f, seed);
 				int biomaAtual;
 				if(ruidoBioma < -0.5f) biomaAtual = DESERTO;
 				else if(ruidoBioma < 0.01f) biomaAtual = FLORESTA_LAGOAS;
-				else if(ruidoBioma < 0.1f) biomaAtual = PLANICIE;
+				else if(ruidoBioma < 0.15f) biomaAtual = PLANICIE;
 				else if(ruidoBioma < 0.3f) biomaAtual = FLORESTA;
 				else if(ruidoBioma < 0.6f) biomaAtual = MONTANHA;
 				else biomaAtual = LAGO;
-				biomas[x][z] = biomaAtual;
 
-				Bioma b = BIOMAS[biomaAtual];
+				biomas[x][z] = biomaAtual;
+				Bioma b = BIOMAS.get(biomaAtual);
 				float noise2D = PerlinNoise2D.ruido(globalX * b.escala2D, globalZ * b.escala2D, seed);
 				alturas[x][z] = (int) (b.altBase + noise2D * b.variacao);
-			
+			}
+		}
+		// gera os blocos
+		for(int x = 0; x < CHUNK_TAMANHO; x++) {
+			int globalX = baseX + x;
+			for(int z = 0; z < CHUNK_TAMANHO; z++) {
+				int biomaAtual = biomas[x][z];
+				Bioma b = BIOMAS.get(biomaAtual);
 				int altura = alturas[x][z];
-				biomaAtual = biomas[x][z];
-				
+				int globalZ = baseZ + z;
 				for(int y = 0; y < MUNDO_LATERAL; y++) {
 					String tipoBloco = "AR";
-					if (y == 0) tipoBloco = "BEDROCK";
-					else if(y < altura - 4) tipoBloco = b.blocoCaver;
-					else if(y < altura - 1) tipoBloco = b.blocoSub;
-					else if(y < altura) tipoBloco = b.blocoSub;
-					else if(y == altura) tipoBloco = b.blocoSup;
-					if(y < altura - 5) {
+					if(y == 0) tipoBloco = "BEDROCK";
+					else if(y < altura - 4) {
+						tipoBloco = b.blocoCaver;
 						float noise3D = PerlinNoise3D.ruido(globalX * b.escala3D, y * b.escala3D, globalZ * b.escala3D, seed + 100);
-						if (noise3D > BIOMAS[biomaAtual].caverna) tipoBloco = "AR";
-					}
-					if(!tipoBloco.equals("AR")) {
-						try {
-							chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
-						} catch(Exception e) {
-							System.out.println("erro: "+e);
-						}
-					}
+						if(noise3D > b.caverna) tipoBloco = "AR";
+					} else if(y < altura)  tipoBloco = b.blocoSub;
+					else if(y == altura) tipoBloco = b.blocoSup;
+					if(!tipoBloco.equals("AR")) chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
 				}
 			}
 		}
-
-		long sementeChunk = ((long) chunkX * 341873128712L) ^ ((long) chunkZ * 132897987541L) ^ seed;
-		Random rnd = new Random(sementeChunk);
-
-		int tentativasArvore = 3;
-		int tentativasDeserto = 1;
-
-		for(int i = 0; i < tentativasArvore; i++) {
+		// estruturas
+		for(int i = 0; i < 4; i++) {
 			int xAle = rnd.nextInt(CHUNK_TAMANHO);
 			int zAle = rnd.nextInt(CHUNK_TAMANHO);
 			int biomaEscolhido = biomas[xAle][zAle];
+
 			if(biomaEscolhido == FLORESTA) {
 				int altura = alturas[xAle][zAle];
-				int globalX = baseX + xAle;
-				int globalZ = baseZ + zAle;
-				adicionarEstrutura(globalX, altura, globalZ, estruturas.get(0), chunk);
-			}
-		}
-
-		for(int i = 0; i < tentativasDeserto; i++) {
-			int xAle = rnd.nextInt(CHUNK_TAMANHO);
-			int zAle = rnd.nextInt(CHUNK_TAMANHO);
-			int biomaEscolhido = biomas[xAle][zAle];
-			if(biomaEscolhido == DESERTO) {
+				adicionarEstrutura(baseX + xAle, altura, baseZ + zAle, estruturas.get(0), chunk);
+			} else if(biomaEscolhido == DESERTO && i < 1) {
 				int altura = alturas[xAle][zAle];
-				int globalX = baseX + xAle;
-				int globalZ = baseZ + zAle;
-				adicionarEstrutura(globalX, altura, globalZ, estruturas.get(3), chunk);
+				adicionarEstrutura(baseX + xAle, altura, baseZ + zAle, estruturas.get(3), chunk);
 			}
 		}
 		return chunk;
 	}
 
 	public Map<Integer, List<float[]>> calculoVBO(Bloco[][][] chunk) {
-		boolean chunkVazio = true;
-		loop:
-		for(int x = 0; x < CHUNK_TAMANHO; x++) {
-			for(int y = 0; y < MUNDO_LATERAL; y++) {
-				for(int z = 0; z < CHUNK_TAMANHO; z++) {
-					if(chunk[x][y][z] != null) {
-						chunkVazio = false;
-						break loop;
-					}
-				}
-			}
-		}
-		if(chunkVazio) return new HashMap<>();
-		Map<Integer, List<float[]>> dadosPorTextura = new HashMap<Integer, List<float[]>>(8);
-
+		Map<Integer, List<float[]>> dadosPorTextura = new HashMap<>(8);
 		for(int x = 0; x < CHUNK_TAMANHO; x++) {
 			for(int y = 0; y < MUNDO_LATERAL; y++) {
 				for(int z = 0; z < CHUNK_TAMANHO; z++) {
@@ -247,43 +191,37 @@ public class Mundo {
 					if(bloco == null || "0".equals(bloco.tipo[0])) continue;
 
 					float[] vertices = Modelador.criarBloco(bloco.x, bloco.y, bloco.z);
+
 					for(int face = 0; face < 6; face++) {
 						if(!faceVisivel(bloco.x, bloco.y, bloco.z, face)) continue;
 
 						float[] dadosFace = new float[48];
 						float[] normal = NORMAIS[face];
 						int antes = face * 18;
-
-						// Copia vértices + normais
+						// copia vertices + normais otimizado
 						for(int v = 0; v < 6; v++) {
 							int src = antes + v * 3;
 							int dst = v * 8;
 							System.arraycopy(vertices, src, dadosFace, dst, 3);
 							System.arraycopy(normal, 0, dadosFace, dst + 3, 3);
 						}
-
-						// Resolve UVs via cache
 						String recurso = bloco.tipo[face];
 						float[] uv = uvCache.get(recurso);
 						if(uv == null) {
 							uv = atlasUVMapa.get(recurso);
 							if(uv == null) uv = UV_PADRAO;
-							uvCache.put(recurso, uv);
+							uvCache.putIfAbsent(recurso, uv);
 						}
-						float u1 = uv[0], v1 = uv[1], u2 = uv[2], v2 = uv[3];
-
-						dadosFace[6]  = u1; dadosFace[7]  = v2;
-						dadosFace[14] = u2; dadosFace[15] = v2;
-						dadosFace[22] = u2; dadosFace[23] = v1;
-						dadosFace[30] = u1; dadosFace[31] = v2;
-						dadosFace[38] = u2; dadosFace[39] = v1;
-						dadosFace[46] = u1; dadosFace[47] = v1;
-
-						int texId = atlasTexturaId;
-						List<float[]> lista = dadosPorTextura.get(texId);
+						dadosFace[6] = uv[0]; dadosFace[7] = uv[3];
+						dadosFace[14] = uv[2]; dadosFace[15] = uv[3];
+						dadosFace[22] = uv[2]; dadosFace[23] = uv[1];
+						dadosFace[30] = uv[0]; dadosFace[31] = uv[3];
+						dadosFace[38] = uv[2]; dadosFace[39] = uv[1];
+						dadosFace[46] = uv[0]; dadosFace[47] = uv[1];
+						List<float[]> lista = dadosPorTextura.get(atlasTexturaId);
 						if(lista == null) {
-							lista = new ArrayList<float[]>(256);
-							dadosPorTextura.put(texId, lista);
+							lista = new ArrayList<>(256);
+							dadosPorTextura.put(atlasTexturaId, lista);
 						}
 						lista.add(dadosFace);
 					}
@@ -295,44 +233,29 @@ public class Mundo {
 
 	public boolean faceVisivel(int x, int y, int z, int face) {
 		int ny = y + DY[face];
-
-		// verificação vertical precoce
 		if(ny < 0 || ny >= MUNDO_LATERAL) return true;
 
 		int nx = x + DX[face];
 		int nz = z + DZ[face];
+		// calculo otimizado de chunk
+		int chunkX = nx >> 4; // divisao por 16(CHUNK_TAMANHO) usando shift
+		int chunkZ = nz >> 4;
 
-		// calculo de chunk otimizado
-		int chunkX = (nx >= 0) ? nx / CHUNK_TAMANHO : (nx + 1) / CHUNK_TAMANHO - 1;
-		int chunkZ = (nz >= 0) ? nz / CHUNK_TAMANHO : (nz + 1) / CHUNK_TAMANHO - 1;
-
-		// formação de chave eficiente
-		String chaveChunk = String.valueOf(chunkX).concat(",").concat(String.valueOf(chunkZ));
-
-		// busca direta no mapa
+		String chaveChunk = chunkX + "," + chunkZ;
 		Bloco[][][] chunkVizinho = chunksAtivos.get(chaveChunk);
 		if(chunkVizinho == null) return true;
-
-		// calculo de coordenadas locais
-		int localX = nx - chunkX * CHUNK_TAMANHO;
-		if(localX < 0) localX += CHUNK_TAMANHO;
-
-		int localZ = nz - chunkZ * CHUNK_TAMANHO;
-		if(localZ < 0) localZ += CHUNK_TAMANHO;
-
-		// acesso seguro
-		if(localX >= CHUNK_TAMANHO || localZ >= CHUNK_TAMANHO) return true;
+		// calculo otimizado de coordenadas locais
+		int localX = nx & 0xF; // modulo 16 usando AND
+		int localZ = nz & 0xF;
 
 		Bloco vizinho = chunkVizinho[localX][ny][localZ];
-		return vizinho == null || "0".equals(vizinho.tipo[0]) || !vizinho.solido;
+		return vizinho == null || "0".equals(vizinho.tipo[0]) || !vizinho.solido && !vizinho.liquido;
 	}
 	
 	// gera ou carrega chunks ja existentes
     public Bloco[][][] carregarChunk(int chunkX, int chunkY) {
         final String chave = chunkX + "," + chunkY;
-        if(chunksCarregados.containsKey(chave)) {
-            return chunksCarregados.get(chave);
-        }
+        if(chunksCarregados.containsKey(chave)) return chunksCarregados.get(chave);
         else {
             final Bloco[][][] chunk = gerarChunk(chunkX, chunkY);
             chunksCarregados.put(chave, chunk);
@@ -363,88 +286,43 @@ public class Mundo {
 		}
 	}
 
-	public boolean spawnEstrutura(float chanceSpawn, int x, int z, int seed) {
+	public boolean spawnEstrutura(float chance, int x, int z, int seed) {
 		float noise = PerlinNoise2D.ruido(x * 0.1f, z * 0.1f, seed + 1000);
-		float normalized = (noise + 1f) / 2f;
-		return normalized < chanceSpawn;
+		float normalizedo = (noise + 1f) / 2f;
+		return normalizedo < chance;
 	}
-
-	public void definirEstruturas() {
-		String arvore1 = 
-		    "{ "+
-			"\"nome\": \"arvore\","+
-			"\"blocos\": ["+
-			"{\"x\":0, \"y\":0, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":1, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":2, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":3, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":4, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":-1, \"y\":4, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":1, \"y\":4, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":1, \"y\":4, \"z\":1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":4, \"z\":1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":-1, \"y\":4, \"z\":-1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":4, \"z\":-1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":-2, \"y\":4, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":2, \"y\":4, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":-1, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":1, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":5, \"z\":1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":5, \"z\":-1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"}"+
-			"]"+
-			"}";
-
-		String arvore2 = 
-		    "{ "+
-			"\"nome\": \"arvore\","+
-			"\"blocos\": ["+
-			"{\"x\":0, \"y\":0, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":1, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":2, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":3, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":4, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":0, \"y\":5, \"z\":0, \"tipo\": \"TRONCO_CARVALHO\"},"+
-			"{\"x\":-1, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":1, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":1, \"y\":5, \"z\":1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":5, \"z\":1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":-1, \"y\":5, \"z\":-1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":5, \"z\":-1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":-2, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":2, \"y\":5, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":-1, \"y\":6, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":1, \"y\":6, \"z\":0, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":6, \"z\":1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":6, \"z\":-1, \"tipo\": \"FOLHAS\"},"+
-			"{\"x\":0, \"y\":6, \"z\":0, \"tipo\": \"FOLHAS\"}"+
-			"]"+
-			"}";
-
-		String pedra1 =
-			"{"+
-			"\"blocos\": ["+
-			"{\"x\": 0, \"y\": 0, \"z\": 0, \"tipo\": \"PEDRA\"},"+
-			"{\"x\": 1, \"y\": 0, \"z\": 0, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 1, \"y\": 0, \"z\": 1, \"tipo\": \"PEDRA\"},"+
-			"{\"x\": -1, \"y\": 0, \"z\": 0, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 1, \"y\": 0, \"z\": 1, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 0, \"y\": 0, \"z\": 1, \"tipo\": \"PEDREGULHO\"},"+
-			"{\"x\": 0, \"y\": 1, \"z\": 0, \"tipo\": \"PEDRA\"},"+
-			"{\"x\": 0, \"y\": 1, \"z\": 1, \"tipo\": \"PEDREGULHO\"}"+
-			"]"+
-			"}";
-		String cacto =
-			"{"+
-			"\"blocos\": ["+
-			"{\"x\": 0, \"y\": 0, \"z\": 0, \"tipo\": \"CACTO\"},"+
-			"{\"x\": 0, \"y\": 1, \"z\": 0, \"tipo\": \"CACTO\"}"+
-			"]"+
-			"}";
-		estruturas.add(arvore1);
-		estruturas.add(arvore2);
-		estruturas.add(pedra1);
-		estruturas.add(cacto);
+	
+	public void definirBiomas() {
+		// planicie
+		BIOMAS.add(new Bioma(22f, 4f, // altura base e variação
+				  0.03f, 0.14f, // escalas 2D e 3D
+				  "GRAMA", "TERRA", "PEDRA", // camadas
+				  0.12f)); // limite de cavernas
+		// deserto
+		BIOMAS.add(new Bioma(20f, 5f,
+				  0.04f, 0.1f,
+				  "AREIA", "AREIA", "PEDRA",
+				  0.01f));
+		// montanha
+		BIOMAS.add(new Bioma(24f, 10f,
+				  0.02f, 0.16f,
+				  "PEDRA", "PEDRA", "PEDRA",
+				  0.15f));
+		// floresta
+		BIOMAS.add(new Bioma(22f, 3f,
+				  0.05f, 0.1f,
+				  "GRAMA", "TERRA", "PEDRA",
+				  0.15f));
+		// floresta de lagos
+		BIOMAS.add(new Bioma(22f, 3f,
+				  0.05f, 0.1f,
+				  "GRAMA", "TERRA", "PEDRA",
+				  0.15f));
+		// lago
+		BIOMAS.add(new Bioma(20f, 1f,
+				  0.01f, 0.12f,
+				  "AGUA", "AREIA", "PEDRA",
+				  0.1f));
 	}
 
 	public void destruirBloco(final float globalX, final float y, final float globalZ, final Player player) {
@@ -470,6 +348,7 @@ public class Mundo {
 
 		if(chunksAtivos.containsKey(chaveChunk)) {
 			chunksAlterados.put(chaveChunk, true);
+			if(chunksModificados.containsKey(chaveChunk)) chunksModificados.remove(chaveChunk);
 			chunksModificados.put(chaveChunk, chunk);
 		}
 	}
@@ -478,7 +357,6 @@ public class Mundo {
 		int chunkX = (int) Math.floor(globalX / (float) CHUNK_TAMANHO);
 		int chunkZ = (int) Math.floor(globalZ / (float) CHUNK_TAMANHO);
 		final String chaveChunk = chunkX + "," + chunkZ;
-
 		// carrega ou gera o chunk correspondente
 		Bloco[][][] chunk = carregarChunk(chunkX, chunkZ);
 
@@ -490,13 +368,12 @@ public class Mundo {
 
 		Bloco blocoExistente = chunk[localX][intY][localZ];
 		if(blocoExistente != null && !blocoExistente.tipo[0].equals("0")) return;
-
 		// define o bloco
 		if(player.inventario.get(0).quant >= 0)chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, player.itemMao);
-
 		// se o chunk estiver ativo marca como alterado para atualizacao da VBO
 		if(chunksAtivos.containsKey(chaveChunk)) {
 			chunksAlterados.put(chaveChunk, true);
+			if(chunksModificados.containsKey(chaveChunk)) chunksModificados.remove(chaveChunk);
 			chunksModificados.put(chaveChunk, chunk);
 		}
 	}
@@ -509,20 +386,12 @@ public class Mundo {
 		int localX = (int) (globalX - (chunkX * CHUNK_TAMANHO));
 		int localZ = (int) (globalZ - (chunkZ * CHUNK_TAMANHO));
 
-		if(y < 0 || y >= MUNDO_LATERAL || localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) {
-			return;
-		}
+		if(y < 0 || y >= MUNDO_LATERAL || localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return;
 
 		Bloco blocoExistente = chunk[localX][intY][localZ];
-		if(blocoExistente != null && !blocoExistente.tipo[0].equals("0")) {
-			return;
-		}
+		if(blocoExistente != null && !blocoExistente.tipo[0].equals("0")) return;
 
-		try {
-			chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, tipo);
-		} catch(Exception e) {
-			System.out.println("erro: "+e);
-		}
+		chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, tipo);
 	}
 
 	public boolean noChao(Player camera) {
@@ -552,20 +421,14 @@ public class Mundo {
 		int localX = bx - chunkX * CHUNK_TAMANHO;
 		int localZ = bz - chunkZ * CHUNK_TAMANHO;
 		if(localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return false;
-		try{
-			Bloco bloco = chunk[localX][by][localZ];
-			return bloco != null && bloco.solido;
-		} catch(Exception e) {
-			System.out.println("erro: "+e);
-			return false;
-		}
+		Bloco bloco = chunk[localX][by][localZ];
+		return bloco != null && bloco.solido;
 	}
 
 	public float[] verificarColisao(Player cam, float tx, float ty, float tz) {
 		float[] pos = cam.pos;
 		float h = cam.hitbox[0]; //altura
-		float r = cam.hitbox[1] / 2f;  //metade da largura
-
+		float r = cam.hitbox[1];  //metade da largura
 		// processa cada eixo separadamente na ordem correta
 		float[] novo = {tx, pos[1], pos[2]};
 		novo = ajustarColisao(cam, novo, r, h, 0); // X primeiro
@@ -590,7 +453,6 @@ public class Mundo {
 			testePos[eixo] = original[eixo] + incremento * i;
 
 			if(!colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) continue;
-
 			// colisao detectada, volta ao ultimo passo valido
 			testePos[eixo] = original[eixo] + incremento * (i - 1);
 			break;
@@ -601,19 +463,14 @@ public class Mundo {
 	public boolean colidiria(float cx, float cy, float cz, float altura, float raio) {
 		float pe = cy;
 		float cabeca = pe + altura;
-
-		// verifica 9 pontos critcos na hitbox
 		for(int x = -1; x <= 1; x++) {
 			for(int z = -1; z <= 1; z++) {
 				float px = cx + x * raio;
 				float pz = cz + z * raio;
-
-				//do pé à cabeça
 				for(float py = pe; py <= cabeca; py += altura / 2f) {
-					int bx = (int) Math.floor(px);
-					int by = (int) Math.floor(py);
-					int bz = (int) Math.floor(pz);
-
+					int bx = (int) px;
+					int by = (int) py;
+					int bz = (int) pz;
 					if(eBlocoSolido(bx, by, bz)) return true;
 				}
 			}

@@ -65,7 +65,6 @@ public class MainActivity extends Activity {
 		super.onDestroy();
 		Audio.pararMusicas();
 		if(render != null) {
-			render.limparTexturas();
 			render.destruir();
 		}
 	}

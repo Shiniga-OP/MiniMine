@@ -1,0 +1,24 @@
+{
+  "nome": "arvore2",
+  "blocos": [
+    { "x": 0, "y": 0, "z": 0, "tipo": "TRONCO_CARVALHO" },
+    { "x": 0, "y": 1, "z": 0, "tipo": "TRONCO_CARVALHO" },
+    { "x": 0, "y": 2, "z": 0, "tipo": "TRONCO_CARVALHO" },
+    { "x": 0, "y": 3, "z": 0, "tipo": "TRONCO_CARVALHO" },
+    { "x": 0, "y": 4, "z": 0, "tipo": "TRONCO_CARVALHO" },
+    { "x": 0, "y": 5, "z": 0, "tipo": "TRONCO_CARVALHO" },
+    { "x": -1, "y": 5, "z": 0, "tipo": "FOLHAS" },
+    { "x": 1, "y": 5, "z": 0, "tipo": "FOLHAS" },
+    { "x": 1, "y": 5, "z": 1, "tipo": "FOLHAS" },
+    { "x": 0, "y": 5, "z": 1, "tipo": "FOLHAS" },
+    { "x": -1, "y": 5, "z": -1, "tipo": "FOLHAS" },
+    { "x": 0, "y": 5, "z": -1, "tipo": "FOLHAS" },
+    { "x": -2, "y": 5, "z": 0, "tipo": "FOLHAS" },
+    { "x": 2, "y": 5, "z": 0, "tipo": "FOLHAS" },
+    { "x": -1, "y": 6, "z": 0, "tipo": "FOLHAS" },
+    { "x": 1, "y": 6, "z": 0, "tipo": "FOLHAS" },
+    { "x": 0, "y": 6, "z": 1, "tipo": "FOLHAS" },
+    { "x": 0, "y": 6, "z": -1, "tipo": "FOLHAS" },
+    { "x": 0, "y": 6, "z": 0, "tipo": "FOLHAS" }
+  ]
+}

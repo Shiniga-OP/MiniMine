@@ -61,9 +61,8 @@ public class MundoActivity extends Activity {
 		String pacoteTex = cache.getStringExtra("pacoteTex");
 
 		console.setText(String.valueOf(seed));
-        render = new GLRender(this, tela, seed, (nome == null) ? "novo mundo" : nome, (tipoMundo == null) ? "plano" : tipoMundo, "texturas/".concat((pacoteTex == null) ? "evolva" : pacoteTex)+"/");
+        render = new GLRender(this, tela, seed, (nome == null) ? "novo mundo" : nome, (tipoMundo == null) ? "normal" : tipoMundo, "texturas/".concat((pacoteTex == null) ? "evolva" : pacoteTex)+"/");
 		GL.definirRender(tela, render);
-        render.player.mover(0.5f);
 		comandos =  new Comandos(render, chat);
 		
 		tarefaDebug = new Runnable() {
@@ -139,7 +138,6 @@ public class MundoActivity extends Activity {
 		super.onDestroy();
 		Audio.pararMusicas();
 		render.svMundo(render.mundo);
-		render.limparTexturas();
 		render.destruir();
 	}
 }

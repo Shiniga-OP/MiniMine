@@ -10,7 +10,6 @@ public class Player extends Camera3D {
 	public float salto = 0.3f;
 	public float peso = 1f;
 	public float alcance = 7f;
-	
 	public Camera3D camera = new Camera3D();
 	// hitbox:
 	public float[] hitbox = {1.8f, 0.5f};

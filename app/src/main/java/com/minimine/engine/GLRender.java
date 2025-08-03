@@ -63,7 +63,7 @@ public class GLRender implements GLSurfaceView.Renderer {
     public float[] vpMatriz = new float[16];
 	
     public Player player = new Player();
-    public ExecutorService executor = Executors.newFixedThreadPool(2);
+    public ExecutorService executor = Executors.newFixedThreadPool(4);
 	public float pesoConta = 0f;
 	// interface
 	public Cena2D ui;
@@ -103,47 +103,38 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, vpMatriz, 0);
 		GLES30.glUniform1f(lidarLuzIntensidade, luz);
 		GLES30.glUniform3fv(lidarLuzDirecao, 1, luzDirecao, 0);
-		
-		for(Map.Entry<String, Bloco[][][]> entry : mundo.chunksAtivos.entrySet()) {
-			final String chave = entry.getKey();
-			if(mundo.chunksAlterados.containsKey(chave) && mundo.chunksAlterados.get(chave)) {
-				final Bloco[][][] chunk = entry.getValue();
-				executor.submit(new Runnable() {
-						public void run() {
-							final Map<Integer, List<float[]>> dados = mundo.calculoVBO(chunk);
-							tela.queueEvent(new Runnable() {
-									public void run() {
-										final List<VBOGrupo> grupos = gerarVBO(dados);
-										mundo.chunkVBOs.put(chave, grupos);
-									}
-								});
-						}
-					});
-				mundo.chunksAlterados.put(chave, false);
-			}
-			List<VBOGrupo> grupos = mundo.chunkVBOs.get(chave);
+		for(Map.Entry<String, Bloco[][][]> e : mundo.chunksAtivos.entrySet()) {  
+			final String chave = e.getKey();  
+			if(mundo.chunksAlterados.containsKey(chave) && mundo.chunksAlterados.get(chave)) {  
+				final Bloco[][][] chunk = e.getValue();  
+				executor.submit(new Runnable() {  
+						public void run() {  
+							final Map<Integer, List<float[]>> dados = mundo.calculoVBO(chunk);  
+							tela.queueEvent(new Runnable() {  
+									public void run() {  
+										mundo.chunkVBOs.put(chave, gerarVBO(dados));  
+									}  
+								});  
+						}  
+					});  
+				mundo.chunksAlterados.put(chave, false);  
+			}  
+		}
+
+		for(List<VBOGrupo> grupos : mundo.chunkVBOs.values()) {
 			if(grupos == null) continue;
 
 			for(VBOGrupo grupo : grupos) {
-				// textura:
 				GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, grupo.texturaId);
-				// VBO:
 				GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, grupo.vboId);
-				GLES30.glVertexAttribPointer(lidarPosicao, 3, GLES30.GL_FLOAT, false, 8 * 4, 0);
 				GLES30.glEnableVertexAttribArray(lidarPosicao);
-
-				GLES30.glVertexAttribPointer(lidarNormal, 3, GLES30.GL_FLOAT, false, 8 * 4, 3 * 4);
+				GLES30.glVertexAttribPointer(lidarPosicao, 3, GLES30.GL_FLOAT, false, 8 * 4, 0);
 				GLES30.glEnableVertexAttribArray(lidarNormal);
-
-				GLES30.glVertexAttribPointer(lidarTexCoord, 2, GLES30.GL_FLOAT, false, 8 * 4, 6 * 4);
+				GLES30.glVertexAttribPointer(lidarNormal, 3, GLES30.GL_FLOAT, false, 8 * 4, 3 * 4);
 				GLES30.glEnableVertexAttribArray(lidarTexCoord);
-				// IBO:
+				GLES30.glVertexAttribPointer(lidarTexCoord, 2, GLES30.GL_FLOAT, false, 8 * 4, 6 * 4);
 				GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, grupo.iboId);
-				// renderiza:
 				GLES30.glDrawElements(GLES30.GL_TRIANGLES, grupo.vertices, GLES30.GL_UNSIGNED_SHORT, 0);
-				// desvincula buffers:
-				GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
-				GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 			}
 		}
 	}
@@ -298,7 +289,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 	public void renderHitbox() {
 		float altura = player.hitbox[0];
 		float largura = player.hitbox[1];
-		float metadeLargura = largura / 2f;
+		float metadeLargura = largura;
 		float minX = player.pos[0] - metadeLargura;
 		float maxX = player.pos[0] + metadeLargura;
 		float minY = player.pos[1] - 1.5f;
@@ -345,17 +336,19 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glUseProgram(shaderPrograma);
 		GLES30.glUniform1f(lidarLuzIntensidade, luz);
 		GLES30.glUniform3fv(lidarLuzDirecao, 1, luzDirecao, 0);
+		// matriz modelo * view * projeção
+		float[] modeloMatriz = new float[16];
+		float[] mvpMatriz = new float[16];
 
 		for(Mob mob : mundo.entidades) {
 			if(mob == player) continue;
-			// matriz modelo * view * projeção
-			float[] modeloMatriz = new float[16];
-			float[] mvpMatriz = new float[16];
-
 			Matrix.setIdentityM(modeloMatriz, 0);
 			Matrix.translateM(modeloMatriz, 0, mob.pos[0], mob.pos[1], mob.pos[2]);
 			Matrix.scaleM(modeloMatriz, 0, 0.06f, 0.06f, 0.06f);
-
+			Matrix.rotateM(modeloMatriz, 0, mob.foco[0], 1, 0, 0);  
+            Matrix.rotateM(modeloMatriz, 0, mob.foco[1], 0, 1, 0);  
+            Matrix.rotateM(modeloMatriz, 0, mob.foco[2], 0, 0, 1);  
+			mob.foco[1] += 1;
 			Matrix.multiplyMM(mvpMatriz, 0, vpMatriz, 0, modeloMatriz, 0);
 			GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, mvpMatriz, 0);
 
@@ -397,14 +390,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);
 		GLES30.glBindVertexArray(0);
 		GLES30.glDepthFunc(GLES30.GL_LESS);
-	}
-
-	public void limparTexturas() {
-		if(mundo.atlasTexturaId != -1) {
-			GLES30.glDeleteTextures(1, new int[] { mundo.atlasTexturaId }, 0);
-			mundo.atlasTexturaId = -1;
-		}
-		mundo.atlasUVMapa.clear();
 	}
 	
 	public List<VBOGrupo> gerarVBO(Map<Integer, List<float[]>> dadosPorTextura) {
@@ -470,19 +455,19 @@ public class GLRender implements GLSurfaceView.Renderer {
 		// movimentacao      
 		botoes[0] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_d.png")));
 		botoes[0].definirAcao(new Runnable() {
-			public void run() { moverDireita(); }
+			public void run() { moverDireita(player); }
 		});
 		botoes[1] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_e.png")));
 		botoes[1].definirAcao(new Runnable() {
-			public void run() { moverEsquerda(); }
+			public void run() { moverEsquerda(player); }
 		});
 		botoes[2] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_t.png")));
 		botoes[2].definirAcao(new Runnable() {
-			public void run() { moverTras(); }
+			public void run() { moverTras(player); }
 		});
 		botoes[3] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_f.png")));
 		botoes[3].definirAcao(new Runnable() {
-			public void run() { moverFrente(); }
+			public void run() { moverFrente(player); }
 		});
 		botoes[4] = new Botao2D(new Objeto2D(0, 0, botoesTam, botoesTam, Texturas.carregarAsset(ctx, "texturas/evolva/ui/botao_f.png")));      
 		botoes[4].definirAcao(new Runnable() {        
@@ -521,6 +506,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glEnable(GLES30.GL_BLEND);
 
         this.mundo = new Mundo(this.seed, this.nome, this.tipo, this.pacoteTex);  
+		this.mundo.estruturas.add(ArmUtils.lerTextoAssets(ctx,"estruturas/arvore1.json"));
+		this.mundo.estruturas.add(ArmUtils.lerTextoAssets(ctx,"estruturas/arvore2.json"));
+		this.mundo.estruturas.add(ArmUtils.lerTextoAssets(ctx,"estruturas/pedra1.json"));
+		this.mundo.estruturas.add(ArmUtils.lerTextoAssets(ctx,"estruturas/cacto1.json"));
 		crMundo(this.mundo);  
 		
         this.carregarShaders(ctx);  
@@ -536,6 +525,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 			ui.add(botoes);
 		}	
 		rt = Runtime.getRuntime();
+		chunksPorVez = 1;
     } 
 	
 	public Runtime rt;
@@ -555,16 +545,18 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(pronto==true) {
 			atualizarGravidade(player);
 			player.atualizar();
-			for(int i = 0; i < mundo.entidades.size(); i++) {
-				Player mob = mundo.entidades.get(i);
-				mob.atualizar();
+			for(Player mob : mundo.entidades) {
+				float c = (float) Math.random();
+				if(c < 0.25f) moverFrente(mob);
+				else if(c < 0.5f) moverTras(mob);
+				else if(c < 0.75f) moverDireita(mob);
+				else moverEsquerda(mob);
 				atualizarGravidade(mob);
 			}
 			Matrix.multiplyMM(vpMatriz, 0, projMatriz, 0, viewMatriz, 0);  
 			if(UI) ui.render();
-			renderizar();  
 			renderizarMobs();
-			atualizarViewMatriz();  
+			atualizarViewMatriz();
 			if(mundo.noChao(player) || mundo.chunksAtivos.size() < 4) {  
 				player.noAr = false;  
 				pesoConta = 0.1f;  
@@ -572,6 +564,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}  
 		if(gc == true)  ativarGC();  
 		if(debug == true) renderHitbox();  
+		renderizar();  
     }  
 
 	@Override  
@@ -620,11 +613,18 @@ public class GLRender implements GLSurfaceView.Renderer {
 			camera.noAr = false;
 		} else camera.noAr = true;
 	}
+	
+	public static final Comparator<ChunkCandidato> COMP = new Comparator<ChunkCandidato>() {
+		public int compare(ChunkCandidato a, ChunkCandidato b) {
+			return Double.compare(a.distancia, b.distancia);
+		}
+	};
+	public PriorityQueue<ChunkCandidato> fila = new PriorityQueue<ChunkCandidato>(10, COMP);
+	public int[] tempBuffer = new int[1];
 
     public void atualizarChunks() {
 		int chunkJogadorX = (int)(player.pos[0] / mundo.CHUNK_TAMANHO);
 		int chunkJogadorZ = (int)(player.pos[2] / mundo.CHUNK_TAMANHO);
-
 		Iterator<Map.Entry<String, Bloco[][][]>> it = mundo.chunksAtivos.entrySet().iterator();
 		while(it.hasNext()) {
 			String chave = it.next().getKey();
@@ -636,18 +636,14 @@ public class GLRender implements GLSurfaceView.Renderer {
 				if(!mundo.chunksModificados.containsKey(chave)) mundo.chunksCarregados.remove(chave);
 				List<VBOGrupo> grupos = mundo.chunkVBOs.remove(chave);
 				if(grupos != null) for(VBOGrupo g : grupos) {
-						GLES30.glDeleteBuffers(1, new int[]{ g.vboId }, 0);
-						GLES30.glDeleteBuffers(1, new int[]{ g.iboId }, 0);
-						g = null;
-					}
+					tempBuffer[0] = g.vboId;
+					GLES30.glDeleteBuffers(1, tempBuffer, 0);
+					tempBuffer[0] = g.iboId;
+					GLES30.glDeleteBuffers(1, tempBuffer, 0);
+				}
+				grupos.clear();
 			}
 		}
-		PriorityQueue<ChunkCandidato> fila = new PriorityQueue<ChunkCandidato>(10, new Comparator<ChunkCandidato>() {
-				public int compare(ChunkCandidato a, ChunkCandidato b) {
-					return Double.compare(a.distancia, b.distancia);
-				}
-			});
-
 		for(int x = chunkJogadorX - mundo.RAIO_CARREGAMENTO; x <= chunkJogadorX + mundo.RAIO_CARREGAMENTO; x++) {
 			for(int z = chunkJogadorZ - mundo.RAIO_CARREGAMENTO; z <= chunkJogadorZ + mundo.RAIO_CARREGAMENTO; z++) {
 				String chave = x + "," + z;
@@ -657,6 +653,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 				}
 			}
 		}
+		if(mundo.chunksAtivos.size() == Math.pow(2*mundo.RAIO_CARREGAMENTO+1, 2)) return;
 		int carregados = 0;
 		if(livre >= 10.0 || !trava || total <= 30.0) {
 			while(!fila.isEmpty() && carregados < chunksPorVez) {
@@ -668,16 +665,17 @@ public class GLRender implements GLSurfaceView.Renderer {
 						public void run() {
 							final Map<Integer, List<float[]>> dados = mundo.calculoVBO(chunk);
 							tela.queueEvent(new Runnable() {
-									public void run() {
-										mundo.chunkVBOs.put(chave, gerarVBO(dados));
-									}
-								});
+								public void run() {
+									mundo.chunkVBOs.put(chave, gerarVBO(dados));
+								}
+							});
 						}
 					});
 				carregados++;
 			}
 			if(!pronto) pronto = true;
 		} else ativarGC();
+		fila.clear();
 	}
 	
 	public static void ativarGC() {
@@ -700,9 +698,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 	public void destruir() {
 		for(List<VBOGrupo> grupos : mundo.chunkVBOs.values()) {
 			for(VBOGrupo grupo : grupos) {
-				GLES30.glDeleteBuffers(1, new int[]{grupo.vboId}, 0);
-				GLES30.glDeleteBuffers(1, new int[]{grupo.iboId}, 0);
-				GLES30.glDeleteTextures(1, new int[]{grupo.texturaId}, 0);
+				tempBuffer[0] = grupo.vboId;
+				GLES30.glDeleteBuffers(1, tempBuffer, 0);
+				tempBuffer[0] = grupo.iboId;
+				GLES30.glDeleteBuffers(1, tempBuffer, 0);
+				tempBuffer[0] = grupo.texturaId;
+				GLES30.glDeleteTextures(1, tempBuffer, 0);
 			}
 		}
 		executor.shutdown();
@@ -833,12 +834,12 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
 	}
 	
-	public void moverFrente() { mover(player.camera.foco[0], player.camera.foco[2]); }
-	public void moverTras() { mover(-player.camera.foco[0], -player.camera.foco[2]); }
-	public void moverDireita() { mover(-player.camera.foco[2], player.camera.foco[0]); }
-	public void moverEsquerda() { mover(player.camera.foco[2], -player.camera.foco[0]); }
+	public void moverFrente(Player player) { mover(player.camera.foco[0], player.camera.foco[2], player); }
+	public void moverTras(Player player) { mover(-player.camera.foco[0], -player.camera.foco[2], player); }
+	public void moverDireita(Player player) { mover(-player.camera.foco[2], player.camera.foco[0], player); }
+	public void moverEsquerda(Player player) { mover(player.camera.foco[2], -player.camera.foco[0], player); }
 
-	public void mover(float dirX, float dirZ) {
+	public void mover(float dirX, float dirZ, Player player) {
 		float magSq = dirX * dirX + dirZ * dirZ;
 		if(magSq <= 0.0001f) return;
 
@@ -1032,19 +1033,3 @@ public class GLRender implements GLSurfaceView.Renderer {
 		dis.close();
 	}
 }
-class Mob extends Player {
-		public VBOGrupo modelo;
-		public int texturaId;
-
-		public Mob(float x, float y, float z, VBOGrupo modelo, int texturaId) {
-			this.modelo = modelo;
-			this.texturaId = texturaId;
-			this.pos[0] = x;
-			this.pos[1] = y;
-			this.pos[2] = z;
-			this.peso = 1f;
-			this.velocidadeX = 0.09f;
-			this.hitbox[0] = 1.7f;
-			this.hitbox[1] = 0.8f;
-		}
-	}

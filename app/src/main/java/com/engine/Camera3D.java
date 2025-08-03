@@ -9,7 +9,6 @@ public class Camera3D {
     public float tom = 0;
 
 	public Camera3D() {
-		this.mover(0);
 		this.rotacionar(0, 0);
 	}
 
@@ -27,11 +26,7 @@ public class Camera3D {
         normalize(foco);
     }
 
-    public void mover(float velo) {
-        pos[0] += foco[0] * velo;
-        pos[1] += foco[1] * velo;
-        pos[2] += foco[2] * velo;
-    }
+    
 
     public void normalize(float[] v) {
         float tamanho = (float)Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
