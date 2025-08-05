@@ -23,6 +23,7 @@ public class Player extends Camera3D {
 
 	public Player() {
 		super();
+		this.pos[1] = 25;
 		hitbox[0] = 1.7f;
 		hitbox[1] = 0.25f;
 		inventario.add(new Slot());

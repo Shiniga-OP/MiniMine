@@ -33,7 +33,7 @@ public class Comandos {
 				render.mundo.RAIO_CARREGAMENTO = Integer.parseInt(comando);
 				comando = "chunks ao redor do jogador: "+render.mundo.CHUNK_TAMANHO*render.mundo.RAIO_CARREGAMENTO;
 			} else if(comando.startsWith("/chunk att")) {
-				Map<String, Bloco[][][]> chunks = render.mundo.chunksAtivos;
+				Map<ChunkCoord, Bloco[][][]> chunks = render.mundo.chunksAtivos;
 				render.mundo.chunksAtivos.clear();
 				render.mundo.chunksAtivos = chunks;
 				comando = "chunks atualizados";

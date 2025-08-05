@@ -54,6 +54,7 @@ import org.json.JSONArray;
 import com.engine.ArmUtils;
 import com.engine.Modelador;
 import com.engine.VBOGrupo;
+import java.util.Set;
 
 public class GLRender implements GLSurfaceView.Renderer {
     public Context ctx;
@@ -63,7 +64,8 @@ public class GLRender implements GLSurfaceView.Renderer {
     public float[] vpMatriz = new float[16];
 	
     public Player player = new Player();
-    public ExecutorService executor = Executors.newFixedThreadPool(4);
+    public ExecutorService executorTerreno = Executors.newFixedThreadPool(4);
+	public ExecutorService executorFisica = Executors.newFixedThreadPool(2);
 	public float pesoConta = 0f;
 	// interface
 	public Cena2D ui;
@@ -103,11 +105,11 @@ public class GLRender implements GLSurfaceView.Renderer {
 		GLES30.glUniformMatrix4fv(lidarvPMatriz, 1, false, vpMatriz, 0);
 		GLES30.glUniform1f(lidarLuzIntensidade, luz);
 		GLES30.glUniform3fv(lidarLuzDirecao, 1, luzDirecao, 0);
-		for(Map.Entry<String, Bloco[][][]> e : mundo.chunksAtivos.entrySet()) {  
-			final String chave = e.getKey();  
+		for(Map.Entry<ChunkCoord, Bloco[][][]> e : mundo.chunksAtivos.entrySet()) {  
+			final ChunkCoord chave = e.getKey();  
 			if(mundo.chunksAlterados.containsKey(chave) && mundo.chunksAlterados.get(chave)) {  
 				final Bloco[][][] chunk = e.getValue();  
-				executor.submit(new Runnable() {  
+				executorTerreno.submit(new Runnable() {  
 						public void run() {  
 							final Map<Integer, List<float[]>> dados = mundo.calculoVBO(chunk);  
 							tela.queueEvent(new Runnable() {  
@@ -284,6 +286,9 @@ public class GLRender implements GLSurfaceView.Renderer {
 			"}";
 		programaHitbox = ShaderUtils.criarPrograma(vertHitboxC, fragHitboxC);
 		GLES30.glLineWidth(10f);
+		hitboxBuffer = ByteBuffer.allocateDirect(72 * 4)
+			.order(ByteOrder.nativeOrder())
+			.asFloatBuffer();
 	}
 	
 	public void renderHitbox() {
@@ -311,11 +316,6 @@ public class GLRender implements GLSurfaceView.Renderer {
 			maxX, minY, maxZ,  maxX, maxY, maxZ,
 			minX, minY, maxZ,  minX, maxY, maxZ
 		};
-		if(hitboxBuffer==null || hitboxBuffer.capacity() < vertices.length) {
-			hitboxBuffer = ByteBuffer.allocateDirect(72 * 4)
-				.order(ByteOrder.nativeOrder())
-				.asFloatBuffer();
-		}
 		hitboxBuffer.clear();
 		hitboxBuffer.put(vertices);
 		hitboxBuffer.position(0);
@@ -525,18 +525,17 @@ public class GLRender implements GLSurfaceView.Renderer {
 			ui.add(botoes);
 		}	
 		rt = Runtime.getRuntime();
-		chunksPorVez = 1;
     } 
 	
 	public Runtime rt;
-	public double livre, total, usado;
+	public float livre, total, usado;
 	
 	@Override  
     public void onDrawFrame(GL10 gl) {  
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 		
-		livre = rt.freeMemory() / 1048576.0;
-		total = rt.totalMemory() / 1048576.0;
+		livre = rt.freeMemory() >> 20;
+		total = rt.totalMemory() >> 20;
 		usado = total - livre;
 		
 		atualizarTempo();  
@@ -565,6 +564,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(gc == true)  ativarGC();  
 		if(debug == true) renderHitbox();  
 		renderizar();  
+		propagarAgua();
     }  
 
 	@Override  
@@ -596,6 +596,70 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
     }
 	
+	public void propagarAgua() {
+		executorFisica.submit(new Runnable() {
+				public void run() {
+					List<Agua> novas = new ArrayList<Agua>(128);
+					final int[][] dirs = {
+						{ 0,  0,  1}, // norte
+						{ 1,  0,  0}, // leste
+						{ 0,  0, -1}, // sul
+						{-1, 0,  0}   // oeste
+					};
+
+					Set<ChunkCoord> chunksAfetados = new HashSet<ChunkCoord>();
+
+					for(Map.Entry<ChunkCoord, Bloco[][][]> entry : mundo.chunksAtivos.entrySet()) {
+						Bloco[][][] chunk = entry.getValue();
+						int baseX = entry.getKey().x * mundo.CHUNK_TAMANHO;
+						int baseZ = entry.getKey().z * mundo.CHUNK_TAMANHO;
+
+						for(int x = 0; x < mundo.CHUNK_TAMANHO; x++) {
+							for(int y = 0; y < mundo.MUNDO_LATERAL; y++) {
+								for(int z = 0; z < mundo.CHUNK_TAMANHO; z++) {
+									Bloco b = chunk[x][y][z];
+									if(!(b instanceof Agua)) continue;
+
+									Agua a = (Agua) b;
+									if(a.nivel >= 7) continue;
+
+									boolean cercado = true;
+
+									for(int i = 0; i < 4; i++) {
+										int nx = baseX + x + dirs[i][0];
+										int ny = y; // água não sobe nem desce aqui
+										int nz = baseZ + z + dirs[i][2];
+
+										Bloco viz = mundo.obterBloco(nx, ny, nz);
+										if(viz == null) {
+											Agua ag = new Agua(nx, ny, nz, "AGUA");
+											ag.nivel = a.nivel + 1;
+											ag.dir = i;
+											novas.add(ag);
+											chunksAfetados.add(new ChunkCoord(nx / mundo.CHUNK_TAMANHO, nz / mundo.CHUNK_TAMANHO));
+											cercado = false;
+										}
+									}
+
+									if(cercado) {
+										if(a.nivel != 0 || a.dir != 0) {
+											a.nivel = 0;
+											a.dir = 0;
+											mundo.defBloco(a, baseX + x, y, baseZ + z);
+											chunksAfetados.add(entry.getKey());
+										}
+									}
+								}
+							}
+						}
+					}
+
+					for(Agua ag : novas) mundo.defBloco(ag, ag.x, ag.y, ag.z);
+					for(ChunkCoord c : chunksAfetados) mundo.chunksAlterados.put(c, true);
+				}
+			});
+	}
+	
 	public void atualizarGravidade(Player camera) {
 		if(camera.noAr == false) return;
 		if(!gravidade || camera.peso == 0) return;
@@ -625,13 +689,10 @@ public class GLRender implements GLSurfaceView.Renderer {
     public void atualizarChunks() {
 		int chunkJogadorX = (int)(player.pos[0] / mundo.CHUNK_TAMANHO);
 		int chunkJogadorZ = (int)(player.pos[2] / mundo.CHUNK_TAMANHO);
-		Iterator<Map.Entry<String, Bloco[][][]>> it = mundo.chunksAtivos.entrySet().iterator();
+		Iterator<Map.Entry<ChunkCoord, Bloco[][][]>> it = mundo.chunksAtivos.entrySet().iterator();
 		while(it.hasNext()) {
-			String chave = it.next().getKey();
-			int sep = chave.indexOf(',');
-			int cx = Integer.parseInt(chave.substring(0, sep));
-			int cz = Integer.parseInt(chave.substring(sep + 1));
-			if(Math.abs(cx - chunkJogadorX) > mundo.RAIO_CARREGAMENTO || Math.abs(cz - chunkJogadorZ) > mundo.RAIO_CARREGAMENTO) {
+			final ChunkCoord chave = it.next().getKey();
+			if(Math.abs(chave.x - chunkJogadorX) > mundo.RAIO_CARREGAMENTO || Math.abs(chave.z - chunkJogadorZ) > mundo.RAIO_CARREGAMENTO) {
 				it.remove();
 				if(!mundo.chunksModificados.containsKey(chave)) mundo.chunksCarregados.remove(chave);
 				List<VBOGrupo> grupos = mundo.chunkVBOs.remove(chave);
@@ -646,7 +707,7 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
 		for(int x = chunkJogadorX - mundo.RAIO_CARREGAMENTO; x <= chunkJogadorX + mundo.RAIO_CARREGAMENTO; x++) {
 			for(int z = chunkJogadorZ - mundo.RAIO_CARREGAMENTO; z <= chunkJogadorZ + mundo.RAIO_CARREGAMENTO; z++) {
-				String chave = x + "," + z;
+				ChunkCoord chave = new ChunkCoord(x, z);
 				if(!mundo.chunksAtivos.containsKey(chave)) {
 					double dist = Math.hypot(x - chunkJogadorX, z - chunkJogadorZ);
 					fila.offer(new ChunkCandidato(chave, x, z, dist));
@@ -658,10 +719,10 @@ public class GLRender implements GLSurfaceView.Renderer {
 		if(livre >= 10.0 || !trava || total <= 30.0) {
 			while(!fila.isEmpty() && carregados < chunksPorVez) {
 				final ChunkCandidato c = fila.poll();
-				final String chave = c.chave;
+				final ChunkCoord chave = c.chave;
 				final Bloco[][][] chunk = mundo.carregarChunk(c.x, c.z);
 				mundo.chunksAtivos.put(chave, chunk);
-				executor.submit(new Runnable() {
+				executorTerreno.submit(new Runnable() {
 						public void run() {
 							final Map<Integer, List<float[]>> dados = mundo.calculoVBO(chunk);
 							tela.queueEvent(new Runnable() {
@@ -683,11 +744,11 @@ public class GLRender implements GLSurfaceView.Renderer {
 		Runtime.getRuntime().runFinalization();
 	}
 
-	private static class ChunkCandidato {
-		String chave;
+	public static class ChunkCandidato {
+		ChunkCoord chave;
 		int x, z;
 		double distancia;
-		ChunkCandidato(String chave, int x, int z, double distancia) {
+		ChunkCandidato(ChunkCoord chave, int x, int z, double distancia) {
 			this.chave = chave;
 			this.x = x;
 			this.z = z;
@@ -706,7 +767,8 @@ public class GLRender implements GLSurfaceView.Renderer {
 				GLES30.glDeleteTextures(1, tempBuffer, 0);
 			}
 		}
-		executor.shutdown();
+		executorTerreno.shutdown();
+		executorFisica.shutdown();
 	}
 	
 	public void carregarTexturas(Context contexto) {
@@ -918,21 +980,22 @@ public class GLRender implements GLSurfaceView.Renderer {
 		}
 	}
 
-	public void salvarMundo(OutputStream out, int seed, Map<String, Bloco[][][]> chunksCarregados) throws IOException {
+	public void salvarMundo(OutputStream out, int seed, Map<ChunkCoord, Bloco[][][]> chunksCarregados) throws IOException {
 		DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(out));
 		// seed
 		dos.writeInt(seed);
 		// quantos chunks salvos
 		dos.writeInt(chunksCarregados.size());
 
-		for(Map.Entry<String, Bloco[][][]> entry : chunksCarregados.entrySet()) {
-			String chave = entry.getKey(); // chave da chunk
+		for(Map.Entry<ChunkCoord, Bloco[][][]> entry : chunksCarregados.entrySet()) {
+			ChunkCoord chave = entry.getKey(); // chave da chunk
 			Bloco[][][] chunk = entry.getValue();
 			int cx = chunk.length;
 			int cy = chunk[0].length;
 			int cz = chunk[0][0].length;
 			// salva a chave da chunk
-			dos.writeUTF(chave);
+			dos.writeInt(chave.x);
+			dos.writeInt(chave.z);
 			// escreve o tamanho da chunk
 			dos.writeInt(cx);
 			dos.writeInt(cy);
@@ -985,25 +1048,13 @@ public class GLRender implements GLSurfaceView.Renderer {
 		int totalChunks = dis.readInt();
 
 		for(int i = 0; i < totalChunks; i++) {
-			String chave = dis.readUTF();
+			int chunkX = dis.readInt();
+			int chunkZ = dis.readInt();
 			int cx = dis.readInt();
 			int cy = dis.readInt();
 			int cz = dis.readInt();
 			Bloco[][][] chunk = new Bloco[cx][cy][cz];
-			// eztraindo a chave da xhunk
-			String[] partesChave = chave.split(",");
-			int chunkX = Integer.parseInt(partesChave[0]);
-			int chunkZ = Integer.parseInt(partesChave[1]);
 			// constroi a chunk
-			for(int x = 0; x < cx; x++) {
-				for(int y = 0; y < cy; y++) {
-					for(int z = 0; z < cz; z++) {
-						int globalX = chunkX * mundo.CHUNK_TAMANHO + x;
-						int globalZ = chunkZ * mundo.CHUNK_TAMANHO + z;
-						chunk[x][y][z] = new Bloco(globalX, y, globalZ, "AR");
-					}
-				}
-			}
 			int totalNaoAr = dis.readInt();
 			for(int k = 0; k < totalNaoAr; k++) {
 				int x = dis.readInt();
@@ -1013,11 +1064,11 @@ public class GLRender implements GLSurfaceView.Renderer {
 				// convertendo pra coordenadas globais
 				int globalX = chunkX * mundo.CHUNK_TAMANHO + x;
 				int globalZ = chunkZ * mundo.CHUNK_TAMANHO + z;
-				Bloco b = new Bloco(globalX, y, globalZ, id);
-				chunk[x][y][z] = b;
+				
+				chunk[x][y][z] = mundo.criarBloco(globalX, y, globalZ, id);
 			}
-			mundo.chunksModificados.put(chave, chunk);
-			mundo.chunksCarregados.put(chave, chunk);
+			mundo.chunksModificados.put(new ChunkCoord(chunkX, chunkZ), chunk);
+			mundo.chunksCarregados.put(new ChunkCoord(chunkX, chunkZ), chunk);
 		}
 		player.pos[0] = dis.readFloat();
 		player.pos[1] = dis.readFloat();
@@ -1032,4 +1083,23 @@ public class GLRender implements GLSurfaceView.Renderer {
 		
 		dis.close();
 	}
+}
+class ChunkCoord {
+    public final int x;
+    public final int z;
+    public ChunkCoord(int x, int z) {
+        this.x = x;
+        this.z = z;
+    }
+    @Override
+    public boolean equals(Object o) {
+        if(this == o) return true;
+        if(o == null || getClass() != o.getClass()) return false;
+        ChunkCoord that = (ChunkCoord) o;
+        return x == that.x && z == that.z;
+    }
+    @Override
+    public int hashCode() {
+        return 31 * x + z;
+    }
 }

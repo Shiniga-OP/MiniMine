@@ -7,6 +7,67 @@ import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
 public class Modelador {
+	public static float[] criarAgua(float x, float y, float z, int nivel, int dir) {
+		float alturaTopoBase = y + 1.0f - nivel * 0.125f;
+		// inclinacao topo conforme dir bitflag(n=1, s=2, l=4, o=8)
+		float ajusteN = ((dir & 1) != 0) ? -0.2f : 0f;
+		float ajusteS = ((dir & 2) != 0) ? -0.2f : 0f;
+		float ajusteL = ((dir & 4) != 0) ? -0.2f : 0f;
+		float ajusteO = ((dir & 8) != 0) ? -0.2f : 0f;
+		float hN = alturaTopoBase + ajusteN;
+		float hS = alturaTopoBase + ajusteS;
+		float hL = alturaTopoBase + ajusteL;
+		float hO = alturaTopoBase + ajusteO;
+		// garante >= y(não desce abaixo da base)
+		hN = Math.max(y, hN);
+		hS = Math.max(y, hS);
+		hL = Math.max(y, hL);
+		hO = Math.max(y, hO);
+		return new float[] {
+			// face de frente(z+1)
+			x, y,  z+1,
+			x+1, y,  z+1,
+			x+1, hN, z+1,
+			x, y,  z+1,
+			x+1, hN, z+1,
+			x,  hS, z+1,
+			// face de tras(z)
+			x, y,  z,
+			x+1, y,  z,
+			x+1, hL, z,
+			x, y,  z,
+			x+1, hL, z,
+			x, hO, z,
+			// face de cima(topo)
+			x, hO, z,
+			x+1, hL, z,
+			x+1, hN, z+1,
+			x, hO, z,
+			x+1, hN, z+1,
+			x, hS, z+1,
+			// face de baixo
+			x,    y,  z,
+			x+1,  y,  z,
+			x+1,  y,  z+1,
+			x, y,  z,
+			x+1,  y,  z+1,
+			x, y,  z+1,
+			// face esquerda(x)
+			x, y,  z,
+			x, hO, z,
+			x, hS, z+1,
+			x, y,  z,
+			x, hS, z+1,
+			x, y,  z+1,
+			// face direita(x+1)
+			x+1, y,  z,
+			x+1, hL, z,
+			x+1, hN, z+1,
+			x+1, y,  z,
+			x+1, hN, z+1,
+			x+1, y, z+1
+		};
+	}
 	public static float[] criarBloco(float x, float y, float z) {
         return new float[] {
             // face de frente

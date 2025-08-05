@@ -20,13 +20,13 @@ public class Mundo {
     public int RAIO_CARREGAMENTO = 7; // padrao: 8, testes: 7
 
 	public int atlasTexturaId = -1;
-	public Map<String, float[]> atlasUVMapa = new HashMap<>();
+	public Map<String, float[]> atlasUVMapa = new ConcurrentHashMap<>();
 
-	public Map<String, Bloco[][][]> chunksAtivos = new ConcurrentHashMap<>();
-	public Map<String, List<VBOGrupo>> chunkVBOs = new ConcurrentHashMap<>();
-	public Map<String, Boolean> chunksAlterados = new HashMap<>();
-	public Map<String, Bloco[][][]> chunksModificados = new HashMap<>();
-    public Map<String, Bloco[][][]> chunksCarregados = new HashMap<>();
+	public Map<ChunkCoord, Bloco[][][]> chunksAtivos = new ConcurrentHashMap<>();
+	public Map<ChunkCoord, List<VBOGrupo>> chunkVBOs = new ConcurrentHashMap<>();
+	public Map<ChunkCoord, Boolean> chunksAlterados = new ConcurrentHashMap<>();
+	public Map<ChunkCoord, Bloco[][][]> chunksModificados = new ConcurrentHashMap<>();
+    public Map<ChunkCoord, Bloco[][][]> chunksCarregados = new ConcurrentHashMap<>();
 	public String nome = "novo mundo", tipo = "normal";
 	public int seed;
 	public String pacoteTex;
@@ -77,16 +77,33 @@ public class Mundo {
 	public final int[] DY = {0, 0, 1, -1, 0, 0};
 	public final int[] DZ = {1, -1, 0, 0, 0, 0};
 	
-	public final Map<String, float[]> uvCache = new HashMap<String, float[]>(64);
+	public final Map<String, float[]> uvCache = new ConcurrentHashMap<String, float[]>(64);
 	
 	public final float[] UV_PADRAO = {0f, 0f, 1f, 1f};
+	
+	public void defBloco(Bloco bloco, int x, int y, int z) {
+		if(y < 0 || y >= MUNDO_LATERAL) return;
+
+		int chunkX = (int) Math.floor(x / (float) CHUNK_TAMANHO);
+		int chunkZ = (int) Math.floor(z / (float) CHUNK_TAMANHO);
+		ChunkCoord chave =  new ChunkCoord(chunkX, chunkZ);
+
+		Bloco[][][] chunk = chunksAtivos.get(chave);
+		if(chunk == null) return;
+
+		int localX = x - chunkX * CHUNK_TAMANHO;
+		int localZ = z - chunkZ * CHUNK_TAMANHO;
+
+		if(localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return;
+		chunk[localX][y][localZ] = bloco;
+	}
 	
 	public Bloco obterBloco(int x, int y, int z) {
 		if(y < 0 || y >= MUNDO_LATERAL) return null;
 
 		int chunkX = (int) Math.floor(x / (float) CHUNK_TAMANHO);
 		int chunkZ = (int) Math.floor(z / (float) CHUNK_TAMANHO);
-		String chave = chunkX + "," + chunkZ;
+		ChunkCoord chave =  new ChunkCoord(chunkX, chunkZ);
 
 		Bloco[][][] chunk = chunksAtivos.get(chave);
 		if(chunk == null) return null;
@@ -104,6 +121,11 @@ public class Mundo {
 	    this.tipo = tipo;
 		this.pacoteTex = pacoteTex;
 		this.definirBiomas();
+	}
+	
+	public Bloco criarBloco(int x, int y, int z, String tipo) {
+		if(tipo.equals("AGUA")) return new Agua(x, y, z, tipo);
+		else return new Bloco(x, y, z, tipo);
 	}
 	
 	public Bloco[][][] gerarChunk(final int chunkX, final int chunkZ) {
@@ -161,7 +183,7 @@ public class Mundo {
 						if(noise3D > b.caverna) tipoBloco = "AR";
 					} else if(y < altura)  tipoBloco = b.blocoSub;
 					else if(y == altura) tipoBloco = b.blocoSup;
-					if(!tipoBloco.equals("AR")) chunk[x][y][z] = new Bloco(globalX, y, globalZ, tipoBloco);
+					if(!tipoBloco.equals("AR")) chunk[x][y][z] = criarBloco(globalX, y, globalZ, tipoBloco);
 				}
 			}
 		}
@@ -188,9 +210,13 @@ public class Mundo {
 			for(int y = 0; y < MUNDO_LATERAL; y++) {
 				for(int z = 0; z < CHUNK_TAMANHO; z++) {
 					Bloco bloco = chunk[x][y][z];
-					if(bloco == null || "0".equals(bloco.tipo[0])) continue;
+					if(bloco == null) continue;
 
-					float[] vertices = Modelador.criarBloco(bloco.x, bloco.y, bloco.z);
+					float[] vertices = null;
+					if(bloco instanceof Agua) {
+						Agua b = (Agua) bloco;
+						vertices = Modelador.criarAgua(b.x, b.y, b.z, b.nivel, b.dir);
+					} else vertices = Modelador.criarBloco(bloco.x, bloco.y, bloco.z);
 
 					for(int face = 0; face < 6; face++) {
 						if(!faceVisivel(bloco.x, bloco.y, bloco.z, face)) continue;
@@ -205,7 +231,7 @@ public class Mundo {
 							System.arraycopy(vertices, src, dadosFace, dst, 3);
 							System.arraycopy(normal, 0, dadosFace, dst + 3, 3);
 						}
-						String recurso = bloco.tipo[face];
+						String recurso = TipoBloco.tipos.get(bloco.id)[face];
 						float[] uv = uvCache.get(recurso);
 						if(uv == null) {
 							uv = atlasUVMapa.get(recurso);
@@ -241,20 +267,20 @@ public class Mundo {
 		int chunkX = nx >> 4; // divisao por 16(CHUNK_TAMANHO) usando shift
 		int chunkZ = nz >> 4;
 
-		String chaveChunk = chunkX + "," + chunkZ;
+		ChunkCoord chaveChunk = new ChunkCoord(chunkX, chunkZ);
 		Bloco[][][] chunkVizinho = chunksAtivos.get(chaveChunk);
-		if(chunkVizinho == null) return true;
-		// calculo otimizado de coordenadas locais
+		if(chunkVizinho == null) return false;
+		
 		int localX = nx & 0xF; // modulo 16 usando AND
 		int localZ = nz & 0xF;
 
 		Bloco vizinho = chunkVizinho[localX][ny][localZ];
-		return vizinho == null || "0".equals(vizinho.tipo[0]) || !vizinho.solido && !vizinho.liquido;
+		return vizinho == null || !(vizinho instanceof Agua) && !(vizinho instanceof Bloco);
 	}
 	
 	// gera ou carrega chunks ja existentes
     public Bloco[][][] carregarChunk(int chunkX, int chunkY) {
-        final String chave = chunkX + "," + chunkY;
+        final ChunkCoord chave = new ChunkCoord(chunkX, chunkY);
         if(chunksCarregados.containsKey(chave)) return chunksCarregados.get(chave);
         else {
             final Bloco[][][] chunk = gerarChunk(chunkX, chunkY);
@@ -313,22 +339,22 @@ public class Mundo {
 				  0.05f, 0.1f,
 				  "GRAMA", "TERRA", "PEDRA",
 				  0.15f));
+		// lago
+		BIOMAS.add(new Bioma(20f, 0.1f,
+				0.001f, 0.12f,
+			    "AGUA", "AREIA", "PEDRA",
+				 0.1f));
 		// floresta de lagos
 		BIOMAS.add(new Bioma(22f, 3f,
 				  0.05f, 0.1f,
 				  "GRAMA", "TERRA", "PEDRA",
 				  0.15f));
-		// lago
-		BIOMAS.add(new Bioma(20f, 1f,
-				  0.01f, 0.12f,
-				  "AGUA", "AREIA", "PEDRA",
-				  0.1f));
 	}
 
 	public void destruirBloco(final float globalX, final float y, final float globalZ, final Player player) {
 		final int chunkX = (int) Math.floor(globalX / (float) CHUNK_TAMANHO);
 		final int chunkZ = (int) Math.floor(globalZ / (float) CHUNK_TAMANHO);
-		final String chaveChunk = chunkX + "," + chunkZ;
+		final ChunkCoord chaveChunk = new ChunkCoord(chunkX,  chunkZ);
 
 		final Bloco[][][] chunk = carregarChunk(chunkX, chunkZ);
 
@@ -340,7 +366,7 @@ public class Mundo {
 
 		final Bloco blocoExistente = chunk[localX][intY][localZ];
 
-		if(blocoExistente == null || blocoExistente.tipo[0].equals("0")) return;
+		if(blocoExistente == null) return;
 
 		player.inventario.get(0).tipo = blocoExistente.id;
 		player.inventario.get(0).quant += 1;
@@ -356,7 +382,7 @@ public class Mundo {
 	public void colocarBloco(final float globalX, final float y, final float globalZ,  final Player player) {
 		int chunkX = (int) Math.floor(globalX / (float) CHUNK_TAMANHO);
 		int chunkZ = (int) Math.floor(globalZ / (float) CHUNK_TAMANHO);
-		final String chaveChunk = chunkX + "," + chunkZ;
+		final ChunkCoord chaveChunk = new ChunkCoord(chunkX, chunkZ);
 		// carrega ou gera o chunk correspondente
 		Bloco[][][] chunk = carregarChunk(chunkX, chunkZ);
 
@@ -367,9 +393,9 @@ public class Mundo {
 		if(y < 0 || y >= MUNDO_LATERAL || localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return;
 
 		Bloco blocoExistente = chunk[localX][intY][localZ];
-		if(blocoExistente != null && !blocoExistente.tipo[0].equals("0")) return;
+		if(blocoExistente != null) return;
 		// define o bloco
-		if(player.inventario.get(0).quant >= 0)chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, player.itemMao);
+		if(player.inventario.get(0).quant >= 0)chunk[localX][intY][localZ] = criarBloco((int) globalX, (int) y, (int) globalZ, player.itemMao);
 		// se o chunk estiver ativo marca como alterado para atualizacao da VBO
 		if(chunksAtivos.containsKey(chaveChunk)) {
 			chunksAlterados.put(chaveChunk, true);
@@ -389,9 +415,9 @@ public class Mundo {
 		if(y < 0 || y >= MUNDO_LATERAL || localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return;
 
 		Bloco blocoExistente = chunk[localX][intY][localZ];
-		if(blocoExistente != null && !blocoExistente.tipo[0].equals("0")) return;
+		if(blocoExistente != null) return;
 
-		chunk[localX][intY][localZ] = new Bloco((int) globalX, (int) y, (int) globalZ, tipo);
+		chunk[localX][intY][localZ] = criarBloco((int) globalX, (int) y, (int) globalZ, tipo);
 	}
 
 	public boolean noChao(Player camera) {
@@ -416,13 +442,13 @@ public class Mundo {
 		if(by < 0 || by >= MUNDO_LATERAL) return false;
 		int chunkX = (int) Math.floor(bx / (float) CHUNK_TAMANHO);
 		int chunkZ = (int) Math.floor(bz / (float) CHUNK_TAMANHO);
-		Bloco[][][] chunk = chunksAtivos.get(chunkX + "," + chunkZ);
+		Bloco[][][] chunk = chunksAtivos.get(new ChunkCoord(chunkX, chunkZ));
 		if(chunk == null) return false;
 		int localX = bx - chunkX * CHUNK_TAMANHO;
 		int localZ = bz - chunkZ * CHUNK_TAMANHO;
 		if(localX < 0 || localX >= CHUNK_TAMANHO || localZ < 0 || localZ >= CHUNK_TAMANHO) return false;
 		Bloco bloco = chunk[localX][by][localZ];
-		return bloco != null && bloco.solido;
+		return bloco != null && !(bloco instanceof Agua);
 	}
 
 	public float[] verificarColisao(Player cam, float tx, float ty, float tz) {
@@ -432,13 +458,10 @@ public class Mundo {
 		// processa cada eixo separadamente na ordem correta
 		float[] novo = {tx, pos[1], pos[2]};
 		novo = ajustarColisao(cam, novo, r, h, 0); // X primeiro
-
 		novo[2] = tz;
 		novo = ajustarColisao(cam, novo, r, h, 2); // Z segundo
-
 		novo[1] = ty;
 		novo = ajustarColisao(cam, novo, r, h, 1); // Y por ultimo
-
 		return novo;
 	}
 
@@ -451,7 +474,6 @@ public class Mundo {
 
 		for(int i = 1; i <= PASSOS; i++) {
 			testePos[eixo] = original[eixo] + incremento * i;
-
 			if(!colidiria(testePos[0], testePos[1], testePos[2], altura, raio)) continue;
 			// colisao detectada, volta ao ultimo passo valido
 			testePos[eixo] = original[eixo] + incremento * (i - 1);
