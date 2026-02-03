@@ -3,11 +3,6 @@ plugins {
     id 'application'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_7
-    targetCompatibility = JavaVersion.VERSION_1_7
-}
-
 repositories {
     google()
     mavenCentral()
@@ -21,12 +16,12 @@ application {
 
 dependencies {
     implementation project(':gdx-jogo')
-    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl:1.9.14"
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
     implementation "com.github.mgsx-dev.gdx-gltf:gltf:2.1.0"
-    runtimeOnly "com.badlogicgames.gdx:gdx-platform:1.9.14:natives-desktop"
-    runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:1.9.14:natives-desktop"
-    runtimeOnly "com.badlogicgames.gdx:gdx-platform:1.9.14:natives-x86"
-    runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:1.9.14:natives-x86"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
+    runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
 }
 
 sourceSets {
@@ -46,20 +41,19 @@ task rodar(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
     workingDir = file('../assets').exists() ? file('../assets') : projectDir
+}
 
+tasks.withType(JavaExec).configureEach{
     doFirst {
-        def cacheDir = file("${rootDir}/.cache")
-        def logsDir  = new File(cacheDir, "logs")
-        def tempDir  = new File(cacheDir, "temp")
-
-        logsDir.mkdirs()
-        tempDir.mkdirs()
+	def logsDir = file("${rootDir}/.cache/logs")
+	
+	if(!logsDir.exists()){
+		logsDir.mkdirs()
+		println"Pasta ${logsDir} foi criado"
+	}
     }
 
-    jvmArgs(
-            "-Djava.io.tmpdir=${rootDir}/.cache/temp",
-            "-XX:ErrorFile=${rootDir}/.cache/logs/hs_err_pid%p.log"
-    )
+    jvmArgs += "-XX:ErrorFile=${rootDir}/.cache/logs/hs_err_pid%p.log"
 }
 
 jar {
