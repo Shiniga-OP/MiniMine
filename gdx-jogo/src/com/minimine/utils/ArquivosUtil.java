@@ -45,13 +45,14 @@ import java.nio.charset.StandardCharsets;
 public class ArquivosUtil {
     public static final String VERSAO = "v0.0.1";
 	public static boolean debug = true;
+
     // salva o mundo compactado(.mini), e faz escrita atomica para evitar arquivos truncados
     public static void svMundo(Mundo mundo, Jogador jogador) {
         File pasta = new File(Inicio.externo + "/MiniMine/mundos");
         if(!pasta.exists()) pasta.mkdirs();
 		
-        File destino = new File(pasta, URLEncoder.encode(mundo.nome, StandardCharsets.UTF_8) + ".mini");
-        File tmp = new File(pasta, URLEncoder.encode(mundo.nome, StandardCharsets.UTF_8) + ".mini.tmp");
+        File destino = new File(pasta, Mundo.decodificarNome(mundo.nome) + ".mini");
+        File tmp = new File(pasta, Mundo.decodificarNome(mundo.nome) + ".mini.tmp");
 
         try {
             // escreve em arquivo temporario

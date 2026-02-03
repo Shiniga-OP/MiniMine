@@ -4,6 +4,7 @@ package com.minimine.mundo;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,9 +40,20 @@ import com.minimine.graficos.Render;
 import com.minimine.graficos.Animacoes2D;
 import com.minimine.graficos.EmissorParticulas;
 import com.minimine.cenas.Jogador;
+import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 public class Mundo {
     public static String nome = "novo mundo";
+
+    public static String decodificarNome(String nome){
+	    try {
+	    	return URLDecoder.decode(nome, StandardCharsets.UTF_8.name());
+	    } catch (UnsupportedEncodingException e) {
+		return "Unknown";
+	    } 
+    }
 	
     public static final List<Object> texturas = new ArrayList<>();
 	public static final List<Chunk> praLiberar = new ArrayList<>();

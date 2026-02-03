@@ -94,7 +94,8 @@ public class MundoMenu implements Screen, InputProcessor {
         // lista de mundos
         int inicioY = Gdx.graphics.getHeight() - 350;
         for(int i = 0; i < nomesMundos.size(); i++) {
-            final String nomeMundo = URLDecoder.decode(nomesMundos.get(i), StandardCharsets.UTF_8);
+		
+            final String nomeMundo = Mundo.decodificarNome(nomesMundos.get(i));
             final int yPos = inicioY - (i * 120);
 
             Botao mundoBt = new Botao(Texturas.texs.get("botao_opcao"), 0, yPos, 500, 100, "") {
