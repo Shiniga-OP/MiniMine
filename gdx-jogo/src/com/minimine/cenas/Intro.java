@@ -78,16 +78,6 @@ public class Intro implements Screen {
 		
 		sb = new SpriteBatch();
         fonte = InterUtil.carregarFonte("ui/fontes/pixel.ttf", 30);
-		
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				ArquivosUtil.debug = false;
-				if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/novo mundo.mini")) {
-					ArquivosUtil.crMundo(Menu.mundo, Menu.tela);
-				}
-			}
-		}).start();
     }
 
     @Override  
@@ -141,7 +131,6 @@ public class Intro implements Screen {
         mb.dispose();
         sb.dispose();
         fonte.dispose();
-		Menu.mundo.liberar();
     }
     @Override public void hide() {}
     @Override public void pause() {}

@@ -85,7 +85,7 @@ Pré-computação de erosão.
 ## compatibilidade:
 * Android 4 até Android 14.
 * Linux 32-bit e 64-bit.
-* windows (sem testes concretos)
+* Windows XP até Windows 10.
 
 ## Desempenho:
 FPS de 30 a 55 padrão testado com até 111 chunks ativas (raio de 5).
@@ -116,9 +116,9 @@ Celular:
 * OpenGL ES: 3.2.
 * JVM: Java VM ART 2.1.0.
 * Sistema Operacional: Android 12 64-bit.
-* FPS padrão: 30-59.
+* FPS padrão: 29-59.
 
-Computador:
+PC:
 * Placa Mãe: dell optiPlex 780.
 * Processador: intel core 2 quad.
 * Memória RAM: 4GB(2x2GB DDR3).
@@ -126,7 +126,17 @@ Computador:
 * Video: intel 4 series(Integrada).
 * OpenGL: 2.1.
 * Sistema Operaciobal: Linux Mint 64-bit.
-* FPS padrão: 40-64.
+* FPS padrão: 50-100.
+
+Notebook:
+* Modelo: Aspire ES 15.
+* Processador: Intel Celeron Quad Core N3450.
+* Memória RAM: 4GB DDR3 L.
+* Armazenamento: HD 500 GBs.
+* Video: Intel HD Graphics.
+* OpenGL: 4.5.
+* Sistema Operacional: Windows 10.
+* FPS padrão: 100-255.
 
 # Comandos de teclado
 

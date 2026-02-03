@@ -38,30 +38,14 @@ public class Menu implements Screen, InputProcessor {
 	public static List<Texto> textos;
 	public static List<Botao> botoes;
 	public static float botaoTam = 130;
-	
-	public static Jogador tela = new Jogador();
-	public static Mundo mundo = new Mundo();
-	public Preferences prefs;
+	public static Preferences prefs;
 	
 	@Override
-	public void show() {
-		PerspectiveCamera camera = new PerspectiveCamera(120, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        // camera.position.set(10f, 18f, 10f);
-        camera.lookAt(0, 0, 0);
-        camera.near = 0.1f;
-        camera.far = 400f;
-        camera.update();
-
-		tela.camera = camera;
-		tela.modo = 0;
-		
+	public void show() {	
 		prefs = Gdx.app.getPreferences("MiniConfig");
 		textos = new ArrayList<>();
 		botoes = new ArrayList<>();
-		mundo.ciclo = true;
 		sb = new SpriteBatch();
-		
-		mundo.iniciar();
 		
 		fonte = InterUtil.carregarFonte("ui/fontes/pixel.ttf", 30);
 		Gdx.input.setInputProcessor(this);
@@ -73,18 +57,11 @@ public class Menu implements Screen, InputProcessor {
 		
 		attInterface();
 		
-		tela.att(0f);
-		
-		int pov = prefs.getInteger("pov", UI.pov);
-		float aprox = prefs.getFloat("aprox", UI.aprox);
-		float distancia = prefs.getFloat("distancia", UI.distancia);
-		float sensi = prefs.getFloat("sensi", UI.sensi);
-		int raio = prefs.getInteger("raioChunks", Mundo.RAIO_CHUNKS);
-		Mundo.RAIO_CHUNKS = raio;
-		UI.pov = pov;
-		UI.sensi = sensi;
-		UI.distancia = distancia;
-		UI.aprox = aprox;
+		Mundo.RAIO_CHUNKS = prefs.getInteger("raioChunks", Mundo.RAIO_CHUNKS);
+		UI.pov = prefs.getInteger("pov", UI.pov);
+		UI.sensi = prefs.getFloat("sensi", UI.sensi);
+		UI.distancia = prefs.getFloat("distancia", UI.distancia);
+		UI.aprox = prefs.getFloat("aprox", UI.aprox);
 	}
 	
 	public void attInterface() {
@@ -113,7 +90,6 @@ public class Menu implements Screen, InputProcessor {
 					defPos((v - novaLargura) / 2, (h - novaAltura) / 2);
 				}
 			});
-
 		textos.add(new Texto("Um Jogador", 0, 0) {
 				@Override
 				public void aoAjustar(int v, int h) {
@@ -122,7 +98,6 @@ public class Menu implements Screen, InputProcessor {
 					y = h / 2f;
 				}
 			});
-
 		botoes.add(new Botao(Texturas.texs.get("botao_opcao"), 0, 0, larguraBotao * 2, alturaBotao, "irConfig") {
 				@Override
 				public void aoTocar(int tx, int ty, int p) {
@@ -139,7 +114,6 @@ public class Menu implements Screen, InputProcessor {
 					defPos((v - novaLargura) / 2f, (h - novaAltura) / 3f);
 				}
 			});
-
 		textos.add(new Texto("Configurações", 0, 0) {
 				@Override
 				public void aoAjustar(int v, int h) {
@@ -148,7 +122,6 @@ public class Menu implements Screen, InputProcessor {
 					y = h / 2.95f;
 				}
 			});
-
 		textos.add(new Texto("MiniMine", 0, 0) {
 				@Override
 				public void aoAjustar(int v, int h) {
@@ -161,22 +134,7 @@ public class Menu implements Screen, InputProcessor {
 	
 	@Override
 	public void render(float delta) {
-		mundo.ciclo = false;
-		float luz = DiaNoiteUtil.luz;
-		if(luz < 0.1f) luz = 0f;
-		if(luz > 1f) luz = 1f;
-
-		float r = 0.5f * luz;
-		float g = 0.7f * luz;
-		float b = 1.0f * luz;
-
-		Gdx.gl.glClearColor(r, g, b, 1f);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-		Gdx.gl.glEnable(GL20.GL_CULL_FACE);
-		
-		mundo.att(delta, tela);
-		tela.camera.update();
-		
 		Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 		
 		sb.begin();
@@ -186,17 +144,12 @@ public class Menu implements Screen, InputProcessor {
 		for(Texto t : textos) {
 			t.porFrame(delta, sb, fonte);
 		}
-		UI.attCamera(tela.camera, tela.yaw, tela.tom);
 		sb.end();
 	}
 	
 	@Override
 	public void resize(int v, int h) {
 		Gdx.gl.glViewport(0, 0, v, h);
-
-		tela.camera.viewportWidth = v;
-		tela.camera.viewportHeight = h;
-		tela.camera.update();
 
 		sb.getProjectionMatrix().setToOrtho2D(0, 0, v, h);
 
@@ -212,8 +165,6 @@ public class Menu implements Screen, InputProcessor {
 		try {
 			sb.dispose();
 			fonte.dispose();	
-			mundo.liberar();
-			CorposCelestes.liberar();
 		} catch(Exception e) {}
 	}
 	@Override
@@ -226,25 +177,8 @@ public class Menu implements Screen, InputProcessor {
 		}
 		return false;
 	}
-	@Override
-	public void hide() {
-		try {
-			mundo.liberar();
-			CorposCelestes.liberar();
-		} catch(Exception e) {}
-		
-	}
-	@Override
-	public void pause() {
-		try {
-			mundo.carregado = false;
-		for(Chunk c : mundo.chunks.values()) {
-			if(c.malha != null) c.malha.dispose();
-			c.malha = null;
-		}
-		mundo.chunks.clear();
-		} catch(Exception e) {}
-	}
+	@Override public void hide() {}
+	@Override public void pause() {}
 	@Override public void resume() {}
 	@Override public boolean touchDragged(int p, int p1, int p2) {return false;}
 	@Override public boolean touchUp(int p, int p1, int p2, int p3) {return false;}

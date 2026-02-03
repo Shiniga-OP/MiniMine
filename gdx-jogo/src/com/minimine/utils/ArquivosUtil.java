@@ -39,6 +39,8 @@ import com.minimine.mundo.blocos.Bloco;
 import com.badlogic.gdx.graphics.Mesh;
 import com.minimine.graficos.Texturas;
 import com.minimine.cenas.Jogo;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class ArquivosUtil {
     public static final String VERSAO = "v0.0.1";
@@ -47,9 +49,9 @@ public class ArquivosUtil {
     public static void svMundo(Mundo mundo, Jogador jogador) {
         File pasta = new File(Inicio.externo + "/MiniMine/mundos");
         if(!pasta.exists()) pasta.mkdirs();
-
-        File destino = new File(pasta, mundo.nome + ".mini");
-        File tmp = new File(pasta, mundo.nome + ".mini.tmp");
+		
+        File destino = new File(pasta, URLEncoder.encode(mundo.nome, StandardCharsets.UTF_8) + ".mini");
+        File tmp = new File(pasta, URLEncoder.encode(mundo.nome, StandardCharsets.UTF_8) + ".mini.tmp");
 
         try {
             // escreve em arquivo temporario
@@ -358,7 +360,8 @@ public class ArquivosUtil {
 		}
     }
 
-    public static void criar(String caminho) {    
+    public static void criar(String caminho) {   
+        caminho = caminho.replace("/", File.separator);
 		int ultimoPasso = caminho.lastIndexOf(File.separator);    
 		if(ultimoPasso > 0) {    
 			String dirCaminho = caminho.substring(0, ultimoPasso);    
@@ -368,11 +371,12 @@ public class ArquivosUtil {
 		try {    
 			if(!arquivo.exists()) arquivo.createNewFile();    
 		} catch(Exception e) {    
-			Gdx.app.log("ArquivosUtil", "[ERRO]: "+e.getMessage());    
+			Gdx.app.log("ArquivosUtil", "[ERRO]: criando "+e.getMessage()+File.separator+caminho+File.separator);    
 		}    
 	}    
 
 	public static String ler(String caminho) {    
+        caminho = caminho.replace("/", File.separator);
 		StringBuilder sb = new StringBuilder();    
 		FileReader fr = null;    
 
@@ -390,14 +394,15 @@ public class ArquivosUtil {
 				try {    
 					fr.close();    
 				} catch(Exception e) {    
-					Gdx.app.log("ArquivosUtil", "[ERRO]: "+e.getMessage());
+					Gdx.app.log("ArquivosUtil", "[ERRO]: lendo "+e.getMessage()+" \""+caminho+"\"");
 				}    
 			}    
 		}    
 		return sb.toString();    
 	}    
 
-	public static void escrever(String caminho, String texto) {    
+	public static void escrever(String caminho, String texto) {
+        caminho = caminho.replace("/", File.separator);
 		criar(caminho);    
 		FileWriter escritor = null;    
 		try {    
@@ -410,12 +415,13 @@ public class ArquivosUtil {
 			try {    
 				if(escritor != null) escritor.close();    
 			} catch(Exception e) {    
-				Gdx.app.log("ArquivosUtil", "[ERRO]: "+e.getMessage());    
+				Gdx.app.log("ArquivosUtil", "[ERRO]: escrevendo "+e.getMessage()+" caminho \""+caminho+"\"");    
 			}    
 		}    
 	}    
 
 	public static void delete(String caminho) {    
+        caminho = caminho.replace("/", File.separator);
 		File arquivo = new File(caminho);    
 
 		if(!arquivo.exists()) return;    
@@ -437,6 +443,7 @@ public class ArquivosUtil {
 	}    
 
 	public static List<String> listar(String caminho) {
+        caminho = caminho.replace("/", File.separator);
 		List<String> lista = new ArrayList<>();
 		File dir = new File(caminho);    
 		if(!dir.exists() || dir.isFile()) return null;
@@ -453,6 +460,7 @@ public class ArquivosUtil {
 	}    
 
 	public static void listarAbs(String caminho, List<String> lista) {    
+        caminho = caminho.replace("/", File.separator);
 		File dir = new File(caminho);    
 		if(!dir.exists() || dir.isFile()) return;    
 
@@ -466,12 +474,14 @@ public class ArquivosUtil {
 		}    
 	}    
 
-	public static boolean existe(String caminho) {    
+	public static boolean existe(String caminho) {   
+        caminho = caminho.replace("/", File.separator); 
 		File arquivo = new File(caminho);    
 		return arquivo.exists();    
 	}    
 
 	public static void criarDir(String caminho) {    
+        caminho = caminho.replace("/", File.separator);
 		if(!existe(caminho)) {    
 			File arquivo = new File(caminho);    
 			arquivo.mkdirs();    
