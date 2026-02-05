@@ -33,7 +33,7 @@ public class MundoMenu implements Screen, InputProcessor {
     public long tempoInicio = 0L;
     public Botao botaoApertado = null;
 	public Dialogo dialogo;
-    
+
     @Override
     public void show() {
 		ArquivosUtil.debug = true;
@@ -94,7 +94,6 @@ public class MundoMenu implements Screen, InputProcessor {
         // lista de mundos
         int inicioY = Gdx.graphics.getHeight() - 350;
         for(int i = 0; i < nomesMundos.size(); i++) {
-		
             final String nomeMundo = Mundo.decodificarNome(nomesMundos.get(i));
             final int yPos = inicioY - (i * 120);
 
@@ -148,7 +147,7 @@ public class MundoMenu implements Screen, InputProcessor {
 	public void criarNovoMundo() {
 		// primeiro dialogo: pede o Nome
 		dialogo.abrir("Nome do Mundo", new Dialogo.Acao() {
-			@Override public void aoDigitar(char x) {}
+				@Override public void aoDigitar(char x) {}
 			    @Override 
                 public void aoFechar() {
                     Gdx.input.setCursorCatched(false);
@@ -157,10 +156,10 @@ public class MundoMenu implements Screen, InputProcessor {
 				public void aoConfirmar() {
 					if(dialogo.texto.trim().isEmpty()) return;
 					Mundo.nome = dialogo.texto;
-					
+
 					// segundo dialogo: pede a Semente
 					dialogo.abrir("Semente", new Dialogo.Acao() {
-						@Override public void aoFechar() {}
+							@Override public void aoFechar() {}
 							@Override public void aoDigitar(char x) {}
 							@Override
 							public void aoConfirmar() {
@@ -215,7 +214,7 @@ public class MundoMenu implements Screen, InputProcessor {
     @Override
     public boolean touchDown(int telaX, int telaY, int p, int b) {
         int y = Gdx.graphics.getHeight() - telaY;
-		
+
 		if(dialogo.visivel) {
 			dialogo.verificarToque(telaX, y);
 			return true; // bloqueia outros cliques se o dialogo estiver aberto

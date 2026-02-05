@@ -47,18 +47,10 @@ import java.net.URLDecoder;
 public class Mundo {
     public static String nome = "novo mundo";
 
-    public static String decodificarNome(String nome){
-	    try {
-	    	return URLDecoder.decode(nome, StandardCharsets.UTF_8.name());
-	    } catch (UnsupportedEncodingException e) {
-		return "Unknown";
-	    } 
-    }
-	
     public static final List<Object> texturas = new ArrayList<>();
 	public static final List<Chunk> praLiberar = new ArrayList<>();
 	public static final List<Long> praRemover = new ArrayList<>();
-    
+
     public static Map<Long, Chunk> chunks = new ConcurrentHashMap<>();
     public static Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 	// Estados: 0 = Vazia, 1 = Dados Prontos, 2 = Malha Pronta
@@ -77,9 +69,9 @@ public class Mundo {
     public static float tick = 0.2f;
 
     public static ExecutorService exec;
-    
+
     public static Matrix4 matrizTmp = new Matrix4();
-	
+
     static {
         texturas.add(Texturas.texs.get("grama_topo"));
         texturas.add(Texturas.texs.get("grama_lado"));
@@ -121,9 +113,9 @@ public class Mundo {
         semente = semente == 0 ? (System.currentTimeMillis() >> 1) : semente;
         s2D = new Simplex2D(semente);
 		s3D = new Simplex3D(semente >> 1);
-		
+
 		Biomas.iniciar();
-		
+
         if(exec == null || exec.isShutdown()) {
 			exec = Executors.newFixedThreadPool(8);
 		}
@@ -194,9 +186,9 @@ public class Mundo {
 
         final int chunkX = x >> 4;
         final int chunkZ = z >> 4;
-		
+
 		final long chave = Chave.calcularChave(chunkX, chunkZ);
-		
+
         Chunk chunk = chunks.get(chave);
         if(chunk == null) {
 			Gdx.app.log("Mundo", "chunk null na posição X: "+chunkX+", Z: "+chunkZ);
@@ -529,6 +521,15 @@ public class Mundo {
 			}
 		}
 	}
+	
+	public static String decodificarNome(String nome){
+	    try {
+	    	return URLDecoder.decode(nome, StandardCharsets.UTF_8.name());
+	    } catch(UnsupportedEncodingException e) {
+			Gdx.app.error("[Mundo]", "erro ao decodificar nome: "+e);
+			return "Desconhecido";
+	    } 
+    }
     // API:
     public static Bloco addBloco(String nome, int topo) {
         return addBloco(nome, topo, topo, topo, false, true);

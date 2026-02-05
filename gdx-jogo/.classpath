@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output="bin/main" path="src">
-		<attributes>
-			<attribute name="gradle_scope" value="main"/>
-			<attribute name="gradle_used_by_scope" value="main,test"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7/"/>
-	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
-	<classpathentry kind="output" path="bin/default"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" exported="true" path="libs/gdx-1.10.0.jar"/>
+	<classpathentry kind="lib" exported="true" path="libs/gdx-box2d-1.10.0.jar"/>
+	<classpathentry kind="lib" exported="true" path="libs/gdx-freetype-1.10.0.jar"/>
+	<classpathentry kind="lib" exported="true" path="libs/gltf-2.2.1.jar"/>
+	<classpathentry kind="lib" exported="true" path="libs/luaj-jse-3.0.1.jar"/>
+	<classpathentry kind="lib" exported="true" path="libs/microinterface.jar"/>
 </classpath>

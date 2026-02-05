@@ -50,7 +50,6 @@ public class ArquivosUtil {
     public static void svMundo(Mundo mundo, Jogador jogador) {
         File pasta = new File(Inicio.externo + "/MiniMine/mundos");
         if(!pasta.exists()) pasta.mkdirs();
-		
         File destino = new File(pasta, Mundo.decodificarNome(mundo.nome) + ".mini");
         File tmp = new File(pasta, Mundo.decodificarNome(mundo.nome) + ".mini.tmp");
 
@@ -274,7 +273,7 @@ public class ArquivosUtil {
         dos.writeFloat(DiaNoiteUtil.tempo_velo);
         dos.flush();
     }
-	
+
 	// leitores
     public static void lerMundo(DataInputStream dis, Mundo mundo) throws IOException {
         mundo.semente = dis.readLong();
@@ -303,7 +302,7 @@ public class ArquivosUtil {
 
             mundo.chunksMod.put(Chave.calcularChave(chunkX, chunkZ), chunk);
 			mundo.chunks.put(Chave.calcularChave(chunkX, chunkZ), chunk);
-            
+
             chunk.att = true;
 			chunk.dadosProntos = true;
 			mundo.estados.put(Chave.calcularChave(chunkX, chunkZ), 1);

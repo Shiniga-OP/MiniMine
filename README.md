@@ -146,6 +146,7 @@ Notebook:
 Shiniga-OP
 Green
 Xaniim
+Dorganhozo
 
 **Efeitos sonoros**:
 Shiniga-OP
