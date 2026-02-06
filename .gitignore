@@ -6,6 +6,10 @@
 /gdx-jogo/bin/
 /gdx-jogo/build/
 
+# pastas de build do jogo
+/gdx-pc/bin/
+/gdx-pc/build/
+
 # outras pastas de build
 /build/
 /bin/

@@ -31,6 +31,15 @@ public class Jogador {
 	public PerspectiveCamera camera;
 	public Vector3 posicao = new Vector3(1, 80, 1), velocidade = new Vector3();
 
+	public Estado estado = Estado.OLHANDO;
+
+	public enum Estado{
+		QUEBRANDO_BLOCO,
+		COLOCANDO_BLOCO,
+		OLHANDO
+	}
+
+
 	public float largura = 0.6f, altura = 1.8f, profundidade = 0.6f;
 	public boolean noChao = true, naAgua = false, agachado = false, nasceu = false;
 	public BoundingBox hitbox = new BoundingBox();
