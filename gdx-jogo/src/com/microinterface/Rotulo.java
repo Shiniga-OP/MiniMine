@@ -37,5 +37,11 @@ public class Rotulo extends Componente {
         // reinicia a escala para não afetar outros textos por acidente
         fonte.getData().setScale(1.0f);
     }
+	
+	@Override
+	public void liberar() {
+		super.liberar();
+		fonte.dispose();
+	}
 }
 

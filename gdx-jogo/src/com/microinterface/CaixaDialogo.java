@@ -77,7 +77,7 @@ public class CaixaDialogo extends Componente {
             }
         };
         Botao botaoOk = new Botao("OK", visualBotao, fonte, 0, 0, 120, 40, escala, acaoOk);
-        painelBotoes.addAncorado(botaoOk, Ancoragem.CENTRO_DIREITO, -10, 0);
+        painelBotoes.addAncorado(botaoOk, Ancora.CENTRO_DIREITO, -10, 0);
     }
 
     public void addCancelar(PainelFatiado visualBotao) {
@@ -87,10 +87,10 @@ public class CaixaDialogo extends Componente {
             }
         };
         Botao botaoCancelar = new Botao("Cancelar", visualBotao, fonte, 0, 0, 120, 40, escala, acaoCancelar);
-        painelBotoes.addAncorado(botaoCancelar, Ancoragem.CENTRO_ESQUERDO, 10, 0);
+        painelBotoes.addAncorado(botaoCancelar, Ancora.CENTRO_ESQUERDO, 10, 0);
     }
 
-    public void addBotao(String texto, PainelFatiado visualBotao, Ancoragem ancoragem, float margemX, Acao acao) {
+    public void addBotao(String texto, PainelFatiado visualBotao, Ancora ancoragem, float margemX, Acao acao) {
         Botao botao = new Botao(texto, visualBotao, fonte, 0, 0, 120, 40, escala, acao);
         painelBotoes.addAncorado(botao, ancoragem, margemX, 0);
     }
@@ -174,5 +174,13 @@ public class CaixaDialogo extends Componente {
         }
         painelBotoes.desenhar(pincel, delta, desenharX, desenharY);
     }
+	
+	@Override
+	public void liberar() {
+		super.liberar();
+		fonte.dispose();
+		rotuloTitulo.liberar();
+		rotulomsg.liberar();
+	}
 }
 

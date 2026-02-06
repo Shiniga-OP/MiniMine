@@ -95,7 +95,7 @@ public class TelaDemo implements Screen, InputProcessor {
             }
         };
         Botao botaoDialogo = new Botao("Dialogo", visualBotao, fonte, 0, 0, 180, 50, escalaPixel, acaoDialogo);
-        painelBotoes.addAncorado(botaoDialogo, Ancoragem.SUPERIOR_ESQUERDO, 0, 0);
+        painelBotoes.addAncorado(botaoDialogo, Ancora.SUPERIOR_ESQUERDO, 0, 0);
 		
         Acao acaoEntrada = new Acao() {
             public void exec() {
@@ -124,7 +124,7 @@ public class TelaDemo implements Screen, InputProcessor {
         };
 
         Botao botaoEntrada = new Botao("Entrada", visualBotao, fonte, 0, 0, 180, 50, escalaPixel, acaoEntrada);
-        painelBotoes.addAncorado(botaoEntrada, Ancoragem.SUPERIOR_DIREITO, 0, 0);
+        painelBotoes.addAncorado(botaoEntrada, Ancora.SUPERIOR_DIREITO, 0, 0);
 
         Acao acaoTeste = new Acao() {
             public void exec() {
@@ -133,7 +133,7 @@ public class TelaDemo implements Screen, InputProcessor {
             }
         };
         Botao botaoTeste = new Botao("Teste", visualBotao, fonte, 0, 0, 180, 50, escalaPixel, acaoTeste);
-        painelBotoes.addAncorado(botaoTeste, Ancoragem.CENTRO, 0, 0);
+        painelBotoes.addAncorado(botaoTeste, Ancora.CENTRO, 0, 0);
 
         Acao acaoLimpar = new Acao() {
             public void exec() {
@@ -142,12 +142,12 @@ public class TelaDemo implements Screen, InputProcessor {
             }
         };
         Botao botaoLimpar = new Botao("Limpar", visualBotao, fonte, 0, 0, 120, 50, escalaPixel, acaoLimpar);
-        painelBotoes.addAncorado(botaoLimpar, Ancoragem.INFERIOR_ESQUERDO, 0, 0);
+        painelBotoes.addAncorado(botaoLimpar, Ancora.INFERIOR_ESQUERDO, 0, 0);
 
         rotuloResposta = new Rotulo("...", fonte, escalaPixel * 0.7f);
         rotuloResposta.largura = 350;
         rotuloResposta.altura = 50;
-        painelBotoes.addAncorado(rotuloResposta, Ancoragem.INFERIOR_DIREITO, 0, 0);
+        painelBotoes.addAncorado(rotuloResposta, Ancora.INFERIOR_DIREITO, 0, 0);
 
         janelaPrincipal.add(painelBotoes);
         gerenciadorUI.add(janelaPrincipal);
@@ -186,7 +186,7 @@ public class TelaDemo implements Screen, InputProcessor {
 				dialogoEntrada.fechar(true);
             }
         };
-        dialogoEntrada.addBotao("OK", visualBotao, Ancoragem.CENTRO_DIREITO, -10, acaoConfirmar);
+        dialogoEntrada.addBotao("OK", visualBotao, Ancora.CENTRO_DIREITO, -10, acaoConfirmar);
 
         Acao acaoCancelar = new Acao() {
             public void exec() {
@@ -195,7 +195,7 @@ public class TelaDemo implements Screen, InputProcessor {
 				dialogoEntrada.fechar(false);
             }
         };
-        dialogoEntrada.addBotao("Cancelar", visualBotao, Ancoragem.CENTRO_ESQUERDO, 10, acaoCancelar);
+        dialogoEntrada.addBotao("Cancelar", visualBotao, Ancora.CENTRO_ESQUERDO, 10, acaoCancelar);
 
         gerenciadorUI.addDialogo(dialogoEntrada);
     }
@@ -247,6 +247,7 @@ public class TelaDemo implements Screen, InputProcessor {
         pincel.dispose();
         pincelFormas.dispose();
         fonte.dispose();
+		gerenciadorUI.liberar();
     }
 	@Override
     public void pause() {}

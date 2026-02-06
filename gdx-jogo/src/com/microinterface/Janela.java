@@ -14,7 +14,7 @@ public class Janela extends Componente {
 
     @Override
     public boolean aoTocar(float toqueX, float toqueY, boolean pressionado) {
-        // verifica filhos primeiro (de trás para frente para respeitar ordem de desenho)
+        // verifica filhos primeiro(de tras para frente pra respeitar ordem de desenho)
         for(int i = filhos.size() - 1; i >= 0; i--) {
             Componente filho = filhos.get(i);
             // transforma as coordenadas para o sistema local da janela
@@ -22,7 +22,7 @@ public class Janela extends Componente {
                 return true; // filho consumiu o toque
             }
         }
-        // se nenhum filho consumiu e o toque está nesta janela
+        // se nenhum filho consumiu e o toque ta nessa janela
         return contem(toqueX, toqueY);
     }
 

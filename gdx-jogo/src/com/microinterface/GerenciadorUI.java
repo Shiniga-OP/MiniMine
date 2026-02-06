@@ -2,149 +2,200 @@ package com.microinterface;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.TreeMap;
 
 public class GerenciadorUI {
-    public ArrayList<Componente> componentes = new ArrayList<Componente>();
-    public ArrayList<CaixaDialogo> dialogos = new ArrayList<CaixaDialogo>();
-    public CampoTexto campoEmFoco = null;
+	// sistema de camadas , TreeMap ordena automaticamente por chave(numero da camada)
+	public TreeMap<Integer, ArrayList<Componente>> camadas = new TreeMap<Integer, ArrayList<Componente>>();
+	public ArrayList<CaixaDialogo> dialogos = new ArrayList<CaixaDialogo>();
+	public CampoTexto campoEmFoco = null;
+	public Componente componenteCapturado = null;
+	// camadas padrão
+	public static final int CAMADA_FUNDO = 0;
+	public static final int CAMADA_PADRAO = 10;
+	public static final int CAMADA_UI = 20;
+	public static final int CAMADA_TOPO = 30;
 
-    public void add(Componente componente) {
-        componentes.add(componente);
-    }
+	public GerenciadorUI() {
+		// inicializa camadas padrão
+		camadas.put(CAMADA_FUNDO, new ArrayList<Componente>());
+		camadas.put(CAMADA_PADRAO, new ArrayList<Componente>());
+		camadas.put(CAMADA_UI, new ArrayList<Componente>());
+		camadas.put(CAMADA_TOPO, new ArrayList<Componente>());
+	}
 
-    public void rm(Componente componente) {
-        componentes.remove(componente);
-    }
+	// adiciona na camada padrão
+	public void add(Componente componente) {
+		addCamada(componente, CAMADA_PADRAO);
+	}
 
-    public void addDialogo(CaixaDialogo dialogo) {
-        dialogos.add(dialogo);
-    }
+	// adiciona em camada específica
+	public void addCamada(Componente componente, int numeroCamada) {
+		// cria a camada se não existir
+		if(!camadas.containsKey(numeroCamada)) {
+			camadas.put(numeroCamada, new ArrayList<Componente>());
+		}
+		camadas.get(numeroCamada).add(componente);
+		// registra o gerenciador em campos de texto
+		registrarCamposTexto(componente);
+	}
 
-    public void rmDialogo(CaixaDialogo dialogo) {
-        dialogos.remove(dialogo);
-    }
+	public void rm(Componente componente) {
+		// remove de todas as camadas
+		for(ArrayList<Componente> lista : camadas.values()) {
+			lista.remove(componente);
+		}
+	}
 
-    public void limpar() {
-        componentes.clear();
-        dialogos.clear();
-        campoEmFoco = null;
-    }
+	public void addDialogo(CaixaDialogo dialogo) {
+		dialogos.add(dialogo);
+		// registra o gerenciador em campos de texto dos dialogos
+		registrarCamposTexto(dialogo);
+	}
 
-    public void defFocoTexto(CampoTexto campo) {
-        if(campoEmFoco != null && campoEmFoco != campo) {
-            campoEmFoco.defFoco(false);
-        }
-        campoEmFoco = campo;
-    }
+	public void rmDialogo(CaixaDialogo dialogo) {
+		dialogos.remove(dialogo);
+	}
 
-    public boolean processarToque(float x, float y, boolean pressionado) {
-        // primeiro verificar dialogos(prioridade)
-        for(int i = dialogos.size() - 1; i >= 0; i--) {
-            CaixaDialogo dialogo = dialogos.get(i);
-            if(dialogo.ativa) {
-                // verificar se tocou em um CampoTexto dentro do dialogo
-                for(Componente comp : dialogo.componentes) {
-                    if(comp instanceof CampoTexto) {
-                        CampoTexto campo = (CampoTexto) comp;
-                        float campoXGlobal = dialogo.x + campo.x;
-                        float campoYGlobal = dialogo.y + campo.y;
-                        if(x >= campoXGlobal && x <= campoXGlobal + campo.largura &&
-                           y >= campoYGlobal && y <= campoYGlobal + campo.altura && !pressionado) {
-                            defFocoTexto(campo);
-                        }
-                    }
-                }
+	// registra recursivamente o gerenciador em todos os CampoTexto
+	public void registrarCamposTexto(Componente componente) {
+		if(componente instanceof CampoTexto) {
+			((CampoTexto)componente).gerenciador = this;
+		}
+		// verifica se o componente tem filhos
+		if(componente instanceof Painel) {
+			Painel painel = (Painel) componente;
+			for(Componente filho : painel.filhos) {
+				registrarCamposTexto(filho);
+			}
+		} else if(componente instanceof CaixaDialogo) {
+			CaixaDialogo dialogo = (CaixaDialogo) componente;
+			for(Componente filho : dialogo.componentes) {
+				registrarCamposTexto(filho);
+			}
+		}
+	}
 
-                if(dialogo.aoTocar(x, y, pressionado)) {
-                    return true;
-                }
-            }
-        }
-        // depois verificar componentes normais
-        for(int i = componentes.size() - 1; i >= 0; i--) {
-            Componente comp = componentes.get(i);
+	public void limpar() {
+		for(ArrayList<Componente> lista : camadas.values()) {
+			lista.clear();
+		}
+		dialogos.clear();
+		campoEmFoco = null;
+		componenteCapturado = null;
+	}
 
-            if(comp instanceof CampoTexto) {
-                CampoTexto campo = (CampoTexto) comp;
-                if(campo.contem(x, y) && !pressionado) {
-                    defFocoTexto(campo);
-                }
-            }
-            if(comp.aoTocar(x, y, pressionado)) return true;
-        }
-        // se tocou fora de qualquer campo, remover o foco
-        if(!pressionado && campoEmFoco != null) {
-            boolean tocouNoCampo = false;
+	public void defFocoTexto(CampoTexto campo) {
+		if(campoEmFoco != null && campoEmFoco != campo) {
+			campoEmFoco.defFoco(false);
+		}
+		campoEmFoco = campo;
+	}
 
-            // verificar se tocou no campo ativo(pode ta em um dialogo)
-            for(CaixaDialogo dialogo : dialogos) {
-                if(dialogo.ativa) {
-                    for(Componente comp : dialogo.componentes) {
-                        if(comp == campoEmFoco) {
-                            float campoXGlobal = dialogo.x + campoEmFoco.x;
-                            float campoYGlobal = dialogo.y + campoEmFoco.y;
-                            tocouNoCampo = x >= campoXGlobal && x <= campoXGlobal + campoEmFoco.largura &&
-								y >= campoYGlobal && y <= campoYGlobal + campoEmFoco.altura;
-                            break;
-                        }
-                    }
-                }
-            }
+	public boolean processarToque(float x, float y, boolean pressionado) {
+		// primeiro verifica dialogos (sempre no topo)
+		for(int i = dialogos.size() - 1; i >= 0; i--) {
+			CaixaDialogo d = dialogos.get(i);
+			if(d.ativa && d.aoTocar(x, y, pressionado)) return true;
+		}
 
-            if(!tocouNoCampo) {
-                tocouNoCampo = campoEmFoco.contem(x, y);
-            }
+		// se ta soltando o toque(pressionado = false)
+		if(!pressionado) {
+			// se tem um componente capturado, envia o evento so pra ele
+			if(componenteCapturado != null) {
+				boolean resultado = componenteCapturado.aoTocar(x, y, false);
+				componenteCapturado = null;
+				return resultado;
+			}
+			// se não tem componente capturado, processa normalmente
+		}
 
-            if(!tocouNoCampo) {
-                campoEmFoco.defFoco(false);
-                campoEmFoco = null;
-            }
-        }
-        return false;
-    }
+		// processamento normal, processa camadas de cima para baixo
+		ArrayList<Integer> numsCamadas = new ArrayList<Integer>(camadas.keySet());
+		for(int camadaIdc = numsCamadas.size() - 1; camadaIdc >= 0; camadaIdc--) {
+			int numCamada = numsCamadas.get(camadaIdc);
+			ArrayList<Componente> componentesCamada = camadas.get(numCamada);
 
-    public void processarArraste(float x, float y) {
-        for(int i = dialogos.size() - 1; i >= 0; i--) {
-            CaixaDialogo dialogo = dialogos.get(i);
-            if(dialogo.ativa) {
-                dialogo.aoArrastar(x, y);
-            }
-        }
-    }
+			// dentro da camada, processa de tras pra frente
+			for(int i = componentesCamada.size() - 1; i >= 0; i--) {
+				Componente c = componentesCamada.get(i);
+				if(c.contem(x, y)) {
+					if(c.aoTocar(x, y, pressionado)) {
+						// so captura se ta pressionando E o componente precisa de arraste
+						if(pressionado && c.capturaArraste()) {
+							componenteCapturado = c;
+						}
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
 
-    public boolean processarTecla(int keycode) {
-        if(campoEmFoco != null) {
-            return campoEmFoco.processarTecla(keycode);
-        }
-        return false;
-    }
+	public void processarArraste(float x, float y) {
+		// primeiro processa dialogos
+		for(int i = dialogos.size() - 1; i >= 0; i--) {
+			CaixaDialogo dialogo = dialogos.get(i);
+			if(dialogo.ativa) {
+				dialogo.aoArrastar(x, y);
+			}
+		}
+		// se tem um componente capturado que precisa de arraste, envia o evento
+		if(componenteCapturado != null) {
+			componenteCapturado.aoTocar(x, y, true);
+		}
+	}
 
-    public boolean processarCaractere(char caractere) {
-        if(campoEmFoco != null) {
-            return campoEmFoco.processarCaractere(caractere);
-        }
-        return false;
-    }
+	public boolean processarTecla(int c) {
+		if(campoEmFoco != null) {
+			return campoEmFoco.processarTecla(c);
+		}
+		return false;
+	}
 
-    public void desenhar(SpriteBatch pincel, float delta) {
-        for(int i = 0; i < componentes.size(); i++) {
-            componentes.get(i).desenhar(pincel, delta, 0, 0);
-        }
-        for(int i = 0; i < dialogos.size(); i++) {
-            CaixaDialogo dialogo = dialogos.get(i);
-            if(dialogo.ativa) {
-                dialogo.desenhar(pincel, delta, 0, 0);
-            }
-        }
-    }
+	public boolean processarCaractere(char caractere) {
+		if(campoEmFoco != null) {
+			return campoEmFoco.processarCaractere(caractere);
+		}
+		return false;
+	}
 
-    public boolean temDialogoAtivo() {
-        for(int i = 0; i < dialogos.size(); i++) {
-            if(dialogos.get(i).ativa) {
-                return true;
-            }
-        }
-        return false;
-    }
+	public void desenhar(SpriteBatch pincel, float delta) {
+		// desenha camadas em ordem crescente (de baixo para cima)
+		for(Integer numCamada : camadas.keySet()) {
+			ArrayList<Componente> componentesDaCamada = camadas.get(numCamada);
+			for(int i = 0; i < componentesDaCamada.size(); i++) {
+				componentesDaCamada.get(i).desenhar(pincel, delta, 0, 0);
+			}
+		}
+
+		// desenha diálogos sempre por cima
+		for(int i = 0; i < dialogos.size(); i++) {
+			CaixaDialogo dialogo = dialogos.get(i);
+			if(dialogo.ativa) {
+				dialogo.desenhar(pincel, delta, 0, 0);
+			}
+		}
+	}
+
+	public boolean temDialogoAtivo() {
+		for(int i = 0; i < dialogos.size(); i++) {
+			if(dialogos.get(i).ativa) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public void liberar() {
+		for(ArrayList<Componente> lista : camadas.values()) {
+			for(Componente c : lista) c.liberar();
+		}
+		for(CaixaDialogo c : dialogos) c.liberar();
+		if(componenteCapturado != null) componenteCapturado.liberar();
+		if(campoEmFoco != null) campoEmFoco.liberar();
+	}
 }
 

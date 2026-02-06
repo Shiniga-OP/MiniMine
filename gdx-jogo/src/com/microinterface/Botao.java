@@ -62,4 +62,10 @@ public class Botao extends Componente {
         // renderiza o texto centralizado no botão
         rotulo.desenhar(pincel, delta, desenharX, desenharY);
     }
+	
+	@Override
+	public void liberar() {
+		super.liberar();
+		rotulo.liberar();
+	}
 }

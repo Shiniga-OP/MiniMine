@@ -1,6 +1,6 @@
 package com.microinterface;
 
-public enum Ancoragem {
+public enum Ancora {
     SUPERIOR_ESQUERDO,
     SUPERIOR_CENTRO,
     SUPERIOR_DIREITO,

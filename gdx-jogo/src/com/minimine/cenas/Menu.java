@@ -14,11 +14,19 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.Preferences;
-import com.microinterface.*;
 import com.minimine.Inicio;
 import com.minimine.Cenas;
 import com.minimine.mundo.Mundo;
 import com.minimine.ui.UI;
+import com.minimine.ui.InterUtil;
+import com.microinterface.GerenciadorUI;
+import com.microinterface.PainelFatiado;
+import com.microinterface.Painel;
+import com.microinterface.CaixaDialogo;
+import com.microinterface.Rotulo;
+import com.microinterface.Ancora;
+import com.microinterface.Acao;
+import com.microinterface.Botao;
 
 public class Menu implements Screen, InputProcessor {
     public SpriteBatch pincel;
@@ -62,8 +70,7 @@ public class Menu implements Screen, InputProcessor {
             criarInterface();
         } catch(Exception e) {
             Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
-        }
-        
+        } 
         Gdx.input.setInputProcessor(this);
         
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());  
@@ -95,30 +102,30 @@ public class Menu implements Screen, InputProcessor {
         Rotulo titulo = new Rotulo("MiniMine", fonte, escalaPixel * 1.2f);
         titulo.largura = 560;
         titulo.altura = 80;
-        painelMenu.addAncorado(titulo, Ancoragem.SUPERIOR_CENTRO, 0, 0);
+        painelMenu.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
 
         float larguraBotao = 400;
         float alturaBotao = 70;
 
-        // botão Um jogador
+        // botão um jogador
         Acao acaoJogar = new Acao() {
             public void exec() {
                 Inicio.defTela(Cenas.selecao);
             }
         };
         Botao botaoJogar = new Botao("Um Jogador", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoJogar);
-        painelMenu.addAncorado(botaoJogar, Ancoragem.CENTRO, 0, 50);
+        painelMenu.addAncorado(botaoJogar, Ancora.CENTRO, 0, 50);
 
-        // Botão Configurações
+        // botão Configurações
         Acao acaoConfig = new Acao() {
             public void exec() {
                 Inicio.defTela(Cenas.configuracoes);
             }
         };
         Botao botaoConfig = new Botao("Configuracoes", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConfig);
-        painelMenu.addAncorado(botaoConfig, Ancoragem.CENTRO, 0, -50);
+        painelMenu.addAncorado(botaoConfig, Ancora.CENTRO, 0, -50);
 
-        // botão Sair
+        // botão sair
         Acao acaoSair = new Acao() {
             public void exec() {
                 dialogoSair.mostrar("Sair", "Deseja sair do jogo?", new CaixaDialogo.Fechar() {
@@ -131,7 +138,7 @@ public class Menu implements Screen, InputProcessor {
             }
         };
         Botao botaoSair = new Botao("Sair", visualBotao, fonte, 0, 0, 200, 60, escalaPixel, acaoSair);
-        painelMenu.addAncorado(botaoSair, Ancoragem.INFERIOR_CENTRO, 0, 0);
+        painelMenu.addAncorado(botaoSair, Ancora.INFERIOR_CENTRO, 0, 0);
     }
 
     public void criarDialogos() {
@@ -186,11 +193,14 @@ public class Menu implements Screen, InputProcessor {
         pincel.dispose();
         pincelFormas.dispose();
         fonte.dispose();
+		gerenciadorUI.liberar();
     }
     @Override
     public void pause() {}
     public void resume() {}
-    public void hide() {}
+    public void hide() {
+		dispose();
+	}
     public boolean keyDown(int k) { return false; }
     public boolean keyUp(int k) { return false; }
     public boolean keyTyped(char c) { return false; }

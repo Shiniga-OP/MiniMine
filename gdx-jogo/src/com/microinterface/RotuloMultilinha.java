@@ -72,4 +72,11 @@ public class RotuloMultilinha extends Componente {
         }
         fonte.getData().setScale(1.0f);
     }
+	
+	@Override
+	public void liberar() {
+		super.liberar();
+		linhas.clear();
+		fonte.dispose();
+	}
 }

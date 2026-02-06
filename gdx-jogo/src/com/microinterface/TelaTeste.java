@@ -90,7 +90,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoNovoJogo = new Botao("Novo", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoNovoJogo);
-        painelMenu.addAncorado(botaoNovoJogo, Ancoragem.CENTRO, 0, 60);
+        painelMenu.addAncorado(botaoNovoJogo, Ancora.CENTRO, 0, 60);
 
         Acao acaoContinuar = new Acao() {
             public void exec() {
@@ -98,7 +98,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoContinuar = new Botao("Continuar", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoContinuar);
-        painelMenu.addAncorado(botaoContinuar, Ancoragem.CENTRO, 0, -15);
+        painelMenu.addAncorado(botaoContinuar, Ancora.CENTRO, 0, -15);
 
         Acao acaoOpcoes = new Acao() {
             public void exec() {
@@ -106,7 +106,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoOpcoes = new Botao("Opcoes", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoOpcoes);
-        painelMenu.addAncorado(botaoOpcoes, Ancoragem.CENTRO, 0, -90);
+        painelMenu.addAncorado(botaoOpcoes, Ancora.CENTRO, 0, -90);
 
         Acao acaoCreditos = new Acao() {
             public void exec() {
@@ -114,7 +114,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoCreditos = new Botao("Creditos", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoCreditos);
-        painelMenu.addAncorado(botaoCreditos, Ancoragem.CENTRO, 0, -165);
+        painelMenu.addAncorado(botaoCreditos, Ancora.CENTRO, 0, -165);
 
         Acao acaoSair = new Acao() {
             public void exec() {
@@ -128,7 +128,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoSair = new Botao("Sair", visualBotao, fonte, 0, 0, 150, 50, escalaPixel, acaoSair);
-        painelMenu.addAncorado(botaoSair, Ancoragem.INFERIOR_DIREITO, 0, 0);
+        painelMenu.addAncorado(botaoSair, Ancora.INFERIOR_DIREITO, 0, 0);
     }
 
     public void criarPainelOpcoes() {
@@ -139,17 +139,17 @@ public class TelaTeste implements Screen, InputProcessor {
         Rotulo titulo = new Rotulo("OPCOES", fonte, escalaPixel);
         titulo.largura = 560;
         titulo.altura = 60;
-        painelOpcoes.addAncorado(titulo, Ancoragem.SUPERIOR_CENTRO, 0, 0);
+        painelOpcoes.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
 
         Rotulo labelMusica = new Rotulo("Vol Musica:", fonte, escalaPixel * 0.8f);
         labelMusica.largura = 560;
         labelMusica.altura = 40;
-        painelOpcoes.addAncorado(labelMusica, Ancoragem.CENTRO, 0, 60);
+        painelOpcoes.addAncorado(labelMusica, Ancora.CENTRO, 0, 60);
 
         Rotulo labelEfeitos = new Rotulo("Vol Efeitos:", fonte, escalaPixel * 0.8f);
         labelEfeitos.largura = 560;
         labelEfeitos.altura = 40;
-        painelOpcoes.addAncorado(labelEfeitos, Ancoragem.CENTRO, 0, 0);
+        painelOpcoes.addAncorado(labelEfeitos, Ancora.CENTRO, 0, 0);
 
         Acao acaoVoltar = new Acao() {
             public void exec() {
@@ -157,7 +157,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoVoltar = new Botao("Voltar", visualBotao, fonte, 0, 0, 200, 50, escalaPixel, acaoVoltar);
-        painelOpcoes.addAncorado(botaoVoltar, Ancoragem.INFERIOR_CENTRO, 0, 0);
+        painelOpcoes.addAncorado(botaoVoltar, Ancora.INFERIOR_CENTRO, 0, 0);
     }
 
     public void criarPainelCreditos() {
@@ -168,7 +168,7 @@ public class TelaTeste implements Screen, InputProcessor {
         Rotulo titulo = new Rotulo("CREDITOS", fonte, escalaPixel);
         titulo.largura = 560;
         titulo.altura = 60;
-        painelCreditos.addAncorado(titulo, Ancoragem.SUPERIOR_CENTRO, 0, 0);
+        painelCreditos.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
 
         String[] creditos = {
             "Dev: Shiniga",
@@ -181,7 +181,7 @@ public class TelaTeste implements Screen, InputProcessor {
             Rotulo linha = new Rotulo(creditos[i], fonte, escalaPixel * 0.7f);
             linha.largura = 560;
             linha.altura = 35;
-            painelCreditos.addAncorado(linha, Ancoragem.CENTRO, 0, posY);
+            painelCreditos.addAncorado(linha, Ancora.CENTRO, 0, posY);
             posY -= 50;
         }
         Acao acaoVoltar = new Acao() {
@@ -190,7 +190,7 @@ public class TelaTeste implements Screen, InputProcessor {
             }
         };
         Botao botaoVoltar = new Botao("Voltar", visualBotao, fonte, 0, 0, 200, 50, escalaPixel, acaoVoltar);
-        painelCreditos.addAncorado(botaoVoltar, Ancoragem.INFERIOR_CENTRO, 0, 0);
+        painelCreditos.addAncorado(botaoVoltar, Ancora.INFERIOR_CENTRO, 0, 0);
     }
 
     public void criarDialogos() {
@@ -250,6 +250,7 @@ public class TelaTeste implements Screen, InputProcessor {
         pincel.dispose();
         pincelFormas.dispose();
         fonte.dispose();
+		gerenciadorUI.liberar();
     }
 	@Override
     public void pause() {}

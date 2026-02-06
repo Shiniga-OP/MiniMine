@@ -22,7 +22,7 @@ import com.microinterface.Painel;
 import com.microinterface.PainelFatiado;
 import com.microinterface.Botao;
 import com.microinterface.Rotulo;
-import com.microinterface.Ancoragem;
+import com.microinterface.Ancora;
 import com.microinterface.Acao;
 
 public class Config implements Screen, InputProcessor {
@@ -94,7 +94,7 @@ public class Config implements Screen, InputProcessor {
         Rotulo titulo = new Rotulo("CONFIGURACOES", fonteTitulo, escalaPixel);
         titulo.largura = 660;
         titulo.altura = 60;
-        painelPrincipal.addAncorado(titulo, Ancoragem.SUPERIOR_CENTRO, 0, 0);
+        painelPrincipal.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
         
         float larguraLabel = 250;
         float larguraValor = 100;
@@ -107,12 +107,12 @@ public class Config implements Screen, InputProcessor {
         Rotulo labelRaio = new Rotulo("Raio Chunks:", fonteTexto, escalaPixel * 0.8f);
         labelRaio.largura = larguraLabel;
         labelRaio.altura = alturaBotao;
-        painelPrincipal.addAncorado(labelRaio, Ancoragem.CENTRO, -200, posYInicial);
+        painelPrincipal.addAncorado(labelRaio, Ancora.CENTRO, -200, posYInicial);
         
         rotuloRaioValor = new Rotulo(String.valueOf(Mundo.RAIO_CHUNKS), fonteTexto, escalaPixel * 0.8f);
         rotuloRaioValor.largura = larguraValor;
         rotuloRaioValor.altura = alturaBotao;
-        painelPrincipal.addAncorado(rotuloRaioValor, Ancoragem.CENTRO, 50, posYInicial);
+        painelPrincipal.addAncorado(rotuloRaioValor, Ancora.CENTRO, 50, posYInicial);
         
         Acao acaoDiminuirRaio = new Acao() {
             public void exec() {
@@ -123,7 +123,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoDiminuirRaio = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirRaio);
-        painelPrincipal.addAncorado(botaoDiminuirRaio, Ancoragem.CENTRO, 160, posYInicial);
+        painelPrincipal.addAncorado(botaoDiminuirRaio, Ancora.CENTRO, 160, posYInicial);
         
         Acao acaoAumentarRaio = new Acao() {
             public void exec() {
@@ -134,18 +134,18 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoAumentarRaio = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarRaio);
-        painelPrincipal.addAncorado(botaoAumentarRaio, Ancoragem.CENTRO, 230, posYInicial);
+        painelPrincipal.addAncorado(botaoAumentarRaio, Ancora.CENTRO, 230, posYInicial);
         
         // === SENSIBILIDADE ===
         Rotulo labelSensi = new Rotulo("Sensibilidade:", fonteTexto, escalaPixel * 0.8f);
         labelSensi.largura = larguraLabel;
         labelSensi.altura = alturaBotao;
-        painelPrincipal.addAncorado(labelSensi, Ancoragem.CENTRO, -200, posYInicial - espacoY);
+        painelPrincipal.addAncorado(labelSensi, Ancora.CENTRO, -200, posYInicial - espacoY);
         
         rotuloSensiValor = new Rotulo(String.format("%.2f", UI.sensi), fonteTexto, escalaPixel * 0.8f);
         rotuloSensiValor.largura = larguraValor;
         rotuloSensiValor.altura = alturaBotao;
-        painelPrincipal.addAncorado(rotuloSensiValor, Ancoragem.CENTRO, 50, posYInicial - espacoY);
+        painelPrincipal.addAncorado(rotuloSensiValor, Ancora.CENTRO, 50, posYInicial - espacoY);
         
         Acao acaoDiminuirSensi = new Acao() {
             public void exec() {
@@ -156,7 +156,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoDiminuirSensi = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirSensi);
-        painelPrincipal.addAncorado(botaoDiminuirSensi, Ancoragem.CENTRO, 160, posYInicial - espacoY);
+        painelPrincipal.addAncorado(botaoDiminuirSensi, Ancora.CENTRO, 160, posYInicial - espacoY);
         
         Acao acaoAumentarSensi = new Acao() {
             public void exec() {
@@ -167,18 +167,18 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoAumentarSensi = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarSensi);
-        painelPrincipal.addAncorado(botaoAumentarSensi, Ancoragem.CENTRO, 230, posYInicial - espacoY);
+        painelPrincipal.addAncorado(botaoAumentarSensi, Ancora.CENTRO, 230, posYInicial - espacoY);
         
         // === APROXIMACAO ===
         Rotulo labelAprox = new Rotulo("Aproximacao:", fonteTexto, escalaPixel * 0.8f);
         labelAprox.largura = larguraLabel;
         labelAprox.altura = alturaBotao;
-        painelPrincipal.addAncorado(labelAprox, Ancoragem.CENTRO, -200, posYInicial - espacoY * 2);
+        painelPrincipal.addAncorado(labelAprox, Ancora.CENTRO, -200, posYInicial - espacoY * 2);
         
         rotuloAproxValor = new Rotulo(String.format("%.1f", UI.aprox), fonteTexto, escalaPixel * 0.8f);
         rotuloAproxValor.largura = larguraValor;
         rotuloAproxValor.altura = alturaBotao;
-        painelPrincipal.addAncorado(rotuloAproxValor, Ancoragem.CENTRO, 50, posYInicial - espacoY * 2);
+        painelPrincipal.addAncorado(rotuloAproxValor, Ancora.CENTRO, 50, posYInicial - espacoY * 2);
         
         Acao acaoDiminuirAprox = new Acao() {
             public void exec() {
@@ -189,7 +189,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoDiminuirAprox = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirAprox);
-        painelPrincipal.addAncorado(botaoDiminuirAprox, Ancoragem.CENTRO, 160, posYInicial - espacoY * 2);
+        painelPrincipal.addAncorado(botaoDiminuirAprox, Ancora.CENTRO, 160, posYInicial - espacoY * 2);
         
         Acao acaoAumentarAprox = new Acao() {
             public void exec() {
@@ -200,18 +200,18 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoAumentarAprox = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarAprox);
-        painelPrincipal.addAncorado(botaoAumentarAprox, Ancoragem.CENTRO, 230, posYInicial - espacoY * 2);
+        painelPrincipal.addAncorado(botaoAumentarAprox, Ancora.CENTRO, 230, posYInicial - espacoY * 2);
         
         // === DISTANCIA ===
         Rotulo labelDistancia = new Rotulo("Distancia:", fonteTexto, escalaPixel * 0.8f);
         labelDistancia.largura = larguraLabel;
         labelDistancia.altura = alturaBotao;
-        painelPrincipal.addAncorado(labelDistancia, Ancoragem.CENTRO, -200, posYInicial - espacoY * 3);
+        painelPrincipal.addAncorado(labelDistancia, Ancora.CENTRO, -200, posYInicial - espacoY * 3);
         
         rotuloDistanciaValor = new Rotulo(String.format("%.0f", UI.distancia), fonteTexto, escalaPixel * 0.8f);
         rotuloDistanciaValor.largura = larguraValor;
         rotuloDistanciaValor.altura = alturaBotao;
-        painelPrincipal.addAncorado(rotuloDistanciaValor, Ancoragem.CENTRO, 50, posYInicial - espacoY * 3);
+        painelPrincipal.addAncorado(rotuloDistanciaValor, Ancora.CENTRO, 50, posYInicial - espacoY * 3);
         
         Acao acaoDiminuirDistancia = new Acao() {
             public void exec() {
@@ -222,7 +222,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoDiminuirDistancia = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirDistancia);
-        painelPrincipal.addAncorado(botaoDiminuirDistancia, Ancoragem.CENTRO, 160, posYInicial - espacoY * 3);
+        painelPrincipal.addAncorado(botaoDiminuirDistancia, Ancora.CENTRO, 160, posYInicial - espacoY * 3);
         
         Acao acaoAumentarDistancia = new Acao() {
             public void exec() {
@@ -233,18 +233,18 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoAumentarDistancia = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarDistancia);
-        painelPrincipal.addAncorado(botaoAumentarDistancia, Ancoragem.CENTRO, 230, posYInicial - espacoY * 3);
+        painelPrincipal.addAncorado(botaoAumentarDistancia, Ancora.CENTRO, 230, posYInicial - espacoY * 3);
         
         // === CAMPO DE VISAO(POV) ===
         Rotulo labelPOV = new Rotulo("Campo Visao:", fonteTexto, escalaPixel * 0.8f);
         labelPOV.largura = larguraLabel;
         labelPOV.altura = alturaBotao;
-        painelPrincipal.addAncorado(labelPOV, Ancoragem.CENTRO, -200, posYInicial - espacoY * 4);
+        painelPrincipal.addAncorado(labelPOV, Ancora.CENTRO, -200, posYInicial - espacoY * 4);
         
         rotuloPOVValor = new Rotulo(String.valueOf(UI.pov), fonteTexto, escalaPixel * 0.8f);
         rotuloPOVValor.largura = larguraValor;
         rotuloPOVValor.altura = alturaBotao;
-        painelPrincipal.addAncorado(rotuloPOVValor, Ancoragem.CENTRO, 50, posYInicial - espacoY * 4);
+        painelPrincipal.addAncorado(rotuloPOVValor, Ancora.CENTRO, 50, posYInicial - espacoY * 4);
         
         Acao acaoDiminuirPOV = new Acao() {
             public void exec() {
@@ -255,7 +255,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoDiminuirPOV = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirPOV);
-        painelPrincipal.addAncorado(botaoDiminuirPOV, Ancoragem.CENTRO, 160, posYInicial - espacoY * 4);
+        painelPrincipal.addAncorado(botaoDiminuirPOV, Ancora.CENTRO, 160, posYInicial - espacoY * 4);
         
         Acao acaoAumentarPOV = new Acao() {
             public void exec() {
@@ -266,7 +266,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoAumentarPOV = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarPOV);
-        painelPrincipal.addAncorado(botaoAumentarPOV, Ancoragem.CENTRO, 230, posYInicial - espacoY * 4);
+        painelPrincipal.addAncorado(botaoAumentarPOV, Ancora.CENTRO, 230, posYInicial - espacoY * 4);
         
         // === BOTAO VOLTAR ===
         Acao acaoVoltar = new Acao() {
@@ -281,7 +281,7 @@ public class Config implements Screen, InputProcessor {
             }
         };
         Botao botaoVoltar = new Botao("VOLTAR", visualBotao, fonteTexto, 0, 0, 200, 60, escalaPixel, acaoVoltar);
-        painelPrincipal.addAncorado(botaoVoltar, Ancoragem.INFERIOR_CENTRO, 0, 0);
+        painelPrincipal.addAncorado(botaoVoltar, Ancora.INFERIOR_CENTRO, 0, 0);
         
         gerenciadorUI.add(painelPrincipal);
     }
@@ -318,12 +318,11 @@ public class Config implements Screen, InputProcessor {
         if(pincelFormas != null) pincelFormas.dispose();
         if(fonteTitulo != null) fonteTitulo.dispose();
         if(fonteTexto != null) fonteTexto.dispose();
+		gerenciadorUI.liberar();
     }
 
     @Override
-    public void hide() {
-        dispose();
-    }
+    public void hide() {}
 
     @Override
     public boolean touchDown(int x, int y, int p, int b) {

@@ -20,6 +20,9 @@ public class CampoTexto extends Componente {
     public GlyphLayout medidor;
     public float margemInterna = 10;
 
+    // pra notificar o gerenciador quando ganhar foco
+    public GerenciadorUI gerenciador = null;
+
     public interface Texto {
         void aoMudar(String novoTexto);
     }
@@ -44,25 +47,12 @@ public class CampoTexto extends Componente {
     public void defFoco(boolean foco) {
         this.emFoco = foco;
         if(foco) {
+            // notifica o gerenciador que esse campo ta em foco
+            if(gerenciador != null) {
+                gerenciador.defFocoTexto(this);
+            }
             // força o teclado a aparecer
             Gdx.input.setOnscreenKeyboardVisible(true);
-            // aguarda um frame e tenta novamente
-            new Thread(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							Thread.sleep(100);
-							Gdx.app.postRunnable(new Runnable() {
-									@Override
-									public void run() {
-										Gdx.input.setOnscreenKeyboardVisible(true);
-									}
-								});
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}).start();
         } else {
             Gdx.input.setOnscreenKeyboardVisible(false);
         }
@@ -98,7 +88,7 @@ public class CampoTexto extends Componente {
 
     public boolean processarCaractere(char caractere) {
         if(!emFoco) return false;
-
+		
         if(caractere >= 32 && caractere <= 126 && texto.length() < limiteCaracteres) {
             String antigoTexto = texto;
             texto += caractere;
@@ -171,5 +161,11 @@ public class CampoTexto extends Componente {
         }
         fonte.getData().setScale(1.0f);
     }
+	
+	@Override
+	public void liberar() {
+		super.liberar();
+		fonte.dispose();
+	}
 }
 

@@ -25,6 +25,12 @@ public abstract class Componente {
     public boolean aoTocar(float toqueX, float toqueY, boolean pressionado) {
         return false; 
     }
+    // indica se este componente precisa receber eventos contínuos de arraste
+    // sobrescreve esse metodo pra retornar true em componentes como PainelRolavel
+    public boolean capturaArraste() {
+        return false;
+    }
+
     public abstract void desenhar(SpriteBatch pincel, float delta, float paiX, float paiY);
 
     protected void desenharFilhos(SpriteBatch pincel, float delta, float atualX, float atualY) {
@@ -32,4 +38,8 @@ public abstract class Componente {
             filho.desenhar(pincel, delta, atualX, atualY);
         }
     }
+	public void liberar() {
+		filhos.clear();
+	}
 }
+

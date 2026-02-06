@@ -7,7 +7,7 @@ public class Inicio extends Game {
     @Override
     public void create() {
         setScreen(new TelaDemo());
-    }
+	}
 
     @Override
     public void render() {

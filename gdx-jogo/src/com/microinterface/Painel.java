@@ -14,10 +14,10 @@ public class Painel extends Componente {
     public Color corFundo;
 
     // espaçamento interno
-    public float paddingEsquerda = 0;
-    public float paddingDireita = 0;
-    public float paddingSuperior = 0;
-    public float paddingInferior = 0;
+    public float espacoEsquerda = 0;
+    public float espacoDireita = 0;
+    public float espacoSuperior = 0;
+    public float espacoInferior = 0;
 
     // cria painel com fundo visual
     public Painel(PainelFatiado visual, float x, float y, float largura, float altura, float escala) {
@@ -36,28 +36,28 @@ public class Painel extends Componente {
 
     // define espaçamento interno
     public void defEspaco(float todos) {
-        this.paddingEsquerda = todos;
-        this.paddingDireita = todos;
-        this.paddingSuperior = todos;
-        this.paddingInferior = todos;
+        this.espacoEsquerda = todos;
+        this.espacoDireita = todos;
+        this.espacoSuperior = todos;
+        this.espacoInferior = todos;
     }
 
     public void defEspaco(float horizontal, float vertical) {
-        this.paddingEsquerda = horizontal;
-        this.paddingDireita = horizontal;
-        this.paddingSuperior = vertical;
-        this.paddingInferior = vertical;
+        this.espacoEsquerda = horizontal;
+        this.espacoDireita = horizontal;
+        this.espacoSuperior = vertical;
+        this.espacoInferior = vertical;
     }
 
     // adiciona filho com ancoragem
-    public void addAncorado(Componente filho, Ancoragem ancoragem, float margemX, float margemY) {
+    public void addAncorado(Componente filho, Ancora ancoragem, float margemX, float margemY) {
         // calcula área disponível considerando padding
-        float larguraDisponivel = largura - paddingEsquerda - paddingDireita;
-        float alturaDisponivel = altura - paddingSuperior - paddingInferior;
+        float larguraDisponivel = largura - espacoEsquerda - espacoDireita;
+        float alturaDisponivel = altura - espacoSuperior - espacoInferior;
 
         // calcula posição baseada na ancoragem
-        filho.x = ancoragem.calcularX(larguraDisponivel, filho.largura, margemX) + paddingEsquerda;
-        filho.y = ancoragem.calcularY(alturaDisponivel, filho.altura, margemY) + paddingInferior;
+        filho.x = ancoragem.calcularX(larguraDisponivel, filho.largura, margemX) + espacoEsquerda;
+        filho.y = ancoragem.calcularY(alturaDisponivel, filho.altura, margemY) + espacoInferior;
 
         filhos.add(filho);
     }
