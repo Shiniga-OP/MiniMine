@@ -8,5 +8,4 @@
 	<classpathentry kind="lib" exported="true" path="libs/gdx-freetype-1.10.0.jar"/>
 	<classpathentry kind="lib" exported="true" path="libs/gltf-2.2.1.jar"/>
 	<classpathentry kind="lib" exported="true" path="libs/luaj-jse-3.0.1.jar"/>
-	<classpathentry kind="lib" exported="true" path="libs/microinterface.jar"/>
 </classpath>

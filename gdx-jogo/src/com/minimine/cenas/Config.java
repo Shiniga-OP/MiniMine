@@ -2,308 +2,288 @@ package com.minimine.cenas;
 
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.InputProcessor;
-import com.minimine.ui.Botao;
-import com.minimine.ui.Texto;
-import com.minimine.ui.EstanteVertical;
-import com.minimine.graficos.Texturas;
-import com.minimine.ui.InterUtil;
-import com.minimine.Cenas;
-import com.minimine.Inicio;
-import java.util.ArrayList;
-import java.util.List;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.Preferences;
 import com.minimine.mundo.Mundo;
 import com.minimine.ui.UI;
+import com.minimine.Cenas;
+import com.minimine.Inicio;
+import com.microinterface.GerenciadorUI;
+import com.microinterface.Painel;
+import com.microinterface.PainelFatiado;
+import com.microinterface.Botao;
+import com.microinterface.Rotulo;
+import com.microinterface.Ancoragem;
+import com.microinterface.Acao;
 
 public class Config implements Screen, InputProcessor {
-    public SpriteBatch sb;
+    public SpriteBatch pincel;
+    public ShapeRenderer pincelFormas;
     public BitmapFont fonteTitulo;
     public BitmapFont fonteTexto;
-    public List<Texto> textos;
-    public List<Botao> botoes;
-	
+    public OrthographicCamera camera;
+    public Viewport vista;
+    public Vector3 toqueAuxiliar;
+    
     public Preferences prefs;
-	
-    public Texto txtRaioValor;
-    public Texto txtSensiValor;
-    public Texto txtAproxValor;
-    public Texto txtDistanciaValor;
-    public Texto txtPOVValor;
+    
+    public GerenciadorUI gerenciadorUI;
+    public PainelFatiado visualJanela;
+    public PainelFatiado visualBotao;
+    public float escalaPixel;
+    
+    public Painel painelPrincipal;
+    
+    public Rotulo rotuloRaioValor;
+    public Rotulo rotuloSensiValor;
+    public Rotulo rotuloAproxValor;
+    public Rotulo rotuloDistanciaValor;
+    public Rotulo rotuloPOVValor;
 
     @Override
     public void show() {
-        sb = new SpriteBatch();
-        fonteTitulo = InterUtil.carregarFonte("ui/fontes/pixel.ttf", 50);
-        fonteTexto = InterUtil.carregarFonte("ui/fontes/pixel.ttf", 35);
-        textos = new ArrayList<>();
-        botoes = new ArrayList<>();
-		
-		prefs = Gdx.app.getPreferences("MiniConfig");
-		
-        attInterface();
-
+        pincel = new SpriteBatch();
+        pincelFormas = new ShapeRenderer();
+        
+        // carrega fontes
+        fonteTitulo = new BitmapFont();
+        fonteTitulo.getData().setScale(2.0f);
+        fonteTitulo.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        
+        fonteTexto = new BitmapFont();
+        fonteTexto.getData().setScale(1.5f);
+        fonteTexto.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        
+        camera = new OrthographicCamera();
+        vista = new ScreenViewport(camera);
+        vista.apply(true);
+        
+        toqueAuxiliar = new Vector3();
+        escalaPixel = 4.0f;
+        
+        prefs = Gdx.app.getPreferences("MiniConfig");
+        gerenciadorUI = new GerenciadorUI();
+        
+        try {
+            Texture textura = new Texture(Gdx.files.internal("ui/base.png"));
+            textura.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+            visualJanela = new PainelFatiado(textura);
+            visualBotao = new PainelFatiado(textura);
+            
+            criarInterface();
+        } catch(Exception e) {
+            Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
+        }
         Gdx.input.setInputProcessor(this);
     }
 
-    public void attInterface() {
-        textos.clear();
-        botoes.clear();
-
-        final int largura = Gdx.graphics.getWidth();
-        final int altura = Gdx.graphics.getHeight();
-
-        textos.add(new Texto("Configurações", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					GlyphLayout layout = new GlyphLayout(fonteTitulo, texto);
-					x = (v - layout.width) / 2f;
-					y = h - 80;
-				}
-			});
+    public void criarInterface() {
+        painelPrincipal = new Painel(visualJanela, -350, -350, 700, 700, escalaPixel);
+        painelPrincipal.defEspaco(20, 30);
         
-        textos.add(new Texto("Raio de Chunks:", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					x = 100;
-					y = altura - 250;
-				}
-			});
-        txtRaioValor = new Texto(String.valueOf(Mundo.RAIO_CHUNKS), 0, 0) {
-            @Override
-            public void aoAjustar(int v, int h) {
-                GlyphLayout layout = new GlyphLayout(fonteTexto, texto);
-                x = largura - 250 - layout.width;
-                y = altura - 250;
+        // titulo
+        Rotulo titulo = new Rotulo("CONFIGURACOES", fonteTitulo, escalaPixel);
+        titulo.largura = 660;
+        titulo.altura = 60;
+        painelPrincipal.addAncorado(titulo, Ancoragem.SUPERIOR_CENTRO, 0, 0);
+        
+        float larguraLabel = 250;
+        float larguraValor = 100;
+        float larguraBotao = 60;
+        float alturaBotao = 50;
+        float espacoY = 80;
+        float posYInicial = 150;
+        
+        // === RAIO DE CHUNKS ===
+        Rotulo labelRaio = new Rotulo("Raio Chunks:", fonteTexto, escalaPixel * 0.8f);
+        labelRaio.largura = larguraLabel;
+        labelRaio.altura = alturaBotao;
+        painelPrincipal.addAncorado(labelRaio, Ancoragem.CENTRO, -200, posYInicial);
+        
+        rotuloRaioValor = new Rotulo(String.valueOf(Mundo.RAIO_CHUNKS), fonteTexto, escalaPixel * 0.8f);
+        rotuloRaioValor.largura = larguraValor;
+        rotuloRaioValor.altura = alturaBotao;
+        painelPrincipal.addAncorado(rotuloRaioValor, Ancoragem.CENTRO, 50, posYInicial);
+        
+        Acao acaoDiminuirRaio = new Acao() {
+            public void exec() {
+                if(Mundo.RAIO_CHUNKS > 1) {
+                    Mundo.RAIO_CHUNKS--;
+                    rotuloRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
+                }
             }
         };
-        textos.add(txtRaioValor);
-
-        botoes.add(new Botao(Texturas.texs.get("botao_e"), 0, 0, 80, 80, "diminuirRaio") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(Mundo.RAIO_CHUNKS > 1) {
-						Mundo.RAIO_CHUNKS--;
-						txtRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 230, altura - 280);
-				}
-			});
-        botoes.add(new Botao(Texturas.texs.get("botao_d"), 0, 0, 80, 80, "aumentarRaio") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(Mundo.RAIO_CHUNKS < 20) {
-						Mundo.RAIO_CHUNKS++;
-						txtRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 130, altura - 280);
-				}
-			});
-        textos.add(new Texto("Sensibilidade:", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					x = 100;
-					y = altura - 350;
-				}
-			});
-        txtSensiValor = new Texto(String.format("%.2f", UI.sensi), 0, 0) {
-            @Override
-            public void aoAjustar(int v, int h) {
-                GlyphLayout layout = new GlyphLayout(fonteTexto, texto);
-                x = largura - 250 - layout.width;
-                y = altura - 350;
+        Botao botaoDiminuirRaio = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirRaio);
+        painelPrincipal.addAncorado(botaoDiminuirRaio, Ancoragem.CENTRO, 160, posYInicial);
+        
+        Acao acaoAumentarRaio = new Acao() {
+            public void exec() {
+                if(Mundo.RAIO_CHUNKS < 20) {
+                    Mundo.RAIO_CHUNKS++;
+                    rotuloRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
+                }
             }
         };
-        textos.add(txtSensiValor);
-
-        botoes.add(new Botao(Texturas.texs.get("botao_e"), 0, 0, 80, 80, "diminuirSensi") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.sensi > 0f) {
-						UI.sensi -= 0.05f;
-						txtSensiValor.texto = String.format("%.2f", UI.sensi);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 230, altura - 380);
-				}
-			});
-        botoes.add(new Botao(Texturas.texs.get("botao_d"), 0, 0, 80, 80, "aumentarSensi") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.sensi < 5.0f) {
-						UI.sensi += 0.05f;
-						txtSensiValor.texto = String.format("%.2f", UI.sensi);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 130, altura - 380);
-				}
-			});
-        textos.add(new Texto("Aproximação:", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					x = 100;
-					y = altura - 450;
-				}
-			});
-        txtAproxValor = new Texto(String.format("%.1f", UI.aprox), 0, 0) {
-            @Override
-            public void aoAjustar(int v, int h) {
-                GlyphLayout layout = new GlyphLayout(fonteTexto, texto);
-                x = largura - 250 - layout.width;
-                y = altura - 450;
+        Botao botaoAumentarRaio = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarRaio);
+        painelPrincipal.addAncorado(botaoAumentarRaio, Ancoragem.CENTRO, 230, posYInicial);
+        
+        // === SENSIBILIDADE ===
+        Rotulo labelSensi = new Rotulo("Sensibilidade:", fonteTexto, escalaPixel * 0.8f);
+        labelSensi.largura = larguraLabel;
+        labelSensi.altura = alturaBotao;
+        painelPrincipal.addAncorado(labelSensi, Ancoragem.CENTRO, -200, posYInicial - espacoY);
+        
+        rotuloSensiValor = new Rotulo(String.format("%.2f", UI.sensi), fonteTexto, escalaPixel * 0.8f);
+        rotuloSensiValor.largura = larguraValor;
+        rotuloSensiValor.altura = alturaBotao;
+        painelPrincipal.addAncorado(rotuloSensiValor, Ancoragem.CENTRO, 50, posYInicial - espacoY);
+        
+        Acao acaoDiminuirSensi = new Acao() {
+            public void exec() {
+                if(UI.sensi > 0f) {
+                    UI.sensi -= 0.05f;
+                    rotuloSensiValor.texto = String.format("%.2f", UI.sensi);
+                }
             }
         };
-        textos.add(txtAproxValor);
-
-        botoes.add(new Botao(Texturas.texs.get("botao_e"), 0, 0, 80, 80, "diminuirAprox") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.aprox > 0.1f) {
-						UI.aprox -= 0.1f;
-						txtAproxValor.texto = String.format("%.1f", UI.aprox);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 230, altura - 480);
-				}
-			});
-        botoes.add(new Botao(Texturas.texs.get("botao_d"), 0, 0, 80, 80, "aumentarAprox") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.aprox < 200f) {
-						UI.aprox += 0.1f;
-						txtAproxValor.texto = String.format("%.1f", UI.aprox);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 130, altura - 480);
-				}
-			});
-        textos.add(new Texto("Distância:", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					x = 100;
-					y = altura - 550;
-				}
-			});
-			
-		txtDistanciaValor = new Texto(String.format("%.0f", UI.distancia), 0, 0) {
-			@Override
-			public void aoAjustar(int v, int h) {
-				GlyphLayout layout = new GlyphLayout(fonteTexto, texto);
-				x = largura - 250 - layout.width;
-				y = altura - 550;
-			}
-		};
-        textos.add(txtDistanciaValor);
-        botoes.add(new Botao(Texturas.texs.get("botao_e"), 0, 0, 80, 80, "diminuirDistancia") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.distancia > 200f) {
-						UI.distancia -= 50f;
-						txtDistanciaValor.texto = String.format("%.0f", UI.distancia);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 230, altura - 580);
-				}
-			});
-        botoes.add(new Botao(Texturas.texs.get("botao_d"), 0, 0, 80, 80, "aumentarDistancia") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.distancia < 1000f) {
-						UI.distancia += 50f;
-						txtDistanciaValor.texto = String.format("%.0f", UI.distancia);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 130, altura - 580);
-				}
-			});
-        textos.add(new Texto("Campo de Visão:", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					x = 100;
-					y = altura - 650;
-				}
-			});
-		txtPOVValor = new Texto(String.valueOf(UI.pov), 0, 0) {
-			@Override
-			public void aoAjustar(int v, int h) {
-				GlyphLayout layout = new GlyphLayout(fonteTexto, texto);
-				x = largura - 250 - layout.width;
-				y = altura - 650;
-			}
-		};
-        textos.add(txtPOVValor);
-        botoes.add(new Botao(Texturas.texs.get("botao_e"), 0, 0, 80, 80, "diminuirPOV") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.pov > 0) {
-						UI.pov -= 5;
-						txtPOVValor.texto = String.valueOf(UI.pov);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 230, altura - 680);
-				}
-			});
-        botoes.add(new Botao(Texturas.texs.get("botao_d"), 0, 0, 80, 80, "aumentarPOV") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					if(UI.pov < 300) {
-						UI.pov += 5;
-						txtPOVValor.texto = String.valueOf(UI.pov);
-					}
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos(largura - 130, altura - 680);
-				}
-			});
-		botoes.add(new Botao(Texturas.texs.get("botao_opcao"), 0, 0, 200, 80, "voltar") {
-				@Override
-				public void aoTocar(int tx, int ty, int p) {
-					prefs.putInteger("raioChunks", Mundo.RAIO_CHUNKS);
-					prefs.putInteger("pov", UI.pov);
-					prefs.putFloat("sensi", UI.sensi);
-					prefs.putFloat("aprox", UI.aprox);
-					prefs.putFloat("distancia", UI.distancia);
-					prefs.flush();
-					Inicio.defTela(Cenas.menu);
-				}
-				@Override
-				public void aoAjustar(int v, int h) {
-					defPos((v - tamX) / 2f, 50);
-				}
-			});
-        textos.add(new Texto("Voltar", 0, 0) {
-				@Override
-				public void aoAjustar(int v, int h) {
-					GlyphLayout layout = new GlyphLayout(fonteTexto, texto);
-					x = (v - layout.width) / 2f;
-					y = 85;
-				}
-			});
+        Botao botaoDiminuirSensi = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirSensi);
+        painelPrincipal.addAncorado(botaoDiminuirSensi, Ancoragem.CENTRO, 160, posYInicial - espacoY);
+        
+        Acao acaoAumentarSensi = new Acao() {
+            public void exec() {
+                if(UI.sensi < 5.0f) {
+                    UI.sensi += 0.05f;
+                    rotuloSensiValor.texto = String.format("%.2f", UI.sensi);
+                }
+            }
+        };
+        Botao botaoAumentarSensi = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarSensi);
+        painelPrincipal.addAncorado(botaoAumentarSensi, Ancoragem.CENTRO, 230, posYInicial - espacoY);
+        
+        // === APROXIMACAO ===
+        Rotulo labelAprox = new Rotulo("Aproximacao:", fonteTexto, escalaPixel * 0.8f);
+        labelAprox.largura = larguraLabel;
+        labelAprox.altura = alturaBotao;
+        painelPrincipal.addAncorado(labelAprox, Ancoragem.CENTRO, -200, posYInicial - espacoY * 2);
+        
+        rotuloAproxValor = new Rotulo(String.format("%.1f", UI.aprox), fonteTexto, escalaPixel * 0.8f);
+        rotuloAproxValor.largura = larguraValor;
+        rotuloAproxValor.altura = alturaBotao;
+        painelPrincipal.addAncorado(rotuloAproxValor, Ancoragem.CENTRO, 50, posYInicial - espacoY * 2);
+        
+        Acao acaoDiminuirAprox = new Acao() {
+            public void exec() {
+                if(UI.aprox > 0.1f) {
+                    UI.aprox -= 0.1f;
+                    rotuloAproxValor.texto = String.format("%.1f", UI.aprox);
+                }
+            }
+        };
+        Botao botaoDiminuirAprox = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirAprox);
+        painelPrincipal.addAncorado(botaoDiminuirAprox, Ancoragem.CENTRO, 160, posYInicial - espacoY * 2);
+        
+        Acao acaoAumentarAprox = new Acao() {
+            public void exec() {
+                if(UI.aprox < 200f) {
+                    UI.aprox += 0.1f;
+                    rotuloAproxValor.texto = String.format("%.1f", UI.aprox);
+                }
+            }
+        };
+        Botao botaoAumentarAprox = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarAprox);
+        painelPrincipal.addAncorado(botaoAumentarAprox, Ancoragem.CENTRO, 230, posYInicial - espacoY * 2);
+        
+        // === DISTANCIA ===
+        Rotulo labelDistancia = new Rotulo("Distancia:", fonteTexto, escalaPixel * 0.8f);
+        labelDistancia.largura = larguraLabel;
+        labelDistancia.altura = alturaBotao;
+        painelPrincipal.addAncorado(labelDistancia, Ancoragem.CENTRO, -200, posYInicial - espacoY * 3);
+        
+        rotuloDistanciaValor = new Rotulo(String.format("%.0f", UI.distancia), fonteTexto, escalaPixel * 0.8f);
+        rotuloDistanciaValor.largura = larguraValor;
+        rotuloDistanciaValor.altura = alturaBotao;
+        painelPrincipal.addAncorado(rotuloDistanciaValor, Ancoragem.CENTRO, 50, posYInicial - espacoY * 3);
+        
+        Acao acaoDiminuirDistancia = new Acao() {
+            public void exec() {
+                if(UI.distancia > 200f) {
+                    UI.distancia -= 50f;
+                    rotuloDistanciaValor.texto = String.format("%.0f", UI.distancia);
+                }
+            }
+        };
+        Botao botaoDiminuirDistancia = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirDistancia);
+        painelPrincipal.addAncorado(botaoDiminuirDistancia, Ancoragem.CENTRO, 160, posYInicial - espacoY * 3);
+        
+        Acao acaoAumentarDistancia = new Acao() {
+            public void exec() {
+                if(UI.distancia < 1000f) {
+                    UI.distancia += 50f;
+                    rotuloDistanciaValor.texto = String.format("%.0f", UI.distancia);
+                }
+            }
+        };
+        Botao botaoAumentarDistancia = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarDistancia);
+        painelPrincipal.addAncorado(botaoAumentarDistancia, Ancoragem.CENTRO, 230, posYInicial - espacoY * 3);
+        
+        // === CAMPO DE VISAO(POV) ===
+        Rotulo labelPOV = new Rotulo("Campo Visao:", fonteTexto, escalaPixel * 0.8f);
+        labelPOV.largura = larguraLabel;
+        labelPOV.altura = alturaBotao;
+        painelPrincipal.addAncorado(labelPOV, Ancoragem.CENTRO, -200, posYInicial - espacoY * 4);
+        
+        rotuloPOVValor = new Rotulo(String.valueOf(UI.pov), fonteTexto, escalaPixel * 0.8f);
+        rotuloPOVValor.largura = larguraValor;
+        rotuloPOVValor.altura = alturaBotao;
+        painelPrincipal.addAncorado(rotuloPOVValor, Ancoragem.CENTRO, 50, posYInicial - espacoY * 4);
+        
+        Acao acaoDiminuirPOV = new Acao() {
+            public void exec() {
+                if(UI.pov > 0) {
+                    UI.pov -= 5;
+                    rotuloPOVValor.texto = String.valueOf(UI.pov);
+                }
+            }
+        };
+        Botao botaoDiminuirPOV = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirPOV);
+        painelPrincipal.addAncorado(botaoDiminuirPOV, Ancoragem.CENTRO, 160, posYInicial - espacoY * 4);
+        
+        Acao acaoAumentarPOV = new Acao() {
+            public void exec() {
+                if(UI.pov < 300) {
+                    UI.pov += 5;
+                    rotuloPOVValor.texto = String.valueOf(UI.pov);
+                }
+            }
+        };
+        Botao botaoAumentarPOV = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarPOV);
+        painelPrincipal.addAncorado(botaoAumentarPOV, Ancoragem.CENTRO, 230, posYInicial - espacoY * 4);
+        
+        // === BOTAO VOLTAR ===
+        Acao acaoVoltar = new Acao() {
+            public void exec() {
+                prefs.putInteger("raioChunks", Mundo.RAIO_CHUNKS);
+                prefs.putInteger("pov", UI.pov);
+                prefs.putFloat("sensi", UI.sensi);
+                prefs.putFloat("aprox", UI.aprox);
+                prefs.putFloat("distancia", UI.distancia);
+                prefs.flush();
+                Inicio.defTela(Cenas.menu);
+            }
+        };
+        Botao botaoVoltar = new Botao("VOLTAR", visualBotao, fonteTexto, 0, 0, 200, 60, escalaPixel, acaoVoltar);
+        painelPrincipal.addAncorado(botaoVoltar, Ancoragem.INFERIOR_CENTRO, 0, 0);
+        
+        gerenciadorUI.add(painelPrincipal);
     }
 
     @Override
@@ -311,38 +291,31 @@ public class Config implements Screen, InputProcessor {
         Gdx.gl.glClearColor(0.15f, 0.15f, 0.2f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        sb.begin();
+        camera.update();
+        pincel.setProjectionMatrix(camera.combined);
+        pincelFormas.setProjectionMatrix(camera.combined);
 
-        txtRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
-        txtSensiValor.texto = String.format("%.2f", UI.sensi);
-        txtAproxValor.texto = String.format("%.1f", UI.aprox);
-        txtDistanciaValor.texto = String.format("%.0f", UI.distancia);
-        txtPOVValor.texto = String.valueOf(UI.pov);
+        // atualiza valores dos rotulos
+        rotuloRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
+        rotuloSensiValor.texto = String.format("%.2f", UI.sensi);
+        rotuloAproxValor.texto = String.format("%.1f", UI.aprox);
+        rotuloDistanciaValor.texto = String.format("%.0f", UI.distancia);
+        rotuloPOVValor.texto = String.valueOf(UI.pov);
 
-        for(Texto t : textos) {
-            t.porFrame(delta, sb, (t.texto.equals("Configurações")) ? fonteTitulo : fonteTexto);
-        }
-        for(Botao b : botoes) {
-            b.porFrame(delta, sb, fonteTexto);
-        }
-        sb.end();
+        pincel.begin();
+        gerenciadorUI.desenhar(pincel, delta);
+        pincel.end();
     }
 
     @Override
     public void resize(int v, int h) {
-        sb.getProjectionMatrix().setToOrtho2D(0, 0, v, h);
-		
-        for(Botao b : botoes) {
-            if(b != null) b.aoAjustar(v, h);
-        }
-        for(Texto t : textos) {
-            if(t != null) t.aoAjustar(v, h);
-        }
+        vista.update(v, h);
     }
 
     @Override
     public void dispose() {
-        if(sb != null) sb.dispose();
+        if(pincel != null) pincel.dispose();
+        if(pincelFormas != null) pincelFormas.dispose();
         if(fonteTitulo != null) fonteTitulo.dispose();
         if(fonteTexto != null) fonteTexto.dispose();
     }
@@ -353,23 +326,28 @@ public class Config implements Screen, InputProcessor {
     }
 
     @Override
-    public boolean touchDown(int telaX, int telaY, int p, int b) {
-        int y = Gdx.graphics.getHeight() - telaY;
-        for(Botao bt : botoes) {
-            if(bt.hitbox.contains(telaX, y)) {
-                bt.aoTocar(telaX, y, p);
-                return true;
-            }
-        }
-        return false;
+    public boolean touchDown(int x, int y, int p, int b) {
+        camera.unproject(toqueAuxiliar.set(x, y, 0));
+        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, true);
+        return true;
     }
-	@Override public void pause() {}
+    @Override
+    public boolean touchUp(int x, int y, int p, int b) {
+        camera.unproject(toqueAuxiliar.set(x, y, 0));
+        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, false);
+        return true;
+    }
+    @Override
+    public boolean touchDragged(int x, int y, int p) {
+        camera.unproject(toqueAuxiliar.set(x, y, 0));
+        gerenciadorUI.processarArraste(toqueAuxiliar.x, toqueAuxiliar.y);
+        return true;
+    }
+    @Override public void pause() {}
     @Override public void resume() {}
-    @Override public boolean touchUp(int telaX, int telaY, int p, int b) { return false; }
-    @Override public boolean touchDragged(int telaX, int telaY, int p) { return false; }
-    @Override public boolean mouseMoved(int telaX, int telaY) { return false; }
-    @Override public boolean scrolled(float aX, float aY) { return false; }
     @Override public boolean keyDown(int c) { return false; }
     @Override public boolean keyUp(int c) { return false; }
     @Override public boolean keyTyped(char c) { return false; }
+    @Override public boolean mouseMoved(int x, int y) { return false; }
+    @Override public boolean scrolled(float aX, float aY) { return false; }
 }

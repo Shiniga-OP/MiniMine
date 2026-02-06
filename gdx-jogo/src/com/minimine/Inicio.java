@@ -31,6 +31,7 @@ public class Inicio extends Game {
 		Gdx.app.setApplicationLogger(log);
         Gdx.graphics.setVSync(false);
 		defTela(Cenas.intro);
+		setScreen(new com.microinterface.TelaTeste());
 	}
 
 	public static void defTela(Screen tela) {
@@ -40,6 +41,7 @@ public class Inicio extends Game {
 
 	@Override
 	public void render() {
+		super.render();
 		if(telaNova) {
 			setScreen(telaAtual);
 			telaNova = false;
