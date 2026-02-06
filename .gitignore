@@ -15,6 +15,9 @@
 /biblis-obrigatorias/
 /compilar-manual/
 
+# Ignore .settings
+.settings/
+
 # Ignore Gradle project-specific cache directory
 .gradle
 
