@@ -24,9 +24,5 @@ build
 # Ignore local.properties
 local.properties
 
-# Ignore logs e .temp do assets
-assets/*.log
-assets/.temp/
-
-# Ignore .temp do gdx-pc
-gdx-pc/.temp
+# Ignore .cache
+.cache

@@ -48,6 +48,21 @@ task rodar(type: JavaExec) {
     workingDir = file('../gdx-android/assets').exists() ? file('../gdx-android/assets') : projectDir
 }
 
+
+
+tasks.withType(JavaExec).configureEach{
+    def logsDir = file("${rootDir}/.cache/logs")
+    doFirst {
+        if(!logsDir.exists()){
+            logsDir.mkdirs()
+            println"Pasta ${logsDir} foi criado"
+	}
+    }
+
+    jvmArgs += "-XX:ErrorFile=${rootDir}/.cache/logs/hs_err_pid%p.log"
+}
+
+
 jar {
     archiveFileName = "minimine.jar"
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
