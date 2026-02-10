@@ -59,7 +59,7 @@ public class UI implements InputProcessor {
 	public static float espaco = 60f;
 
 	public static Jogador jg;
-	public static boolean debug = false;
+	public static boolean debug = true;
 	public static boolean modoTexto = false;
 	public static int fps = 0;
 	public static Debugador debugador;
