@@ -47,7 +47,6 @@ import java.net.URLDecoder;
 public class Mundo {
     public static String nome = "novo mundo";
 
-    public static final List<Object> texturas = new ArrayList<>();
 	public static final List<Chunk> praLiberar = new ArrayList<>();
 	public static final List<Long> praRemover = new ArrayList<>();
 
@@ -73,33 +72,18 @@ public class Mundo {
     public static Matrix4 matrizTmp = new Matrix4();
 
     static {
-        texturas.add(Texturas.texs.get("grama_topo"));
-        texturas.add(Texturas.texs.get("grama_lado"));
-        texturas.add(Texturas.texs.get("terra"));
-        texturas.add(Texturas.texs.get("pedra"));
-        texturas.add(Texturas.texs.get("agua"));
-        texturas.add(Texturas.texs.get("areia"));
-        texturas.add(Texturas.texs.get("tronco_topo"));
-        texturas.add(Texturas.texs.get("tronco_lado"));
-        texturas.add(Texturas.texs.get("folha"));
-        texturas.add(Texturas.texs.get("tabua_madeira"));
-        texturas.add(Texturas.texs.get("cacto_topo"));
-        texturas.add(Texturas.texs.get("cacto_lado"));
-        texturas.add(Texturas.texs.get("vidro"));
-        texturas.add(Texturas.texs.get("tocha"));
-
         Bloco.blocos.add(null);
-        Bloco.blocos.add(new Bloco("grama", 0, 1, 2));
-        Bloco.blocos.add(new Bloco("terra", 2));
-        Bloco.blocos.add(new Bloco("pedra", 3));
-        Bloco.blocos.add(new Bloco("agua", 4, true, false, false));
-        Bloco.blocos.add(new Bloco("areia", 5));
-        Bloco.blocos.add(new Bloco("tronco", 6, 7));
-        Bloco.blocos.add(new Bloco("folha", 8, true, true, false));
-        Bloco.blocos.add(new Bloco("tabua_madeira", 9));
-        Bloco.blocos.add(new Bloco("cacto", 10, 11));
-        Bloco.blocos.add(new Bloco("vidro", 12, true, true, false));
-        Bloco.blocos.add(new Bloco("tocha", 13, 13, 13, false, true, true, 15));
+        Bloco.blocos.add(new Bloco("grama", "grama_topo", "grama_lado", "terra"));
+        Bloco.blocos.add(new Bloco("terra", "terra"));
+        Bloco.blocos.add(new Bloco("pedra", "pedra"));
+        Bloco.blocos.add(new Bloco("agua", "agua", true, false, false));
+        Bloco.blocos.add(new Bloco("areia", "areia"));
+        Bloco.blocos.add(new Bloco("tronco", "tronco_topo", "tronco_lado"));
+        Bloco.blocos.add(new Bloco("folha", "folha", true, true, false));
+        Bloco.blocos.add(new Bloco("tabua_madeira", "tabua_madeira"));
+        Bloco.blocos.add(new Bloco("cacto", "cacto_topo", "cacto_lado"));
+        Bloco.blocos.add(new Bloco("vidro", "vidro", true, true, false));
+        Bloco.blocos.add(new Bloco("tocha", "tocha", "tocha", "tocha", false, true, true, 13));
 
 		Bloco.addSom("grama", "grama_1", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("terra", "terra_1", "terra_2", "terra_3");
@@ -531,23 +515,23 @@ public class Mundo {
 	    } 
     }
     // API:
-    public static Bloco addBloco(String nome, int topo) {
+    public static Bloco addBloco(String nome, String topo) {
         return addBloco(nome, topo, topo, topo, false, true);
     }
 
-    public static Bloco addBloco(String nome, int topo, int lados) {
+    public static Bloco addBloco(String nome, String topo, String lados) {
         return addBloco(nome, topo, lados, topo, false, true);
     }
 
-    public static Bloco addBloco(String nome, int topo, int lados, int baixo) {
+    public static Bloco addBloco(String nome, String topo, String lados, String baixo) {
         return addBloco(nome, topo, lados, baixo, false, true);
     }
 
-    public static Bloco addBloco(String nome, int topo, int lados, int baixo, boolean alfa, boolean solido) {
+    public static Bloco addBloco(String nome, String topo, String lados, String baixo, boolean alfa, boolean solido) {
         return addBloco(nome, topo, lados, baixo, alfa, solido, 0);
     }
 
-	public static Bloco addBloco(String nome, int topo, int lados, int baixo, boolean alfa, boolean solido, int luz) {
+	public static Bloco addBloco(String nome, String topo, String lados, String baixo, boolean alfa, boolean solido, int luz) {
         Bloco.blocos.add(new Bloco(nome, topo, lados, baixo, alfa, solido, true, luz));
         return Bloco.blocos.get(Bloco.blocos.size()-1);
     }

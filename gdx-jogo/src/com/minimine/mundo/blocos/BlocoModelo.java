@@ -3,8 +3,9 @@ package com.minimine.mundo.blocos;
 import com.minimine.utils.arrays.FloatArrayUtil;
 import com.minimine.utils.arrays.ShortArrayUtil;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.minimine.mundo.ChunkLuz;
-import com.minimine.graficos.Render;
+import com.minimine.graficos.Texturas;
 
 public class BlocoModelo {
     public static final float TAM = 1f; // tamanho
@@ -62,77 +63,66 @@ public class BlocoModelo {
         {{0,1}, {0,0}, {1,0}, {1,1}}  // -Z
     };
 
-    	public static void addFace(int faceId, int atlasId, float x, float y, float z, 
-	float w, float h, float luzBloco, float luzSol, FloatArrayUtil verts, ShortArrayUtil idc) {
+    public static void addFace(int faceId, String texturaNome, float x, float y, float z, 
+	float h, float v, float luzBloco, float luzSol, FloatArrayUtil verts, ShortArrayUtil idc) {
+        // obtem a TextureRegion do atlas usando o nome
+        TextureRegion region = Texturas.atlas.obter(texturaNome);
 
-		float[] atlasCoords = Render.atlasUVs.get(atlasId);
-		if(atlasCoords == null) return;
+        if(region == null) return;
 
-		final float uMin = atlasCoords[0];
-		final float vMin = atlasCoords[1];
-		final float uMax = atlasCoords[2];
-		final float vMax = atlasCoords[3];
+        // Calcula as coordenadas UV normalizadas do atlas
+        float uMin = region.getU();
+        float vMin = region.getV();
+        float uMax = region.getU2();
+        float vMax = region.getV2();
 
-		// pre-calculo da cor pra evitar chamar Color.toFloatBits
-		float multFace = ChunkLuz.FACE_LUZ[faceId];
-		int r = (int)(luzBloco * multFace * 255);
-		int g = (int)(luzSol * multFace * 255);
-		int b = (int)(multFace * 255); 
-		float corFinal = Color.toFloatBits(r, g, b, 255);
+        // pre-calculo da cor pra evitar chamar Color.toFloatBits
+        float multFace = ChunkLuz.FACE_LUZ[faceId];
+        int r = (int)(luzBloco * multFace * 255);
+        int g = (int)(luzSol * multFace * 255);
+        int b = (int)(multFace * 255); 
+        float corFinal = Color.toFloatBits(r, g, b, 255);
 
-		short indiceBase = (short)(verts.tam / 10); // Agora sao 10 floats por vertice
+        short indiceBase = (short)(verts.tam / 10); // 10 floats por vertice
 
-        // Define escalas baseadas na face
+        // define escalas baseadas na face
         float sx = 1f, sy = 1f, sz = 1f; // escalas de posicao
-        float uw = 1f, vh = 1f; // escalas de UV
+        float uh = 1f, vv = 1f; // escalas de UV(h = horizontal, v = vertical)
 
-        // Mapeamento:
-        // Topo/Baixo (Faces 0, 1): w -> X, h -> Z
-        // Lados X (Faces 2, 3): w -> Z, h -> Y
-        // Lados Z (Faces 4, 5): w -> X, h -> Y
-        
+        // mapeamento:
+        // topo/baixo(faces 0, 1): h -> X, v -> Z
+        // lados X(faces 2, 3): h -> Z, v -> Y
+        // lados Z(faces 4, 5): h -> X, v -> Y
         switch(faceId) {
-            case 0: case 1: sx = w; sz = h; uw = w; vh = h; break;
-            case 2: case 3: sz = w; sy = h; uw = w; vh = h; break; // Check orientation
-            case 4: case 5: sx = w; sy = h; uw = w; vh = h; break;
+            case 0: case 1: sx = h; sz = v; uh = h; vv = v; break;
+            case 2: case 3: sz = h; sy = v; uh = h; vv = v; break;
+            case 4: case 5: sx = h; sy = v; uh = h; vv = v; break;
         }
-
-        // Loop pelos 4 vertices
+        // loop pelos 4 vertices
         for(int i = 0; i < 4; i++) {
-            float[] v = FACE_VERTICES[faceId][i];
+            float[] vert = FACE_VERTICES[faceId][i];
             float[] uv = FACE_UVS[faceId][i];
 
-            // Posicao
-            // Logica: Se o componente for TAM (1.0), multiplicamos pela escala daquela dimensao?
-            // Nao exatamente. Faces deslocadas (ex: Topo Y=1) devem manter Y=1, nao Y=h.
-            // Porem, faces "planas" tem 0 ou 1 nas coordenadas variaveis.
-            // Ex: Topo varia X e Z. Y é fixo em 1.
-            // Se v[0] (X) for 1, deve virar w. Se 0, vira 0. -> v[0] * sx da certo?
-            // E o eixo fixo? Y=1. sy=1 (default). v[1]*sy = 1*1 = 1. Correto.
-            // Entao basta multiplicar.
-            
-            verts.add(x + v[0] * sx);
-            verts.add(y + v[1] * sy);
-            verts.add(z + v[2] * sz);
+            // posicao
+            verts.add(x + vert[0] * sx);
+            verts.add(y + vert[1] * sy);
+            verts.add(z + vert[2] * sz);
 
-            // UV Local (para tiling)
-            // Multiplicamos o 0..1 original pelo tamanho (w ou h)
-            verts.add(uv[0] * uw); 
-            verts.add(uv[1] * vh);
-
-            // Atlas Limits (uMin, vMin, uMax, vMax)
+            // UV local(pro guloso)
+            verts.add(uv[0] * uh); 
+            verts.add(uv[1] * vv);
+            // Atlas Limites (uMin, vMin, uMax, vMax)
             verts.add(uMin); verts.add(vMin); verts.add(uMax); verts.add(vMax);
-
-            // Cor
+            // cor
             verts.add(corFinal);
         }
-
-		// indices(ordem dos triangulos)
-		idc.add(indiceBase);
-		idc.add((short)(indiceBase + 1));
-		idc.add((short)(indiceBase + 2));
-		idc.add((short)(indiceBase + 2));
-		idc.add((short)(indiceBase + 3));
-		idc.add(indiceBase);
-	}
+        // indices(ordem dos triangulos)
+        idc.add(indiceBase);
+        idc.add((short)(indiceBase + 1));
+        idc.add((short)(indiceBase + 2));
+        idc.add((short)(indiceBase + 2));
+        idc.add((short)(indiceBase + 3));
+        idc.add(indiceBase);
+    }
 }
+

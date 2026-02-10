@@ -41,6 +41,7 @@ import com.minimine.graficos.Texturas;
 import com.minimine.cenas.Jogo;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class ArquivosUtil {
     public static final String VERSAO = "v0.0.1";
@@ -342,13 +343,11 @@ public class ArquivosUtil {
 					String nome = dis.readUTF();
 					int quantidade = dis.readInt();
 
-					Texture textura = Texturas.texs.get(nome + "_lado");
-					if(textura == null) textura = Texturas.texs.get(nome);
-					if(textura == null) textura = Texturas.texs.get(nome + "_topo");
+					TextureRegion textura = Texturas.atlas.obter(nome);
+					
 					if(textura == null) {
-						Gdx.app.log("ArquivosUtil", "[ERRO] textura do item nao encontrada: " + nome + " (slot " + i + ") - ignorando item");
-						jogador.inv.itens[i] = null;
-						continue;
+						Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
+						textura = Texturas.atlas.obter("terra"); // padrão
 					}
 					jogador.inv.itens[i] = new Inventario.Item(nome, textura, quantidade);
 				} else {

@@ -2,143 +2,131 @@ package com.minimine.graficos;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
-import java.util.Map;
-import java.util.HashMap;
-import com.minimine.mundo.Mundo;
-import com.minimine.Inicio;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Animacoes2D {
-    public static InfoAnimacao[] animacoes;
-	public static List<InfoAnimacao> conta = new ArrayList<>();
-    public static float tempoTotal = 0f;
+    // lista de animações ativas
+    public static List<InfoAnimacao> animacoes = new ArrayList<>();
 
     public static class InfoAnimacao {
-        public int idTextura;
-        public int frameAtual = 0;
-        public int totalFrames;
-        public float tempoPorFrame;
-        public int largura;
-        public int altura;
-        public Pixmap[] frames;
+        public String nomeDestino; // nome da região no atlas principal
+        public Pixmap[] quadros;   // os pixels de cada quadro da animação
+        public int quadroAtual = 0;
+        public int totalQuadros;
+        public float tempoPorQuadro;
         public float acumulador = 0f;
 
-        public InfoAnimacao(int idTextura, int totalFrames, float fps, int largura, int altura) {
-            this.idTextura = idTextura;
-            this.totalFrames = totalFrames;
-            this.tempoPorFrame = 1f / fps;
-            this.largura = largura;
-            this.altura = altura;
-            this.frames = new Pixmap[totalFrames];
+        // coordenadas de destino no atlas principal
+        public int destX, destY;
+
+        public InfoAnimacao(String nomeDestino, TextureRegion[] regioes, float fps) {
+            this.nomeDestino = nomeDestino;
+            this.totalQuadros = regioes.length;
+            this.tempoPorQuadro = 1f / fps;
+            this.quadros = new Pixmap[totalQuadros];
+
+            // 1. descobrir onde desenhar no atlas principal (Texturas.blocos)
+            TextureRegion destino = Texturas.atlas.obter(nomeDestino);
+            if(destino == null) {
+                Gdx.app.log("Animacoes2D", "[ERRO] Destino não encontrado: " + nomeDestino);
+                return;
+            }
+            // converte coordenadas UV(0..1) para Pixels(0..Largura)
+            this.destX = (int)(destino.getU() * destino.getTexture().getWidth());
+            this.destY = (int)(destino.getV() * destino.getTexture().getHeight());
+
+            // 2. extrai os pixels de cada quadro
+            for(int i = 0; i < totalQuadros; i++) {
+                this.quadros[i] = extrairPixmap(regioes[i]);
+            }
         }
 
         public void liberar() {
-            for(Pixmap px : frames) {
-                if(px != null) px.dispose();
+            for(Pixmap p : quadros) {
+                if(p != null) p.dispose();
             }
         }
     }
-
-	public static void config() {
-		int tam = conta.size();
-		animacoes = new InfoAnimacao[tam];
-		for(int i = 0; i < tam; i++) {
-			animacoes[i] = conta.get(i);
-		}
-		conta.clear();
-		conta = null;
-	}
-
-    public static Pixmap carregarPixmap(Object fonte) {
-        if(fonte instanceof String) {
-            String caminho = (String)fonte;
-            FileHandle arquivo = Gdx.files.absolute(Inicio.externo+caminho);
-            if(!arquivo.exists()) {
-                throw new RuntimeException("Arquivo não existe: " + caminho);
-            }
-            return new Pixmap(arquivo);
-        } else if(fonte instanceof Texture) {
-            Texture tex = (Texture)fonte;
-            if(!tex.getTextureData().isPrepared()) {
-                tex.getTextureData().prepare();
-            }
-            Pixmap px = tex.getTextureData().consumePixmap();
-            Pixmap copia = new Pixmap(px.getWidth(), px.getHeight(), px.getFormat());
-            copia.drawPixmap(px, 0, 0);
-            px.dispose();
-            return copia;
-        } else if(fonte instanceof Pixmap) {
-            Pixmap px = (Pixmap)fonte;
-            Pixmap copia = new Pixmap(px.getWidth(), px.getHeight(), px.getFormat());
-            copia.drawPixmap(px, 0, 0);
-            return copia;
+    /**
+     * extrai os dados de pixel de uma TextureRegion
+     * necessario pra copiar da textura de origem pra memória
+     */
+    public static Pixmap extrairPixmap(TextureRegion region) {
+        Texture textura = region.getTexture();
+        if(!textura.getTextureData().isPrepared()) {
+            textura.getTextureData().prepare();
         }
-        throw new IllegalArgumentException("Fonte inválida");
+        Pixmap pixmapCompleto = textura.getTextureData().consumePixmap();
+
+        // cria um novo Pixmap so com o pedaço
+        Pixmap recorte = new Pixmap(region.getRegionWidth(), region.getRegionHeight(), pixmapCompleto.getFormat());
+
+        // copia a area específica
+        recorte.drawPixmap(pixmapCompleto, 
+		0, 0, // destino x, y
+		region.getRegionX(), region.getRegionY(), // origem x, y
+		region.getRegionWidth(), region.getRegionHeight() // largura, altura
+		);
+        // o consumePixmap pode não retornar um novo se for FileTextureData, 
+        // mas se a textura for gerenciada pelo AssetManager ou carregada manualmente,
+        // é seguro descartar se tiver certeza que criou uma copia
+        // no caso do GDX padrão, consumePixmap retorna o pixmap interno, então não deve dar dispose no pixmapCompleto
+        // a menos que tenha certeza absoluta, pra segurança, deixa o GC ou o dispose da textura lidar com isso,
+        // ja que so le os dados
+        return recorte;
     }
 
-    public static void add(int idTextura, Object[] frames, float fps) {
-		if(conta == null) conta = new ArrayList<>();
+    public static void add(String nomeDestino, TextureRegion[] frames, float fps) {
         if(frames == null || frames.length == 0) return;
 
-        Pixmap primeiro = carregarPixmap(frames[0]);
-        int largura = primeiro.getWidth();
-        int altura = primeiro.getHeight();
-        primeiro.dispose();
-
-        InfoAnimacao anim = new InfoAnimacao(idTextura, frames.length, fps, largura, altura);
-
-        for(int i = 0; i < frames.length; i++) anim.frames[i] = carregarPixmap(frames[i]);
-
-        conta.add(anim);
+        try {
+            InfoAnimacao anim = new InfoAnimacao(nomeDestino, frames, fps);
+            animacoes.add(anim);
+            Gdx.app.log("Animacoes2D", "Animação adicionada para: " + nomeDestino);
+        } catch(Exception e) {
+            Gdx.app.log("Animacoes2D", "[ERRO] Falha ao criar animação: " + e.getMessage());
+        }
     }
 
     public static void att(float delta) {
-        tempoTotal += delta;
+        for(InfoAnimacao anim : animacoes) {
+            anim.acumulador += delta;
 
-        for(int i = 0; i < animacoes.length; i++) {
-            animacoes[i].acumulador += delta;
-
-            if(animacoes[i].acumulador >= animacoes[i].tempoPorFrame) {
-                animacoes[i].acumulador = 0;
-                animacoes[i].frameAtual = (animacoes[i].frameAtual + 1) % animacoes[i].totalFrames;
-                attAtlas(animacoes[i]);
+            if(anim.acumulador >= anim.tempoPorQuadro) {
+                anim.acumulador -= anim.tempoPorQuadro; // Mantém o resto para precisão
+                anim.quadroAtual = (anim.quadroAtual + 1) % anim.totalQuadros;
+                attTextura(anim);
             }
         }
     }
 
-    public static void attAtlas(InfoAnimacao anim) {
-        if(Render.atlasGeral == null) return;
+    public static void attTextura(InfoAnimacao anim) {
+		Pixmap p = anim.quadros[anim.quadroAtual];
 
-        Pixmap frameAtual = anim.frames[anim.frameAtual];
-        float[] uvs = Render.atlasUVs.get(anim.idTextura);
-        if(uvs == null) return;
+		// 1. vincula a textura que queremos alterar
+		Texturas.blocos.bind();
 
-        int atlasLargura = Render.atlasGeral.getWidth();
-        int atlasAltura = Render.atlasGeral.getHeight();
-
-        int x = (int)(uvs[0] * atlasLargura);
-        int y = (int)(uvs[1] * atlasAltura);
-
-        Render.atlasGeral.bind();
-
-        Gdx.gl.glTexSubImage2D(
-            GL20.GL_TEXTURE_2D,
-            0,
-            x, y,
-            frameAtual.getWidth(),
-            frameAtual.getHeight(),
-            frameAtual.getGLFormat(),
-            frameAtual.getGLType(),
-            frameAtual.getPixels()
-        );
-    }
+		// 2. usa o OpenGL pra carimbar os pixels
+		Gdx.gl.glTexSubImage2D(
+			com.badlogic.gdx.graphics.GL20.GL_TEXTURE_2D, 
+			0, // Nível de detalhe(mipmaps)
+			anim.destX, // posição X no atlas
+			anim.destY, // posição Y no atlas
+			p.getWidth(), // largura do quadro
+			p.getHeight(), // altura do quadro
+			p.getGLFormat(),// formato(RGBA)
+			p.getGLType(), // tipo de dado(UNSIGNED_BYTE)
+			p.getPixels() // os dados brutos dos pixels
+		);
+	}
 
     public static void liberar() {
-        for(int i = 0; i < animacoes.length; i++) animacoes[i].liberar();
-		animacoes = null;
+        for(InfoAnimacao anim : animacoes) {
+            anim.liberar();
+        }
+        animacoes.clear();
     }
 }

@@ -4,30 +4,38 @@ import java.util.HashMap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Texturas {
 	public static TexLista<CharSequence, Texture> texs = new TexLista<CharSequence, Texture>();
-
+	public static TexLista<CharSequence, TextureRegion> atlas = new TexLista<CharSequence, TextureRegion>();
+	public static Texture blocos;
+	public static Texture agua;
+	
 	static {
 		try {
+			// atlas:
+			blocos = new Texture(Gdx.files.internal("blocos/blocos.png"));
+			agua = new Texture(Gdx.files.internal("blocos/anims/agua.png"));
 			// modelos:
-			texs.put("grama_topo", new Texture(Gdx.files.internal("blocos/grama_topo.png")));
-			texs.put("grama_lado", new Texture(Gdx.files.internal("blocos/grama_lado.png")));
-			texs.put("terra", new Texture(Gdx.files.internal("blocos/terra.png")));
-			texs.put("pedra", new Texture(Gdx.files.internal("blocos/pedra.png")));
-			texs.put("agua", new Texture(Gdx.files.internal("blocos/agua.png")));
-			texs.put("areia", new Texture(Gdx.files.internal("blocos/areia.png")));
-			texs.put("tronco_topo", new Texture(Gdx.files.internal("blocos/tronco_topo.png")));
-			texs.put("tronco_lado", new Texture(Gdx.files.internal("blocos/tronco_lado.png")));
-			texs.put("folha", new Texture(Gdx.files.internal("blocos/folha.png")));
-			texs.put("tabua_madeira", new Texture(Gdx.files.internal("blocos/tabua_madeira.png")));
-			texs.put("cacto_topo", new Texture(Gdx.files.internal("blocos/cacto_topo.png")));
-			texs.put("cacto_lado", new Texture(Gdx.files.internal("blocos/cacto_lado.png")));
-			texs.put("vidro", new Texture(Gdx.files.internal("blocos/vidro.png")));
-			texs.put("tocha", new Texture(Gdx.files.internal("blocos/tocha.png")));
+			atlas.put("grama_topo", new TextureRegion(blocos, 0, 0, 16, 16));
+			atlas.put("grama_lado", new TextureRegion(blocos, 16, 0, 16, 16));
+			atlas.put("terra", new TextureRegion(blocos, 32, 0, 16, 16));
+			atlas.put("pedra", new TextureRegion(blocos, 48, 0, 16, 16));
+			atlas.put("agua", new TextureRegion(blocos, 64, 0, 16, 16));
+			atlas.put("areia", new TextureRegion(blocos, 80, 0, 16, 16));
+			atlas.put("tronco_topo", new TextureRegion(blocos, 96, 0, 16, 16));
+			atlas.put("tronco_lado", new TextureRegion(blocos, 112, 0, 16, 16));
+			atlas.put("folha", new TextureRegion(blocos, 0, 16, 16, 16));
+			atlas.put("tabua_madeira", new TextureRegion(blocos, 16, 16, 16, 16));
+			atlas.put("cacto_topo", new TextureRegion(blocos, 32, 16, 16, 16));
+			atlas.put("cacto_lado", new TextureRegion(blocos, 48, 16, 16, 16));
+			atlas.put("vidro", new TextureRegion(blocos, 64, 16, 16, 16));
+			atlas.put("tocha", new TextureRegion(blocos, 80, 16, 16, 16));
+			
 			// animações:
-			texs.put("agua_a1", new Texture(Gdx.files.internal("blocos/anims/agua_a1.png")));
-			texs.put("agua_a2", new Texture(Gdx.files.internal("blocos/anims/agua_a2.png")));
+			atlas.put("agua_a1", new TextureRegion(agua, 0, 0, 16, 16));
+			atlas.put("agua_a2", new TextureRegion(agua, 0, 16, 16, 16));
 			// interface:
 			texs.put("botao_f", new Texture(Gdx.files.internal("ui/botao_f.png")));
 			texs.put("botao_t", new Texture(Gdx.files.internal("ui/botao_t.png")));
@@ -61,5 +69,12 @@ public class Texturas {
 			}
 			return o;
 		}
+	}
+	
+	public static void liberar() {
+		for(Texture tex : texs.values()) {
+			tex.dispose();
+		}
+		blocos.dispose();
 	}
 }

@@ -14,22 +14,22 @@ public class Bloco {
 
 	public CharSequence nome;
 	public int tipo;
-	public int topo, lados, baixo;
+	public String topo, lados, baixo;
 	public int luz;
 	public boolean transparente;
 	public boolean solido;
 	public boolean culling;
 
-	public Bloco(CharSequence nome, int topo) {this(nome, topo, topo, topo, false, true, true, 0);}
-	public Bloco(CharSequence nome, int topo, int lados) {this(nome, topo, lados, topo, false, true, true, 0);}
-	public Bloco(CharSequence nome, int topo, int lados, int baixo) {this(nome,topo, lados, baixo, false, true, true, 0);}
-	public Bloco(CharSequence nome, int topo, boolean transparente) {this(nome, topo, topo, topo, transparente, true, true, 0);}
-	public Bloco(CharSequence nome, int topo, boolean transparente, boolean solido) {this(nome, topo, topo, topo, transparente, solido, true, 0);}
-	public Bloco(CharSequence nome, int topo, int lados, int baixo, boolean transparente) {this(nome, topo, lados, baixo, transparente, true, true, 0);}
-	public Bloco(CharSequence nome, int topo, int lados, int baixo, boolean transparente, boolean solido) {this(nome, topo, lados, baixo, transparente, solido, true, 0);}
-	public Bloco(CharSequence nome, int topo, boolean transparente, boolean solido, boolean culling) {this(nome, topo, topo, topo, transparente, solido, culling, 0);}
+	public Bloco(CharSequence nome, String topo) {this(nome, topo, topo, topo, false, true, true, 0);}
+	public Bloco(CharSequence nome, String topo, String lados) {this(nome, topo, lados, topo, false, true, true, 0);}
+	public Bloco(CharSequence nome, String topo, String lados, String baixo) {this(nome,topo, lados, baixo, false, true, true, 0);}
+	public Bloco(CharSequence nome, String topo, boolean transparente) {this(nome, topo, topo, topo, transparente, true, true, 0);}
+	public Bloco(CharSequence nome, String topo, boolean transparente, boolean solido) {this(nome, topo, topo, topo, transparente, solido, true, 0);}
+	public Bloco(CharSequence nome, String topo, String lados, String baixo, boolean transparente) {this(nome, topo, lados, baixo, transparente, true, true, 0);}
+	public Bloco(CharSequence nome, String topo, String lados, String baixo, boolean transparente, boolean solido) {this(nome, topo, lados, baixo, transparente, solido, true, 0);}
+	public Bloco(CharSequence nome, String topo, boolean transparente, boolean solido, boolean culling) {this(nome, topo, topo, topo, transparente, solido, culling, 0);}
 
-	public Bloco(CharSequence nome, int topo, int lados, int baixo, boolean transparente, boolean solido, boolean culling, int luz) {
+	public Bloco(CharSequence nome, String topo, String lados, String baixo, boolean transparente, boolean solido, boolean culling, int luz) {
 		this.nome = nome;
 		this.tipo = blocos.size();
 		this.topo = topo; this.lados = lados; this.baixo = baixo;
@@ -40,17 +40,17 @@ public class Bloco {
 		numIds.put(this.tipo, this);
 		texIds.put(this.nome, this);
 	}
-	
+
 	public Bloco() {}
 
-	public int texturaId(int faceId) {
+	public String texturaId(int faceId) {
         switch(faceId) {
             case 0: return topo;
             case 1: return baixo;
             default: return lados;
         }
     }
-	
+
 	public static void addSom(String bloco, String... sonoros) {
 		sons.put(bloco, sonoros);
 	}
@@ -72,3 +72,4 @@ public class Bloco {
 		}
 	}
 }
+

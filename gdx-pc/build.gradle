@@ -32,7 +32,7 @@ dependencies {
 sourceSets {
     main {
         java { srcDirs = ['src'] }
-        resources { srcDirs = ['../assets'] }
+        resources { srcDirs = ['../gdx-android/assets'] }
     }
 }
 
@@ -45,7 +45,7 @@ task rodar(type: JavaExec) {
     mainClass = 'com.minimine.Iniciador'
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
-    workingDir = file('../assets').exists() ? file('../assets') : projectDir
+    workingDir = file('../gdx-android/assets').exists() ? file('../gdx-android/assets') : projectDir
 }
 
 jar {

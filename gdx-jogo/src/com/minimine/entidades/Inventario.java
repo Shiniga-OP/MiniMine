@@ -10,6 +10,7 @@ import com.minimine.mundo.ChunkUtil;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.ui.UI;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Inventario {
 	public Jogador jogador;
@@ -141,20 +142,19 @@ public class Inventario {
 		// senao, colocar no primeiro slot vazio:
 		for(int i = 0; i < itens.length; i++) {
 			if(itens[i] == null) {
-				Texture textura = texSlot;
+				TextureRegion textura = null;
 
 				for(Bloco b : Bloco.blocos) {
 					if(b == null) continue;
 					if(b.nome.equals(nome)) {
-						textura = Texturas.texs.get(nome + "_lado");
-						if(textura == null) textura = Texturas.texs.get(nome);
-						if(textura == null) textura = Texturas.texs.get(nome + "_topo");
-						if(textura == null) {
-							Gdx.app.log("[Inventario]", "textura não existe: " + nome);
-							textura = Texturas.texs.obter(nome);
-						}
+						// pega a textura do bloco
+						textura = Texturas.atlas.obter(b.lados);
 						break;
 					}
+				}
+				if(textura == null) {
+					Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
+					textura = Texturas.atlas.obter("terra"); // padrão
 				}
 				itens[i] = new Item(nome, textura, quantidade);
 				return;
@@ -184,7 +184,7 @@ public class Inventario {
 				spritesHotbar[i].draw(UI.sb);
 				UI.sb.setColor(1, 1, 1, 1);
 			}
-			// apenas checa se temum item no slot.
+			// apenas checa se temum item no slot
 			// se o item foi pego, itens[i] é null e o desenho é ignorado
 			if(itens[i] != null) {
 				Sprite itemSprite = new Sprite(itens[i].textura);
@@ -194,8 +194,8 @@ public class Inventario {
 
 				if(itens[i].quantidade > 1) {
 					UI.fonte.draw(UI.sb, String.valueOf(itens[i].quantidade), 
-								  spritesHotbar[i].getX() + tamSlot - 15, 
-								  spritesHotbar[i].getY() + 15);
+					spritesHotbar[i].getX() + tamSlot - 15, 
+					spritesHotbar[i].getY() + 15);
 				}
 			}
 		}
@@ -318,13 +318,14 @@ public class Inventario {
 
     public static class Item {
         public CharSequence nome;
-        public Texture textura;
+        public TextureRegion textura;
         public int quantidade;
 
-        public Item(CharSequence nome, Texture textura, int quantidade) {
+        public Item(CharSequence nome, TextureRegion textura, int quantidade) {
             this.nome = nome;
             this.textura = textura;
             this.quantidade = quantidade;
         }
     }
 }
+

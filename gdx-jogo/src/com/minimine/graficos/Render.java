@@ -14,23 +14,14 @@ import com.badlogic.gdx.graphics.Texture;
 import com.minimine.utils.CorposCelestes;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.Pixmap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Render {
 	public UI ui;
 	public Mundo mundo;
-	
-	public static Texture atlasGeral = null;
-    // mapa de UVs:
-    // (atlas ID -> [u_min, v_min, u_max, v_max])
-    public static final Map<Integer, float[]> atlasUVs = new HashMap<>();
-	
+
 	public static ShaderProgram shader;
-	
+
 	public static int maxFaces = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK * 6 / 6;
     public static int maxVerts = maxFaces * 4;
     public static int maxIndices = maxFaces * 6;
@@ -40,7 +31,7 @@ public class Render {
         new VertexAttribute(VertexAttributes.Usage.Generic, 4, "a_atlasCoords"),
         new VertexAttribute(VertexAttributes.Usage.ColorPacked, 4, "a_cor")
     };
-	
+
 	public static String vert = 
     "attribute vec3 a_pos;\n" +
     "attribute vec2 a_texCoord;\n" +
@@ -77,7 +68,7 @@ public class Render {
     "   vec2 uvTam = v_atlasCoords.zw - v_atlasCoords.xy;\n" + // tamanho da regiao no atlas
     "   vec2 localUV = fract(v_texCoord);\n" + // repete 0..1
     "   vec2 finalUV = v_atlasCoords.xy + localUV * uvTam;\n" +
-    
+
 	"   vec4 texCor = texture2D(u_textura, finalUV);\n" +
     "   if(texCor.a < 0.5) discard;\n" +
 	// neblina baseada na distancia
@@ -89,30 +80,28 @@ public class Render {
 	"   vec3 corNevoa = vec3(0.4, 0.6, 0.9) * u_luzCeu;\n" + 
 	"   gl_FragColor = vec4(mix(texCor.rgb * iluminacaoFinal, corNevoa, fator), texCor.a);\n" +
 	"}";
-	
+
 	public Render(Jogador jogador, Mundo mundo) {
 		this.ui = new UI(jogador);
 		this.mundo = mundo;
-		
+
 		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());  
 		Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 		Gdx.gl.glCullFace(GL20.GL_BACK);
 		Gdx.gl.glEnable(GL20.GL_BLEND);
 		Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-		
+
 		shader = new ShaderProgram(vert, frag);
         if(!shader.isCompiled()) Gdx.app.log("shader", "[ERRO]: "+shader.getLog());
-		
-		criarAtlas();
 
-		Texture[] framesAgua = {
-			Texturas.texs.get("agua"),
-			Texturas.texs.get("agua_a1"),
-			Texturas.texs.get("agua_a2")
+		// Atualizado: usa nome da textura ao invés de ID
+		TextureRegion[] framesAgua = {
+			Texturas.atlas.get("agua"),
+			Texturas.atlas.get("agua_a1"),
+			Texturas.atlas.get("agua_a2")
 		};
-		Animacoes2D.add(4, framesAgua, 3f); // 8 fps
+		Animacoes2D.add("agua", framesAgua, 3f); // 3 fps
 
-		Animacoes2D.config();
 		EmissorParticulas.iniciar();
 
         ShaderProgram.pedantic = false;
@@ -120,7 +109,7 @@ public class Render {
         if(mundo.nuvens && NuvensUtil.primeiraVez) NuvensUtil.iniciar();
         if(mundo.ciclo) CorposCelestes.iniciar();
 	}
-	
+
 	public static com.badlogic.gdx.graphics.glutils.ShapeRenderer debugCaixas;
 
 	public void att(float delta) {
@@ -135,7 +124,7 @@ public class Render {
 		Gdx.gl.glClearColor(r, g, b, 1f);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 		Gdx.gl.glEnable(GL20.GL_CULL_FACE);
-		
+
 		if(mundo.nuvens) NuvensUtil.att(delta, ui.jg.posicao);
 
         shader.begin();
@@ -147,7 +136,7 @@ public class Render {
 
 		DiaNoiteUtil.aplicarShader(shader);
 
-		atlasGeral.bind(0);
+		Texturas.blocos.bind(0);
         shader.setUniformi("u_textura", 0);
 		Gdx.gl.glDisable(GL20.GL_BLEND);
 
@@ -169,12 +158,12 @@ public class Render {
 		}
 		Animacoes2D.att(delta);
 		EmissorParticulas.att(shader, delta, ui.jg);
-		
+
 		shader.end();
         if(mundo.nuvens) NuvensUtil.att(ui.jg.camera.combined);
 
 		mundo.att(delta, ui.jg);
-		
+
 		if(mundo.carregado) {
 			if(!ui.jg.nasceu) {
 				// tenta encontrar o chão, se o obterBlocoMundo retornar algo diferente de 0, 
@@ -197,17 +186,17 @@ public class Render {
             if(debugCaixas == null) debugCaixas = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
             debugCaixas.setProjectionMatrix(ui.jg.camera.combined);
             debugCaixas.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Line);
-            
+
             // blocos proximos(O Guloso)
             debugCaixas.setColor(1, 0, 0, 1);
             int px = (int)ui.jg.posicao.x;
             int py = (int)ui.jg.posicao.y;
             int pz = (int)ui.jg.posicao.z;
-            
+
             // itera chunks ao redor pra desenhar as caixas de debug
             int chunkX = px >> 4;
             int chunkZ = pz >> 4;
-            
+
             for(int cx = chunkX - 1; cx <= chunkX + 1; cx++) {
                 for(int cz = chunkZ - 1; cz <= chunkZ + 1; cz++) {
                     long ch = Chave.calcularChave(cx, cz);
@@ -215,14 +204,14 @@ public class Render {
                     if(c != null && c.debugRects != null) {
                         float offX = c.x << 4;
                         float offZ = c.z << 4;
-                        
+
                         synchronized(c.debugRects) {
                             for(com.badlogic.gdx.math.collision.BoundingBox bb : c.debugRects) {
                                 // verifica distancia simples pra nao desenhar tudo
                                 float globalX = offX + bb.min.x;
                                 float globalY = bb.min.y;
                                 float globalZ = offZ + bb.min.z;
-                                
+
                                 if(Math.abs(globalX - px) > 20 || Math.abs(globalY - py) > 20 || Math.abs(globalZ - pz) > 20) continue;
 
                                 float w = bb.max.x - bb.min.x;
@@ -244,58 +233,11 @@ public class Render {
             debugCaixas.end();
         }
 	}
-	
-	public void criarAtlas() {
-        Pixmap primeiroPx = null;
-        if(mundo.texturas.get(0) instanceof String) {
-            primeiroPx = new Pixmap(Gdx.files.internal((String)mundo.texturas.get(0)));
-        } else if(mundo.texturas.get(0) instanceof Texture) {
-            Texture t = (Texture)mundo.texturas.get(0);
-            t.getTextureData().prepare();
-            primeiroPx = t.getTextureData().consumePixmap();
-        }
-        int texTam = primeiroPx.getWidth();
-        int colunas = (int)Math.ceil(Math.sqrt(mundo.texturas.size()));
-        int linhas = (int)Math.ceil((float)mundo.texturas.size() / colunas);
-        int atlasLarg = texTam * colunas;
-        int atlasAlt = texTam * linhas;
 
-        Pixmap atlasPx = new Pixmap(atlasLarg, atlasAlt, Pixmap.Format.RGBA8888);
-
-        for(int i = 0; i < mundo.texturas.size(); i++) {
-            int x = (i % colunas) * texTam;
-            int y = (i / colunas) * texTam;
-
-            Pixmap px = null;
-            if(mundo.texturas.get(i) instanceof String) {
-                px = new Pixmap(Gdx.files.internal((String)mundo.texturas.get(i)));
-            } else if(mundo.texturas.get(i) instanceof Texture) {
-                Texture t = (Texture)mundo.texturas.get(i);
-                t.getTextureData().prepare();
-                Pixmap tmp = t.getTextureData().consumePixmap();
-                px = new Pixmap(tmp.getWidth(), tmp.getHeight(), tmp.getFormat());
-                px.drawPixmap(tmp, 0, 0);
-                tmp.dispose();
-            }
-            atlasPx.drawPixmap(px, x, y);
-
-            float u1 = (float)x / atlasLarg;
-            float v1 = (float)y / atlasAlt;
-            float u2 = (float)(x + texTam) / atlasLarg;
-            float v2 = (float)(y + texTam) / atlasAlt;
-            atlasUVs.put(i, new float[]{u1, v1, u2, v2});
-            px.dispose();
-        }
-        atlasGeral = new Texture(atlasPx);
-        atlasPx.dispose();
-        primeiroPx.dispose();
-    }
-	
 	public void liberar() {
 		shader.dispose();
-		atlasGeral.dispose();
-		atlasUVs.clear();
 		ui.liberar();
 		mundo.liberar();
 	}
 }
+
