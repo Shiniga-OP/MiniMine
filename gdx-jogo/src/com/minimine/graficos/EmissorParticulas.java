@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.math.Vector3;
 import com.minimine.mundo.Mundo;
-import com.minimine.cenas.Jogador;
+import com.minimine.entidades.Jogador;
 
 public class EmissorParticulas {
     public static final int MAX_FRAGMENTOS = 2000;

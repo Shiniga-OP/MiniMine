@@ -26,6 +26,7 @@ import com.minimine.mundo.Mundo;
 import com.minimine.ui.UI;
 import com.minimine.graficos.Render;
 import com.minimine.mundo.Biomas;
+import com.minimine.entidades.Jogador;
 
 public class Jogo implements Screen {
 	public static Mundo mundo = new Mundo();

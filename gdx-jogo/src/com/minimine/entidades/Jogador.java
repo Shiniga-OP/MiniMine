@@ -1,9 +1,8 @@
-package com.minimine.cenas;
+package com.minimine.entidades;
 
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
-import com.minimine.utils.ruidos.PerlinNoise3D;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.collision.Ray;
 import com.minimine.utils.Mat;
@@ -13,12 +12,6 @@ import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
-import com.badlogic.gdx.utils.JsonReader;
-import com.minimine.graficos.Texturas;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
 import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import com.minimine.mundo.blocos.Bloco;
@@ -30,9 +23,11 @@ public class Jogador {
 	public int modo = 2; // 0 = espectador, 1 = criativo, 2 = sobrevivencia
 	public PerspectiveCamera camera;
 	public Vector3 posicao = new Vector3(1, 80, 1), velocidade = new Vector3();
+	public final Vector3 frenteV = new Vector3(0, 0, 0), direitaV = new Vector3(0, 0, 0);
 
 	public float largura = 0.6f, altura = 1.8f, profundidade = 0.6f;
 	public boolean noChao = true, naAgua = false, agachado = false, nasceu = false;
+	public static boolean esquerda = false, frente = false, tras = false, direita = false, cima = false, baixo = false, acao = false;
 	public BoundingBox hitbox = new BoundingBox();
 	public static final BoundingBox blocoBox = new BoundingBox();
 	public static final Vector3 minVec = new Vector3(), maxVec = new Vector3();
@@ -41,8 +36,8 @@ public class Jogador {
 
 	public CharSequence item = "ar";
 	public static int ALCANCE = 7;
-	public Inventario inv = new Inventario();
-	
+	public Inventario inv = new Inventario(this);
+
 	public float yaw = 180f, tom = -20f;
 
 	public void criarModelo3D() {
@@ -84,7 +79,7 @@ public class Jogador {
 						if(blocoBox.intersects(hitbox)) return;
 						Mundo.defBlocoMundo(xAnt, yAnt, zAnt, item);
 						Bloco.tocarSom(item);
-						
+
 						if(modo == 2) inv.rmItem(inv.slotSelecionado, 1);
 					}
 				}
@@ -137,6 +132,28 @@ public class Jogador {
 	}
 
 	public void att(float delta) {
+		frenteV.x = camera.direction.x;
+		frenteV.z = camera.direction.z;
+		frenteV.nor();  
+		direitaV.x = frenteV.z;
+		direitaV.z = -frenteV.x;
+
+		velocidade.x = 0;
+		velocidade.z = 0;
+		if(modo != 2) velocidade.y = 0;
+
+		if(this.frente) velocidade.add(frenteV.cpy().scl(velo));
+		if(this.tras)  velocidade.sub(frenteV.cpy().scl(velo));
+		if(this.esquerda) velocidade.add(direitaV.cpy().scl(velo));
+		if(this.direita) velocidade.sub(direitaV.cpy().scl(velo));
+		if(this.cima) {
+			if(modo != 2 || noChao || naAgua) {
+				velocidade.y = pulo; // pulo
+				noChao = false;
+			}
+        }
+        if(this.baixo) velocidade.y = -10f;
+		
 		// gravidade no sobrevivencia
 		if(naAgua) GRAVIDADE = -10;
 		else GRAVIDADE = -30;
@@ -203,7 +220,7 @@ public class Jogador {
 			posicao.y = 80f;
 		}
 	}
-	
+
 	public boolean ehChao() {
 		// verifica se ha blocos solidos logo abaixo dos pes do jogador
 		float epsilon = 0.05f; // margem pra evitar flutuação
@@ -214,7 +231,7 @@ public class Jogador {
 		int y = Mat.floor(yCheque);
 		int minZ = Mat.floor(posicao.z - profundidade / 2);
 		int maxZ = Mat.floor(posicao.z + profundidade / 2);
-		
+
 		for(int x = minX; x <= maxX; x++) {
 			for(int z = minZ; z <= maxZ; z++) {
 				int id = Mundo.obterBlocoMundo(x, y, z);
@@ -228,14 +245,14 @@ public class Jogador {
 		}
 		return false;
 	}
-	
+
 	public void nascerNoTopo() {
 		int chaoY = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
 		this.posicao.y = chaoY;
 		this.velocidade.y = 0; // zera a queda
 		this.nasceu = true;
 	}
-	
+
 	public boolean temSuporte(float x, float z) {
 		// 1. configura uma hitbox temporaria na nova posição(x, posicao.y, z)
 		float yBase = posicao.y;

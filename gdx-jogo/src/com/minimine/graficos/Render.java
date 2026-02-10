@@ -1,7 +1,7 @@
 package com.minimine.graficos;
 
 import com.minimine.ui.UI;
-import com.minimine.cenas.Jogador;
+import com.minimine.entidades.Jogador;
 import com.minimine.mundo.Mundo;
 import com.minimine.mundo.Chave;
 import com.badlogic.gdx.Gdx;
@@ -136,11 +136,11 @@ public class Render {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 		Gdx.gl.glEnable(GL20.GL_CULL_FACE);
 		
-		if(mundo.nuvens) NuvensUtil.att(delta, ui.jogador.posicao);
+		if(mundo.nuvens) NuvensUtil.att(delta, ui.jg.posicao);
 
         shader.begin();
 
-        shader.setUniformMatrix("u_projPos", ui.jogador.camera.combined);
+        shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);
 
         shader.setUniformf("u_luzCeu", DiaNoiteUtil.luz); 
 		shader.setUniformf("u_alturaSol", DiaNoiteUtil.obterFatorTransicao());
@@ -153,7 +153,7 @@ public class Render {
 
 		// 1. solidos:
         for(final Chunk chunk : mundo.chunks.values()) {
-			if(mundo.frustrum(chunk, ui.jogador) && chunk.malha != null && chunk.contaSolida > 0) {
+			if(mundo.frustrum(chunk, ui.jg) && chunk.malha != null && chunk.contaSolida > 0) {
 				// renderiza apenas do indice 0 até o final dos solidos
 				chunk.malha.render(shader, GL20.GL_TRIANGLES, 0, chunk.contaSolida);
 			}
@@ -162,31 +162,31 @@ public class Render {
 		Gdx.gl.glEnable(GL20.GL_BLEND);
 
 		for(final Chunk chunk : mundo.chunks.values()) {
-			if(mundo.frustrum(chunk, ui.jogador) && chunk.malha != null && chunk.contaTransp > 0) {
+			if(mundo.frustrum(chunk, ui.jg) && chunk.malha != null && chunk.contaTransp > 0) {
 				// renderiza começando de onde o solido parou
 				chunk.malha.render(shader, GL20.GL_TRIANGLES, chunk.contaSolida, chunk.contaTransp);
 			}
 		}
 		Animacoes2D.att(delta);
-		EmissorParticulas.att(shader, delta, ui.jogador);
+		EmissorParticulas.att(shader, delta, ui.jg);
 		
 		shader.end();
-        if(mundo.nuvens) NuvensUtil.att(ui.jogador.camera.combined);
+        if(mundo.nuvens) NuvensUtil.att(ui.jg.camera.combined);
 
-		mundo.att(delta, ui.jogador);
+		mundo.att(delta, ui.jg);
 		
 		if(mundo.carregado) {
-			if(!ui.jogador.nasceu) {
+			if(!ui.jg.nasceu) {
 				// tenta encontrar o chão, se o obterBlocoMundo retornar algo diferente de 0, 
 				// significa que os dados daquela parte do mapa ja chegaram
-				int yTeste = Mundo.obterAlturaChao((int)ui.jogador.posicao.x, (int)ui.jogador.posicao.z);
+				int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
 				if(yTeste > 1) { // se encontrou algo acima do fundo do mundo
-					ui.jogador.posicao.y = yTeste;
-					ui.jogador.nasceu = true;
+					ui.jg.posicao.y = yTeste;
+					ui.jg.nasceu = true;
 					Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
 				} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
 			}
-			ui.jogador.att(delta);
+			ui.jg.att(delta);
 		}
 		Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 
@@ -195,14 +195,14 @@ public class Render {
         // DEBUG DE COLISAO
         if(Mundo.debugColisao) {
             if(debugCaixas == null) debugCaixas = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
-            debugCaixas.setProjectionMatrix(ui.jogador.camera.combined);
+            debugCaixas.setProjectionMatrix(ui.jg.camera.combined);
             debugCaixas.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Line);
             
             // blocos proximos(O Guloso)
             debugCaixas.setColor(1, 0, 0, 1);
-            int px = (int)ui.jogador.posicao.x;
-            int py = (int)ui.jogador.posicao.y;
-            int pz = (int)ui.jogador.posicao.z;
+            int px = (int)ui.jg.posicao.x;
+            int py = (int)ui.jg.posicao.y;
+            int pz = (int)ui.jg.posicao.z;
             
             // itera chunks ao redor pra desenhar as caixas de debug
             int chunkX = px >> 4;
@@ -239,7 +239,7 @@ public class Render {
             debugCaixas.setColor(0, 1, 0, 1);
             float jw = 0.6f;
             float jh = 1.8f;
-            debugCaixas.box(ui.jogador.posicao.x - jw/2, ui.jogador.posicao.y, ui.jogador.posicao.z + jw/2, jw, jh, jw);
+            debugCaixas.box(ui.jg.posicao.x - jw/2, ui.jg.posicao.y, ui.jg.posicao.z + jw/2, jw, jh, jw);
 
             debugCaixas.end();
         }

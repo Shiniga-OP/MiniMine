@@ -27,10 +27,10 @@ import com.minimine.utils.ArquivosUtil;
 import com.minimine.Inicio;
 import com.minimine.Logs;
 import com.minimine.mundo.Mundo;
-import com.minimine.cenas.Jogador;
-import com.minimine.cenas.Inventario;
+import com.minimine.entidades.Inventario;
 import com.minimine.cenas.Jogo;
 import com.minimine.mods.LuaAPI;
+import com.minimine.entidades.Jogador;
 
 public class UI implements InputProcessor {
 	public static PerspectiveCamera camera;
@@ -41,7 +41,6 @@ public class UI implements InputProcessor {
     public static BitmapFont fonte;
     public static CharSequence otimizadorC = "desligado";
 
-    public static boolean esquerda = false, frente = false, tras = false, direita = false, cima = false, baixo = false, acao = false;
 	public Sprite spriteMira;
 	public int pontoEsq = -1;
     public int pontoDir = -1;
@@ -59,17 +58,16 @@ public class UI implements InputProcessor {
 	public static float botaoTam = 70f;
 	public static float espaco = 60f;
 
-	public static Jogador jogador;
+	public static Jogador jg;
 	public static boolean debug = false;
 	public static boolean modoTexto = false;
 	public static int fps = 0;
 	public static Debugador debugador;
-
-	public final Vector3 frenteV = new Vector3(0, 0, 0), direitaV = new Vector3(0, 0, 0);
+	
 	public static EstanteVertical menuOpcoes;
 	public static boolean menuAberto = false;
 
-    public UI(Jogador jogador) {
+    public UI(Jogador jg) {
 		camera = new PerspectiveCamera(pov, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(10f, 18f, 10f);
         camera.lookAt(0, 0, 0);
@@ -83,9 +81,9 @@ public class UI implements InputProcessor {
 
         Gdx.input.setInputProcessor(this);
         Gdx.input.setCursorCatched(true); // prende o mouse no meio da tela
-		this.jogador = jogador;
-		this.jogador.camera = camera;
-		this.jogador.inv = new Inventario();
+		this.jg = jg;
+		this.jg.camera = camera;
+		this.jg.inv = new Inventario(jg);
 
 		configDpad(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		otimizadorC = Inicio.ehArm64 ? "ativo" : "não suportado";
@@ -93,7 +91,7 @@ public class UI implements InputProcessor {
 
 	public boolean chatAberto = false;
 	public String ultimaMensagem = "";
-	public List<String> mensagens = new ArrayList<String>();
+	public List<String> msgs = new ArrayList<String>();
 
 	public void abrirChat() {
 		if(chatAberto) return;
@@ -105,7 +103,7 @@ public class UI implements InputProcessor {
 				public void aoConfirmar() {
 					if(dialogo.texto != null && dialogo.texto.length() > 0) {
 						ultimaMensagem = dialogo.texto;
-						mensagens.add("> " + dialogo.texto);
+						msgs.add("> " + dialogo.texto);
 						Gdx.app.log("CHAT", dialogo.texto);
 					}
 					chatAberto = false;
@@ -144,19 +142,19 @@ public class UI implements InputProcessor {
 				}
 			}
 		}
-        if(Gdx.app.getType() == com.badlogic.gdx.Application.ApplicationType.Desktop && !jogador.inv.aberto) {
+        if(Gdx.app.getType() == com.badlogic.gdx.Application.ApplicationType.Desktop && !jg.inv.aberto) {
             if(b == Input.Buttons.LEFT) {
-                jogador.item = "ar";
-                jogador.interagirBloco();
-                if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-                else jogador.item = "ar";
+                jg.item = "ar";
+                jg.interagirBloco();
+                if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+                else jg.item = "ar";
                 return true;
             }
             if(b == Input.Buttons.RIGHT) {
-                if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-                else jogador.item = "ar";
-                acao = true;
-                jogador.interagirBloco();
+                if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+                else jg.item = "ar";
+                jg.acao = true;
+                jg.interagirBloco();
                 return true;
             }
         }
@@ -167,7 +165,7 @@ public class UI implements InputProcessor {
                 return true;
             }
         }
-        jogador.inv.aoTocar(telaX, y, p);
+        jg.inv.aoTocar(telaX, y, p);
         if(pontoDir == -1) { 
 			pontoDir = p; 
 			ultimaDir.set(telaX, y); 
@@ -178,7 +176,7 @@ public class UI implements InputProcessor {
     @Override
     public boolean touchUp(int telaX, int telaY, int p, int b) {
 		if(modoTexto) return true;
-        if(b == Input.Buttons.RIGHT) acao = false;
+        if(b == Input.Buttons.RIGHT) jg.acao = false;
 
         int y = Gdx.graphics.getHeight() - telaY;
         CharSequence botao = toques.remove(p);
@@ -199,15 +197,15 @@ public class UI implements InputProcessor {
 		if(modoTexto) return true;
 		int y = Gdx.graphics.getHeight() - telaY;
 
-        jogador.inv.aoArrastar(telaX, y, p);
+        jg.inv.aoArrastar(telaX, y, p);
 
-		if(p == pontoDir && !jogador.inv.aberto) {
+		if(p == pontoDir && !jg.inv.aberto) {
 			float dx = telaX - ultimaDir.x;
 			float dy = y - ultimaDir.y;
-			jogador.yaw -= dx * sensi;
-			jogador.tom += dy * sensi;
-			if(jogador.tom > 89f) jogador.tom = 89f;
-			if(jogador.tom < -89f) jogador.tom = -89f;
+			jg.yaw -= dx * sensi;
+			jg.tom += dy * sensi;
+			if(jg.tom > 89f) jg.tom = 89f;
+			if(jg.tom < -89f) jg.tom = -89f;
 			ultimaDir.set(telaX, y);
 		}
 		if(toques.containsKey(p)) {
@@ -256,103 +254,104 @@ public class UI implements InputProcessor {
 		
 		if(Gdx.app.getType() != com.badlogic.gdx.Application.ApplicationType.Desktop) {
 			botoes.put("direita", new Botao(Texturas.texs.get("botao_d"), 0, 0, tam, tam, "direita") {
-					public void aoTocar(int t, int t2, int p){ direita = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ direita = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.direita = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.direita = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("esquerda", new Botao(Texturas.texs.get("botao_e"), 0, 0, tam, tam, "esquerda") {
-					public void aoTocar(int t, int t2, int p){ esquerda = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ esquerda = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.esquerda = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.esquerda = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("frente", new Botao(Texturas.texs.get("botao_f"), 0, 0, tam, tam, "frente") {
-					public void aoTocar(int t, int t2, int p){ frente = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ frente = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.frente = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.frente = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("tras", new Botao(Texturas.texs.get("botao_t"), 0, 0, tam, tam, "tras") {
-					public void aoTocar(int t, int t2, int p){ tras = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ tras = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.tras = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.tras = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("cima", new Botao(Texturas.texs.get("botao_f"), 0, 0, tam, tam, "cima") {
-					public void aoTocar(int t, int t2, int p){ cima = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ cima = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.cima = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.cima = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("baixo", new Botao(Texturas.texs.get("botao_t"), 0, 0, tam, tam, "baixo") {
 					public void aoTocar(int t, int t2, int p){
-						baixo = true; sprite.setAlpha(0.5f);
-						if(jogador.agachado) {
-							jogador.velo *= 2;
-							jogador.altura *= 1.2f;
-							jogador.agachado = false;
+						jg.baixo = true;
+						sprite.setAlpha(0.5f);
+						if(jg.agachado) {
+							jg.velo *= 2;
+							jg.altura *= 1.2f;
+							jg.agachado = false;
 						} else {
-							jogador.velo /= 2;
-							jogador.altura /= 1.2f;
-							jogador.agachado = true;
+							jg.velo /= 2;
+							jg.altura /= 1.2f;
+							jg.agachado = true;
 						}
 					}
-					public void aoSoltar(int t, int t2, int p){ baixo = false; sprite.setAlpha(0.9f); }
+					public void aoSoltar(int t, int t2, int p){ jg.baixo = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("diagDireita", new Botao(Texturas.texs.get("botao_ld"), 0, 0, tam, tam, "diagDireita") {
-					public void aoTocar(int t, int t2, int p){ frente = true; direita = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ frente = false; direita = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.frente = true; jg.direita = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.frente = false; jg.direita = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("diagEsquerda", new Botao(Texturas.texs.get("botao_le"), 0, 0, tam, tam, "diagEsquerda") {
-					public void aoTocar(int t, int t2, int p){ frente = true; esquerda = true; sprite.setAlpha(0.5f); }
-					public void aoSoltar(int t, int t2, int p){ frente = false; esquerda = false; sprite.setAlpha(0.9f); }
+					public void aoTocar(int t, int t2, int p){ jg.frente = true; jg.esquerda = true; sprite.setAlpha(0.5f); }
+					public void aoSoltar(int t, int t2, int p){ jg.frente = false; jg.esquerda = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("acao", new Botao(Texturas.texs.get("clique"), 0, 0, tam, tam, "acao") {
 					public void aoTocar(int t, int t2, int p){
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
-						acao = true;
-						jogador.interagirBloco();
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
+						jg.acao = true;
+						jg.interagirBloco();
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
 						toques.put(p, "acao");
 						sprite.setAlpha(0.5f);
 					}
-					public void aoSoltar(int t, int t2, int p){ acao = false; sprite.setAlpha(0.9f); }
+					public void aoSoltar(int t, int t2, int p){ jg.acao = false; sprite.setAlpha(0.9f); }
 				});
 			botoes.put("ataque", new Botao(Texturas.texs.get("ataque"), 0, 0, tam, tam, "ataque") {
 					public void aoTocar(int t, int t2, int p){
-						jogador.item = "ar";
-						jogador.interagirBloco();
+						jg.item = "ar";
+						jg.interagirBloco();
 						toques.put(p, "ataque");
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
 						sprite.setAlpha(0.5f);
 					}
-					public void aoSoltar(int t, int t2, int p){ acao = false; sprite.setAlpha(0.9f);}
+					public void aoSoltar(int t, int t2, int p){ jg.acao = false; sprite.setAlpha(0.9f);}
 				});
-			botoes.put("inv", new Botao(Texturas.texs.get("clique"), 0, 0, jogador.inv.tamSlot, jogador.inv.tamSlot, "inv") {
+			botoes.put("inv", new Botao(Texturas.texs.get("clique"), 0, 0, jg.inv.tamSlot, jg.inv.tamSlot, "inv") {
 					public void aoTocar(int t, int t2, int p){
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
-						jogador.inv.alternar();
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
+						jg.inv.alternar();
 						toques.put(p, "inv");
 						sprite.setAlpha(0.5f);
 					}
 					public void aoSoltar(int t, int t2, int p){sprite.setAlpha(0.9f);}
 				});
 		}
-		botoes.put("receita", new Botao(Texturas.texs.get("receita"), 0, 0, jogador.inv.tamSlot, jogador.inv.tamSlot, "receita") {
+		botoes.put("receita", new Botao(Texturas.texs.get("receita"), 0, 0, jg.inv.tamSlot, jg.inv.tamSlot, "receita") {
 				public void aoTocar(int t, int t2, int p){
-					if(jogador.inv.itens[jogador.inv.slotSelecionado] == null) return;
-					if(jogador.inv.itens[jogador.inv.slotSelecionado].nome.equals("tronco")) {
-						jogador.inv.rmItem(jogador.inv.slotSelecionado, 1);
-						jogador.inv.addItem("tabua_madeira", 4);
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
+					if(jg.inv.itens[jg.inv.slotSelecionado] == null) return;
+					if(jg.inv.itens[jg.inv.slotSelecionado].nome.equals("tronco")) {
+						jg.inv.rmItem(jg.inv.slotSelecionado, 1);
+						jg.inv.addItem("tabua_madeira", 4);
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
 						Logs.log("feito tabua");
-					} else if(jogador.inv.itens[jogador.inv.slotSelecionado].nome.equals("areia")) {
-						jogador.inv.rmItem(jogador.inv.slotSelecionado, 1);
-						jogador.inv.addItem("vidro", 1);
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
+					} else if(jg.inv.itens[jg.inv.slotSelecionado].nome.equals("areia")) {
+						jg.inv.rmItem(jg.inv.slotSelecionado, 1);
+						jg.inv.addItem("vidro", 1);
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
 						Logs.log("feito vidro");
-					} else if(jogador.inv.itens[jogador.inv.slotSelecionado].nome.equals("folha")) {
-						jogador.inv.rmItem(jogador.inv.slotSelecionado, 1);
-						jogador.inv.addItem("tocha", 1);
-						if(jogador.inv.itens[jogador.inv.slotSelecionado] != null) jogador.item = jogador.inv.itens[jogador.inv.slotSelecionado].nome;
-						else jogador.item = "ar";
+					} else if(jg.inv.itens[jg.inv.slotSelecionado].nome.equals("folha")) {
+						jg.inv.rmItem(jg.inv.slotSelecionado, 1);
+						jg.inv.addItem("tocha", 1);
+						if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
+						else jg.item = "ar";
 						Logs.log("feito tocha");
 					}
 					toques.put(p, "receita");
@@ -377,7 +376,7 @@ public class UI implements InputProcessor {
 					Thread threadSalvar = new Thread(new Runnable() {
 							@Override
 							public void run() {
-								ArquivosUtil.svMundo(Jogo.mundo, jogador);
+								ArquivosUtil.svMundo(Jogo.mundo, jg);
 								Gdx.app.postRunnable(new Runnable() {
 										@Override
 										public void run() {
@@ -401,7 +400,7 @@ public class UI implements InputProcessor {
 		menuOpcoes.add(new Botao(Texturas.texs.get("botao_d"), 0, 0, tam, tam, "botao_voltar_menu") {
 				@Override
 				public void aoTocar(int t, int t2, int p) {
-					ArquivosUtil.svMundo(Jogo.mundo, jogador);
+					ArquivosUtil.svMundo(Jogo.mundo, jg);
 					menuAberto = false;
 				}
 			});
@@ -453,9 +452,9 @@ public class UI implements InputProcessor {
 					b.sprite.setPosition(v - tam*2.5f, centroY*2 + espaco);
 				} else if(b.nome.equals("inv")) {
 					b.sprite.setAlpha(0.9f);
-					int hotbarX = v / 2 - (jogador.inv.hotbarSlots * jogador.inv.tamSlot) / 2;
-					int invX = hotbarX + ((jogador.inv.hotbarSlots) * jogador.inv.tamSlot);
-					b.sprite.setPosition(invX, jogador.inv.hotbarY);
+					int hotbarX = v / 2 - (jg.inv.hotbarSlots * jg.inv.tamSlot) / 2;
+					int invX = hotbarX + ((jg.inv.hotbarSlots) * jg.inv.tamSlot);
+					b.sprite.setPosition(invX, jg.inv.hotbarY);
 				} else if(b.nome.equals("receita")) {
 					b.sprite.setAlpha(0.9f);
 					b.sprite.setPosition(v - tam, h - tam);
@@ -471,29 +470,7 @@ public class UI implements InputProcessor {
 	}
 
 	public void att(float delta, Mundo mundo) {
-		attCamera(camera, jogador.yaw, jogador.tom);
-
-		frenteV.x = camera.direction.x;
-		frenteV.z = camera.direction.z;
-		frenteV.nor();  
-		direitaV.x = frenteV.z;
-		direitaV.z = -frenteV.x;
-
-		jogador.velocidade.x = 0;
-		jogador.velocidade.z = 0;
-		if(jogador.modo != 2) jogador.velocidade.y = 0;
-
-		if(this.frente) jogador.velocidade.add(frenteV.cpy().scl(jogador.velo));
-		if(this.tras)  jogador.velocidade.sub(frenteV.cpy().scl(jogador.velo));
-		if(this.esquerda) jogador.velocidade.add(direitaV.cpy().scl(jogador.velo));
-		if(this.direita) jogador.velocidade.sub(direitaV.cpy().scl(jogador.velo));
-		if(this.cima) {
-			if(jogador.modo != 2 || jogador.noChao || jogador.naAgua) {
-				jogador.velocidade.y = jogador.pulo; // pulo
-				jogador.noChao = false;
-			}
-        }
-        if(this.baixo) jogador.velocidade.y = -10f;
+		attCamera(camera, jg.yaw, jg.tom);
 
 		Gdx.gl.glActiveTexture(GL20.GL_TEXTURE1);
 		Gdx.gl.glBindTexture(GL20.GL_TEXTURE_2D, 0); 
@@ -514,7 +491,7 @@ public class UI implements InputProcessor {
 		
 		if(menuAberto) menuOpcoes.porFrame(delta, sb, fonte);
 		
-		this.jogador.inv.att();
+		this.jg.inv.att();
 		if(debug) {
 			float livre = rt.freeMemory() >> 20;
 			float total = rt.totalMemory() >> 20;
@@ -535,14 +512,14 @@ public class UI implements InputProcessor {
 
 			fonte.draw(sb, String.format(
 						   "X: %.1f, Y: %.1f, Z: %.1f\n" +
-						   "Mundo: %s\nJogador:\nModo: %s\nSlot: %d\nItem: %s\nNo chão: %b\nNa água: %b\nAgachado: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\n" +
+						   "Mundo: %s\njg:\nModo: %s\nSlot: %d\nItem: %s\nNo chão: %b\nNa água: %b\nAgachado: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\n" +
 						   "Controles:\nDireita: %b, Esquerda: %b\nFrente: %b, Trás: %b\nCima: %b\nBaixo: %b\nAção: %b\n\n" +
 						   "Mundo:\nRaio Chunks: %d\nChunks ativos: %d\nChunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nTick: %.3f\nVelocidade do tempo: %.5f",
-						   jogador.posicao.x, jogador.posicao.y, jogador.posicao.z,
+						   jg.posicao.x, jg.posicao.y, jg.posicao.z,
 						   mundo.nome, 
-						   (jogador.modo == 0 ? "espectador" : jogador.modo == 1 ? "criativo" : "sobrevivencia"), 
-						   jogador.inv.slotSelecionado, jogador.item, jogador.noChao, jogador.naAgua, jogador.agachado, jogador.velo, jogador.altura,
-						   this.direita, this.esquerda, this.frente, this.tras, this.cima, this.baixo, this.acao,
+						   (jg.modo == 0 ? "espectador" : jg.modo == 1 ? "criativo" : "sobrevivencia"), 
+						   jg.inv.slotSelecionado, jg.item, jg.noChao, jg.naAgua, jg.agachado, jg.velo, jg.altura,
+						   jg.direita, jg.esquerda, jg.frente, jg.tras, jg.cima, jg.baixo, jg.acao,
 						   mundo.RAIO_CHUNKS, mundo.chunks.size(), mundo.chunksMod.size(), mundo.semente, DiaNoiteUtil.tempo, mundo.tick, DiaNoiteUtil.tempo_velo), 
 					   50, Gdx.graphics.getHeight() - 100);
 
@@ -582,7 +559,7 @@ public class UI implements InputProcessor {
         camera.viewportHeight = h;
         camera.update();
 
-		jogador.inv.aoAjustar(v, h);
+		jg.inv.aoAjustar(v, h);
 
         sb.getProjectionMatrix().setToOrtho2D(0, 0, v, h);
     }
@@ -719,30 +696,30 @@ public class UI implements InputProcessor {
 	@Override 
     public boolean keyDown(int p) {
 		if(modoTexto) return true;
-        if(p == Input.Keys.W) frente = true;
-        if(p == Input.Keys.S) tras = true;
-        if(p == Input.Keys.A) esquerda = true;
-        if(p == Input.Keys.D) direita = true;
-        if(p == Input.Keys.SPACE) cima = true;
+        if(p == Input.Keys.W) jg.frente = true;
+        if(p == Input.Keys.S) jg.tras = true;
+        if(p == Input.Keys.A) jg.esquerda = true;
+        if(p == Input.Keys.D) jg.direita = true;
+        if(p == Input.Keys.SPACE) jg.cima = true;
         if(p == Input.Keys.SHIFT_LEFT) {
-            baixo = true;
-            if(jogador.agachado) {
-                jogador.velo *= 2;
-                jogador.altura *= 1.2f;
-                jogador.agachado = false;
+            jg.baixo = true;
+            if(jg.agachado) {
+                jg.velo *= 2;
+                jg.altura *= 1.2f;
+                jg.agachado = false;
             } else {
-                jogador.velo /= 2;
-                jogador.altura /= 1.2f;
-                jogador.agachado = true;
+                jg.velo /= 2;
+                jg.altura /= 1.2f;
+                jg.agachado = true;
             }
         }
         if(p == Input.Keys.E) {
-			if(jogador.inv.aberto) {
+			if(jg.inv.aberto) {
 				Gdx.input.setCursorCatched(true); 
 			} else {
 				Gdx.input.setCursorCatched(false); 
 			}
-			jogador.inv.alternar();
+			jg.inv.alternar();
 		}
         if(p == Input.Keys.F1) {
 			if(debug) {
@@ -765,12 +742,12 @@ public class UI implements InputProcessor {
     @Override 
     public boolean keyUp(int p) {
 		if(modoTexto) return true;
-        if(p == Input.Keys.W) frente = false;
-        if(p == Input.Keys.S) tras = false;
-        if(p == Input.Keys.A) esquerda = false;
-        if(p == Input.Keys.D) direita = false;
-        if(p == Input.Keys.SPACE) cima = false;
-        if(p == Input.Keys.SHIFT_LEFT) baixo = false;
+        if(p == Input.Keys.W) jg.frente = false;
+        if(p == Input.Keys.S) jg.tras = false;
+        if(p == Input.Keys.A) jg.esquerda = false;
+        if(p == Input.Keys.D) jg.direita = false;
+        if(p == Input.Keys.SPACE) jg.cima = false;
+        if(p == Input.Keys.SHIFT_LEFT) jg.baixo = false;
         return true;
     }
 
@@ -779,23 +756,23 @@ public class UI implements InputProcessor {
 		if(modoTexto) return true;
 
 		int y = Gdx.graphics.getHeight() - p1;
-		jogador.inv.aoArrastar(p, y, -1);
+		jg.inv.aoArrastar(p, y, -1);
 
-		if(!jogador.inv.aberto) {
+		if(!jg.inv.aberto) {
 			float dx = Gdx.input.getDeltaX();
 			float dy = Gdx.input.getDeltaY();
-			jogador.yaw -= dx * sensi;
-			jogador.tom -= dy * sensi;
-			if(jogador.tom > 89f) jogador.tom = 89f;
-			if(jogador.tom < -89f) jogador.tom = -89f;
+			jg.yaw -= dx * sensi;
+			jg.tom -= dy * sensi;
+			if(jg.tom > 89f) jg.tom = 89f;
+			if(jg.tom < -89f) jg.tom = -89f;
 		}
         return true;
     }
 
     @Override 
     public boolean scrolled(float p, float p1) {
-        if(p1 > 0) jogador.inv.slotSelecionado = (jogador.inv.slotSelecionado + 1) % jogador.inv.hotbarSlots;
-        else if(p1 < 0) jogador.inv.slotSelecionado = (jogador.inv.slotSelecionado - 1 + jogador.inv.hotbarSlots) % jogador.inv.hotbarSlots;
+        if(p1 > 0) jg.inv.slotSelecionado = (jg.inv.slotSelecionado + 1) % jg.inv.hotbarSlots;
+        else if(p1 < 0) jg.inv.slotSelecionado = (jg.inv.slotSelecionado - 1 + jg.inv.hotbarSlots) % jg.inv.hotbarSlots;
         return true;
     }
 	@Override

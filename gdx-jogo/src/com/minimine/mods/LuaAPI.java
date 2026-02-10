@@ -39,7 +39,7 @@ public class LuaAPI {
 		globais = JsePlatform.standardGlobals();
 		
 		globais.set("mundo", CoerceJavaToLua.coerce(Jogo.mundo));
-		globais.set("jogador", CoerceJavaToLua.coerce(Jogo.render.ui.jogador));
+		globais.set("jogador", CoerceJavaToLua.coerce(Jogo.render.ui.jg));
 		globais.set("ui", CoerceJavaToLua.coerce(Jogo.render.ui));
 		globais.set("util", CoerceJavaToLua.coerce(new Util()));
 		globais.set("biomas", CoerceJavaToLua.coerce(new Biomas()));

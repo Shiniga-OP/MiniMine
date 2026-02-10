@@ -1,4 +1,4 @@
-package com.minimine.cenas;
+package com.minimine.entidades;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -12,6 +12,7 @@ import com.minimine.mundo.blocos.Bloco;
 import com.minimine.ui.UI;
 
 public class Inventario {
+	public Jogador jogador;
     public int quantSlots = 25;
     public int slotsV = 5, slotsH = 5;
     public int tamSlot = 64+16;
@@ -19,29 +20,30 @@ public class Inventario {
     public Sprite[] sprites;
     public Rectangle[] rects;
     public int invX, invY;
-	
+
 	public Item itemSendoArrastado = null;
     public int slotOrigem = -1;
     public int ponteiroArrastando = -1; // ID do toque que ta arrastando
-    
+
     public Item[] itens = new Item[quantSlots];
     public int slotSelecionado = 0;
     public boolean aberto = false;
-    
+
     public int hotbarSlots = 5;
     public Rectangle[] rectsHotbar;
     public Sprite[] spritesHotbar;
     public int hotbarY = 20;
-	
+
 	public Item itemFlutuante = null;
     public int slotOrigemFlutuante = -1;
     public Vector2 posFlutuante = new Vector2(); // posicao visual do item flutuante
 
-    public Inventario() {
+    public Inventario(Jogador jogador) {
         texSlot = Texturas.texs.get("slot");
         aoAjustar(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		this.jogador = jogador;
     }
-    
+
     public void aoAjustar(int v, int h) {
         invX = v / 2 - (slotsH * tamSlot) / 2;
         invY = h / 2 - (slotsV * tamSlot) / 2;
@@ -171,7 +173,7 @@ public class Inventario {
 
     public void att() {
 		if(spritesHotbar == null || spritesHotbar.length == 0 ||
-		itens == null || itens.length == 0) return;
+		   itens == null || itens.length == 0) return;
 		// hotbar:
 		for(int i = 0; i < spritesHotbar.length; i++) {
 			if(spritesHotbar[i] == null) continue;
@@ -192,8 +194,8 @@ public class Inventario {
 
 				if(itens[i].quantidade > 1) {
 					UI.fonte.draw(UI.sb, String.valueOf(itens[i].quantidade), 
-					spritesHotbar[i].getX() + tamSlot - 15, 
-					spritesHotbar[i].getY() + 15);
+								  spritesHotbar[i].getX() + tamSlot - 15, 
+								  spritesHotbar[i].getY() + 15);
 				}
 			}
 		}
@@ -204,15 +206,15 @@ public class Inventario {
 				// checa se tem um item no slot
 				if(itens[i] != null) {
 					Sprite itemSprite = new Sprite(itens[i].textura);
-					
+
 					itemSprite.setSize(tamSlot - 5, tamSlot - 5); 
 					itemSprite.setPosition(sprites[i].getX() + 5, sprites[i].getY() + 5);
 					itemSprite.draw(UI.sb);
 
 					if(itens[i].quantidade > 1) {
 						UI.fonte.draw(UI.sb, String.valueOf(itens[i].quantidade), 
-						sprites[i].getX() + tamSlot - 15, 
-						sprites[i].getY() + 15);
+									  sprites[i].getX() + tamSlot - 15, 
+									  sprites[i].getY() + 15);
 					}
 				}
 			}
@@ -223,22 +225,22 @@ public class Inventario {
 
 			// centraliza o sprite na posição do ultimo toque/arrasto posFlutuante)
 			itemSprite.setPosition(posFlutuante.x - itemSprite.getWidth() / 2, 
-			posFlutuante.y - itemSprite.getHeight() / 2);
+								   posFlutuante.y - itemSprite.getHeight() / 2);
 			itemSprite.draw(UI.sb);
 			// renderiza a quantidade
 			if(itemFlutuante.quantidade > 1) {
 				UI.fonte.draw(UI.sb, String.valueOf(itemFlutuante.quantidade), 
-				itemSprite.getX() + tamSlot - 15, 
-				itemSprite.getY() + 15);
+							  itemSprite.getX() + tamSlot - 15, 
+							  itemSprite.getY() + 15);
 			}
 		}
 	}
-	
+
 	public void aoTocar(int telaX, int telaY, int p) {
         if(!aberto) {
             for(int i = 0; i < rectsHotbar.length; i++) {
                 if(rectsHotbar[i].contains(telaX, telaY)) {
-                    selecionarSlot(i, UI.jogador);
+                    selecionarSlot(i, jogador);
                     return;
                 }
             }
@@ -313,7 +315,7 @@ public class Inventario {
 			aberto = true;
 		}
     }
-	
+
     public static class Item {
         public CharSequence nome;
         public Texture textura;

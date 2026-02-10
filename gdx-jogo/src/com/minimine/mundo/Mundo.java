@@ -39,7 +39,7 @@ import com.minimine.mundo.blocos.Bloco;
 import com.minimine.graficos.Render;
 import com.minimine.graficos.Animacoes2D;
 import com.minimine.graficos.EmissorParticulas;
-import com.minimine.cenas.Jogador;
+import com.minimine.entidades.Jogador;
 import java.nio.charset.StandardCharsets;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;

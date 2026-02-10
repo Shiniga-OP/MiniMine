@@ -89,7 +89,7 @@ public class Biomas {
                 // cactos esparsos no deserto
                 double cactoChance = Mundo.s2D.ruido(mundoX * 0.1, mundoZ * 0.1);
                 if(cactoChance > 0.85 && altura > 62) {
-                    int alturaCacto = (int)((Mundo.s2D.ruido(mundoX * 0.3, mundoZ * 0.3) * 0.5 + 0.5) * 2) + 2;
+                    int alturaCacto = (int)((Mundo.s2D.ruido(mundoX * 0.3, mundoZ * 0.3) * 0.5 + 0.5) * 3) + 2;
                     for(int cy = 0; cy < alturaCacto; cy++) {
                         ChunkUtil.defBloco(x, altura + cy, z, "cacto", chunk);
                     }
@@ -115,16 +115,8 @@ public class Biomas {
                         ChunkUtil.defBloco(x, y, z, "terra", chunk);
                     }
                 }
-                // verifica se é lago
-                double lago = Mundo.s2D.ruido(mundoX * 0.015, mundoZ * 0.015);
-                if(lago < -0.5) {
-                    ChunkUtil.defBloco(x, altura - 1, z, "areia", chunk);
-                    ChunkUtil.defBloco(x, altura, z, "agua", chunk);
-                    ChunkUtil.defBloco(x, altura + 1, z, "agua", chunk);
-                } else {
-                    if(!gerador.temCaverna(mundoX, altura - 1, mundoZ)) {
-                        ChunkUtil.defBloco(x, altura - 1, z, "grama", chunk);
-                    }
+                if(!gerador.temCaverna(mundoX, altura - 1, mundoZ)) {
+					ChunkUtil.defBloco(x, altura - 1, z, "grama", chunk);
                 }
 				break;
             case FLORESTA:
@@ -149,15 +141,8 @@ public class Biomas {
                         ChunkUtil.defBloco(x, y, z, "terra", chunk);
                     }
                 }
-                // verifica se é rio
-                double rio = Math.abs(Mundo.s2D.ruido(mundoX * 0.008, mundoZ * 0.008));
-                if(rio < 0.08) {
-                    ChunkUtil.defBloco(x, altura - 1, z, "areia", chunk);
-                    ChunkUtil.defBloco(x, altura, z, "agua", chunk);
-                } else {
-                    if(!gerador.temCaverna(mundoX, altura - 1, mundoZ)) {
-                        ChunkUtil.defBloco(x, altura - 1, z, "grama", chunk);
-                    }
+				if(!gerador.temCaverna(mundoX, altura - 1, mundoZ)) {
+					ChunkUtil.defBloco(x, altura - 1, z, "grama", chunk);
                 }
 				break;
         }

@@ -18,13 +18,13 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.Gdx;
 import java.io.FileWriter;
 import com.badlogic.gdx.math.Matrix4;
-import com.minimine.cenas.Jogador;
+import com.minimine.entidades.Jogador;
 import java.io.FileReader;
 import java.util.List;
 import com.minimine.utils.arrays.FloatArrayUtil;
 import com.minimine.utils.arrays.ShortArrayUtil;
 import com.badlogic.gdx.graphics.Texture;
-import com.minimine.cenas.Inventario;
+import com.minimine.entidades.Inventario;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipInputStream;
@@ -316,7 +316,7 @@ public class ArquivosUtil {
         jogador.tom = dis.readFloat();
         jogador.item = dis.readUTF();
         jogador.ALCANCE = dis.readInt();
-        if(jogador.inv == null) jogador.inv = new Inventario();
+        if(jogador.inv == null) jogador.inv = new Inventario(jogador);
         jogador.inv.slotSelecionado = dis.readInt();
 		jogador.velo = dis.readFloat();
 		jogador.agachado = dis.readBoolean();
@@ -326,7 +326,7 @@ public class ArquivosUtil {
     public static void lerInventario(DataInputStream dis, Jogador jogador) throws IOException {
 		try {
 			int total = dis.readInt();
-			if(jogador.inv == null || total == 0) jogador.inv = new Inventario();
+			if(jogador.inv == null || total == 0) jogador.inv = new Inventario(jogador);
 			if(jogador.inv.itens == null || (jogador.inv.itens.length != total && total != 0)) jogador.inv.itens = new Inventario.Item[total];
 
 			for(int i = 0; i < total; i++) {
