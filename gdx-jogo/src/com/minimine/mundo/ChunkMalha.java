@@ -7,9 +7,6 @@ import com.minimine.mundo.blocos.BlocoModelo;
 
 public class ChunkMalha {
     public static void attMalha(Chunk chunk, FloatArrayUtil verts, ShortArrayUtil idcSolidos, ShortArrayUtil idcTransp) {
-        synchronized(chunk.debugRects) {
-            chunk.debugRects.clear();
-        }
         ChunkLuz.attLuz(chunk);
 
         Chunk cXP, cXN, cZP, cZN;
@@ -120,69 +117,6 @@ public class ChunkMalha {
                     }
                 }
                 malhaPlana(mascara, 16, Mundo.Y_CHUNK, z, sul ? 4 : 5, chunk, verts, idcSolidos, idcTransp);
-            }
-        }
-        // === debug de colisção ===
-        // foca apenas em geometria solida pra gerar retangulos unificados de colisão
-        synchronized(chunk.debugRects) {
-            chunk.debugRects.clear();
-            
-            // vamos iterar por camadas Y e tentar mesclar retangulos XZ de blocos solidos
-            for(int y = 0; y < Mundo.Y_CHUNK; y++) {
-                // mascara booleana de solidos nesta camada
-                int[] mascaraSolida = new int[16*16];
-                int n = 0;
-                for(int z = 0; z < 16; z++) {
-                    for(int x = 0; x < 16; x++) {
-                        int id = ChunkUtil.obterBloco(x, y, z, chunk);
-                        boolean solido = false;
-                        if(id != 0) {
-                             Bloco b = Bloco.numIds.get(id);
-                             if(b != null && b.solido) solido = true;
-                        }
-                        mascaraSolida[n++] = solido ? 1 : 0;
-                    }
-                }
-                // guloso 2D simples na camada(so XZ)
-                n = 0; // reinicia o indice
-                // o loop abaixo percorre Z e X, correspondendo a ordem de preenchimento da mascara acima
-                for(int j = 0; j < 16; j++) { // Z
-                     for(int i = 0; i < 16; ) { // X
-                         if(mascaraSolida[j * 16 + i] == 1) { // usa indice calculado(j*16 + i) pra seguranca
-                             // determinar largura(V) no eixo X
-                             int v = 1; 
-                             while(i + v < 16 && mascaraSolida[j * 16 + (i + v)] == 1) v++;
-                             
-                             // determinar altura(H) no eixo Z
-                             int h = 1; 
-                             boolean continua = true;
-                             while(j + h < 16 && continua) {
-                                 for(int k = 0; k < v; k++) {
-                                     if(mascaraSolida[(j + h) * 16 + (i + k)] != 1) {
-                                         continua = false;
-                                         break;
-                                     }
-                                 }
-                                 if(continua) h++;
-                             }
-                             // limpa a area encontrada na mascara pra não processar de novo
-                             for(int l = 0; l < h; l++) {
-                                for(int k = 0; k < v; k++) {
-                                    mascaraSolida[(j + l) * 16 + (i + k)] = 0;
-                                }
-                            }
-                            // adiciona caixa de colisao altura 1 (y ate y+1)
-                            chunk.debugRects.add(new com.badlogic.gdx.math.collision.BoundingBox(
-                                new com.badlogic.gdx.math.Vector3(i, y, j),
-                                new com.badlogic.gdx.math.Vector3(i + v, y + 1, j + h)
-                            ));
-                            
-                            i += v;
-                         } else {
-                             i++;
-                         }
-                     }
-                }
             }
         }
     }
