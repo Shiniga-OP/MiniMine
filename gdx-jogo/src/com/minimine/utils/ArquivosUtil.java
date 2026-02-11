@@ -297,7 +297,7 @@ public class ArquivosUtil {
                 CharSequence id = dis.readUTF();
                 ChunkUtil.defBloco(x, y, z, id, chunk);
             }
-			chunk.malha = new Mesh(true, Jogo.render.maxVerts, Jogo.render.maxIndices, Jogo.render.atriburs);
+			chunk.malha = null;
             if(mundo.chunksMod == null) mundo.chunksMod = new ConcurrentHashMap<Long, Chunk>();
             if(mundo.chunks == null) mundo.chunks = new ConcurrentHashMap<Long, Chunk>();
 

@@ -23,10 +23,6 @@ public class Render {
 
     public static ShaderProgram shader;
 
-    public static int maxFaces = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK * 6 / 6;
-    public static int maxVerts = maxFaces * 4;
-    public static int maxIndices = maxFaces * 6;
-
     // ATUALIZADO: Removido a_atlasCoords(4), adicionado a_texId(1)
     public static final VertexAttribute[] atriburs = new VertexAttribute[] {
         new VertexAttribute(VertexAttributes.Usage.Position, 3, "a_pos"),

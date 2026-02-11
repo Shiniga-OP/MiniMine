@@ -422,7 +422,10 @@ public class Mundo {
 							@Override
 							public void run() {
 								if(chunk.malha == null) {
-									chunk.malha = new Mesh(true, Render.maxVerts, Render.maxIndices, Render.atriburs);
+									// calcula o tamanho necessario
+									final int numVerts = vertsGeral.tam / 7;
+									final int numIndices = idcFinal.length;
+									chunk.malha = new Mesh(true, numVerts, numIndices, Render.atriburs);
 								}
 								try {
 									chunk.malha.setVertices(vertsGeral.praArray());
@@ -468,7 +471,9 @@ public class Mundo {
 								if(chunk.malha != null) {
 									chunk.malha.dispose();
 								}
-								chunk.malha = new Mesh(true, Render.maxVerts, Render.maxIndices, Render.atriburs);
+								final int numVerts = vertsGeral.tam / 7;
+								final int numIndices = idcSolido.tam + idcTransp.tam;
+								chunk.malha = new Mesh(true, numVerts, numIndices, Render.atriburs);
 								chunk.malha.setVertices(vertsGeral.praArray());
 								chunk.malha.setIndices(idcSolido.praArray());
 
