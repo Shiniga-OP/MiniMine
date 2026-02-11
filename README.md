@@ -72,6 +72,7 @@ Otimização na atualização com variaveis locais (JIT).
 Cache de chunks modificadas sem Malha.
 O Guloso (Greedy Mesh).
 Pré-computação de erosão.
+Reuso de Arrays utilizados na geração de dados das chunks.
 
 ## Ruídos utilitários:
 1. PerlinNoise2D.java
@@ -88,7 +89,7 @@ Pré-computação de erosão.
 * Windows XP até Windows 10.
 
 ## Desempenho:
-FPS de 30 a 55 padrão testado com até 111 chunks ativas (raio de 5).
+FPS de 30 a 59 padrão testado com até 111 chunks ativas (raio de 5).
 
 ## Mods Lua:
 você pode criar mods achando a pasta *MiniMine/mods/* no armazenamento externo. Adicione os arquivos Lua necéssarios:
@@ -96,12 +97,6 @@ você pode criar mods achando a pasta *MiniMine/mods/* no armazenamento externo.
 att.lua // será chamado no loop principal
 
 e para adicionar mais de um arquivo individual, adicione o caminho relativo a pasta atual em *MiniMine/mods/arquivos.mini*. os arquivos são separados e carregados por quebra de linha.
-
-## Mods JavaScript (descontinuado por consuno excessivo de Threads):
-
-adicione seus scripts em "MiniMine/mods/arquivos.html".
-
-sem documentação ainda.
 
 ## Adicionais:
 
@@ -139,7 +134,13 @@ Notebook:
 * FPS padrão: 100-255.
 
 # Comandos de teclado
-
+**WASD**: controles de movimento.
+**ESPAÇO**: pula/voa.
+**SHIFT**: agacha/desce.
+**DIREITA/ESQUERDA**: com o mouse quebra e coloca blocos.
+**E**: abre o inventario.
+**T**: abre o chat.
+**F1**: abre o modo de debug.
 ## Créditos:
 
 **Programação**:

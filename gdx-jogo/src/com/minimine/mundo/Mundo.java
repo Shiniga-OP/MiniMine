@@ -43,6 +43,7 @@ import com.minimine.entidades.Jogador;
 import java.nio.charset.StandardCharsets;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import com.minimine.utils.arrays.ArrayReuso;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -150,6 +151,10 @@ public class Mundo {
 		estados.clear();
         exec.shutdown();
 		Animacoes2D.liberar();
+		if(com.minimine.ui.UI.debug) {
+			Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
+		}
+		ArrayReuso.limparPools();
     }
 
     public static int obterBlocoMundo(int x, int y, int z) {
@@ -404,9 +409,9 @@ public class Mundo {
 		exec.submit(new Runnable() {
 				@Override
 				public void run() {
-					final FloatArrayUtil vertsGeral = new FloatArrayUtil();
-					final ShortArrayUtil idcSolidos = new ShortArrayUtil();
-					final ShortArrayUtil idcTransp = new ShortArrayUtil();
+					final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
+					final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
+					final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
 
 					ChunkMalha.attMalha(chunk, vertsGeral, idcSolidos, idcTransp);
 
@@ -437,7 +442,15 @@ public class Mundo {
 									chunk.fazendo = false;
 									chunk.att = false;
 									estados.put(chave, 2);
-								} catch(Exception e) {}
+									
+									ArrayReuso.devolver(vertsGeral);
+									ArrayReuso.devolver(idcSolidos);
+									ArrayReuso.devolver(idcTransp);
+								} catch(Exception e) {
+									ArrayReuso.devolver(vertsGeral);
+									ArrayReuso.devolver(idcSolidos);
+									ArrayReuso.devolver(idcTransp);
+								}
 							}
 						});
 				}
@@ -458,12 +471,12 @@ public class Mundo {
 					prepararDadosVizinhos(chunk.x, chunk.z);
 
 					// 2: gera a malha
-					final FloatArrayUtil vertsGeral = new FloatArrayUtil();
-					final ShortArrayUtil idcSolido = new ShortArrayUtil();
-					final ShortArrayUtil idcTransp = new ShortArrayUtil();
+					final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
+					final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
+					final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
 
 					// agora a attmalha pode checar os vizinhos com segurança
-					ChunkMalha.attMalha(chunk, vertsGeral, idcSolido, idcTransp);
+					ChunkMalha.attMalha(chunk, vertsGeral, idcSolidos, idcTransp);
 
 					Gdx.app.postRunnable(new Runnable() {
 							@Override
@@ -472,16 +485,20 @@ public class Mundo {
 									chunk.malha.dispose();
 								}
 								final int numVerts = vertsGeral.tam / 7;
-								final int numIndices = idcSolido.tam + idcTransp.tam;
+								final int numIndices = idcSolidos.tam + idcTransp.tam;
 								chunk.malha = new Mesh(true, numVerts, numIndices, Render.atriburs);
 								chunk.malha.setVertices(vertsGeral.praArray());
-								chunk.malha.setIndices(idcSolido.praArray());
+								chunk.malha.setIndices(idcSolidos.praArray());
 
 								matrizTmp.setToTranslation(chunk.x << 4, 0, chunk.z << 4);
 								chunk.malha.transform(matrizTmp);
 
 								chunk.fazendo = false;
 								chunk.att = false;
+								
+								ArrayReuso.devolver(vertsGeral);
+								ArrayReuso.devolver(idcSolidos);
+								ArrayReuso.devolver(idcTransp);
 							}
 						});
 				}
