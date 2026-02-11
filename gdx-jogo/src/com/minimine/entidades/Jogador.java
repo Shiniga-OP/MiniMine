@@ -6,26 +6,19 @@ import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.collision.Ray;
 import com.minimine.utils.Mat;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.model.Node;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import net.mgsx.gltf.loaders.gltf.GLTFLoader;
-import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import com.minimine.mundo.blocos.Bloco;
-import com.minimine.audio.Audio;
 import com.minimine.mundo.Mundo;
-import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.graphics.g3d.model.MeshPart;
-import com.badlogic.gdx.graphics.g3d.model.NodePart;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.minimine.graficos.Texturas;
+import com.badlogic.gdx.graphics.g3d.ModelBatch;
 
 public class Jogador {
-	public ModelInstance modelo;
-	public int modo = 2; // 0 = espectador, 1 = criativo, 2 = sobrevivencia
+	public ModeloJogador modelo;
+	public ModelBatch loteModelos;
+	
+	public int modo = 2;
 	public PerspectiveCamera camera;
 	public Vector3 posicao = new Vector3(1, 80, 1), velocidade = new Vector3();
 	public final Vector3 frenteV = new Vector3(0, 0, 0), direitaV = new Vector3(0, 0, 0);
@@ -44,42 +37,6 @@ public class Jogador {
 	public Inventario inv = new Inventario(this);
 
 	public float yaw = 180f, tom = -20f;
-	
-	// Adicione no topo do Jogador.java
-	public static ShaderProgram shaderModelo;
-	private static final String vertMod = 
-    "attribute vec3 a_position;\n" +
-    "attribute vec2 a_texCoord0;\n" +
-    "uniform mat4 u_projTrans;\n" +
-    "varying vec2 v_texCoord;\n" +
-    "void main() {\n" +
-    "   v_texCoord = a_texCoord0;\n" +
-    "   gl_Position = u_projTrans * vec4(a_position, 1.0);\n" +
-    "}";
-
-	private static final String fragMod = 
-    "#ifdef GL_ES\n" +
-    "precision mediump float;\n" +
-    "#endif\n" +
-    "varying vec2 v_texCoord;\n" +
-    "uniform sampler2D u_texture;\n" +
-    "void main() {\n" +
-    "   gl_FragColor = texture2D(u_texture, v_texCoord);\n" +
-    "}";
-	
-
-	public void criarModelo3D() {
-		try {
-			if(shaderModelo == null) shaderModelo = new ShaderProgram(vertMod, fragMod);
-			
-			if(!shaderModelo.isCompiled()) Gdx.app.log("[Jogador]", "[ERRO] no shader: "+shaderModelo.getLog());
-			
-			SceneAsset asset = new GLTFLoader().load(Gdx.files.internal("modelos/jogador.gltf"));
-			this.modelo = new ModelInstance(asset.scene.model);
-		} catch(Exception e) {
-			Gdx.app.log("[Jogador]", "[ERRO]: "+e);
-		}
-	}
 
 	public void interagirBloco() {
 		Ray raio = camera.getPickRay(
@@ -92,7 +49,7 @@ public class Jogador {
 		float dirY = raio.direction.y;
 		float dirZ = raio.direction.z;
 
-		for(float t = 0; t < ALCANCE; t += 0.15f) { // passo menor = mais preciso
+		for(float t = 0; t < ALCANCE; t += 0.15f) {
 			int x = Mat.floor(olhoX + dirX * t);
 			int y = Mat.floor(olhoY + dirY * t);
 			int z = Mat.floor(olhoZ + dirZ * t);
@@ -184,13 +141,12 @@ public class Jogador {
 		if(this.direita) velocidade.sub(direitaV.cpy().scl(velo));
 		if(this.cima) {
 			if(modo != 2 || noChao || naAgua) {
-				velocidade.y = pulo; // pulo
+				velocidade.y = pulo;
 				noChao = false;
 			}
-        }
-        if(this.baixo) velocidade.y = -10f;
-		
-		// gravidade no sobrevivencia
+		}
+		if(this.baixo) velocidade.y = -10f;
+
 		if(naAgua) GRAVIDADE = -10;
 		else GRAVIDADE = -30;
 
@@ -210,26 +166,22 @@ public class Jogador {
 		float dx = velocidade.x * delta;
 		float dy = velocidade.y * delta;
 		float dz = velocidade.z * delta;
-		// primeiro verifica colisão vertical
+
 		posicao.y += dy;
 		attHitbox();
 
 		if(colideComMundo()) {
 			posicao.y -= dy;
-			attHitbox(); // atualiza hitbox apos corrigir posição
-			// verifica se ta colidindo por baixo(pé no chão)
+			attHitbox();
 			if(dy < 0) {
 				noChao = true;
 			} else if(dy > 0) {
-				// colisão por cima(cabeça)
 				noChao = false;
 			}
 			velocidade.y = 0;
 		} else {
-			// se não ha colisão vertical, verifica se ta no chão usando uma verificação mais precisa
 			noChao = ehChao();
 		}
-		// agora processa movimento horizontal
 		if(agachado && noChao && dx != 0 && !temSuporte(posicao.x + dx, posicao.z)) {
 			dx = 0;
 		}
@@ -258,8 +210,7 @@ public class Jogador {
 	}
 
 	public boolean ehChao() {
-		// verifica se ha blocos solidos logo abaixo dos pes do jogador
-		float epsilon = 0.05f; // margem pra evitar flutuação
+		float epsilon = 0.05f;
 		float yCheque = posicao.y - epsilon;
 
 		int minX = Mat.floor(posicao.x - largura / 2);
@@ -285,22 +236,18 @@ public class Jogador {
 	public void nascerNoTopo() {
 		int chaoY = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
 		this.posicao.y = chaoY;
-		this.velocidade.y = 0; // zera a queda
+		this.velocidade.y = 0;
 		this.nasceu = true;
 	}
 
 	public boolean temSuporte(float x, float z) {
-		// 1. configura uma hitbox temporaria na nova posição(x, posicao.y, z)
 		float yBase = posicao.y;
-		// usa blocoBox temporariamente pra a verificação, configurando na nova posição
 		blocoBox.set(
 			minVec.set(x - largura / 2, yBase, z - profundidade / 2), 
 			maxVec.set(x + largura / 2, yBase + altura, z + profundidade / 2)
 		);
-		// 2. define a area de busca: um pouco abaixo da base da hitbox
 		int minX = Mat.floor(blocoBox.min.x);
 		int maxX = Mat.floor(blocoBox.max.x);
-		// checa o bloco imediatamente abaixo da base(yBase - 0.1f)
 		int yCheque = Mat.floor(yBase - 0.1f); 
 		int minZ = Mat.floor(blocoBox.min.z);
 		int maxZ = Mat.floor(blocoBox.max.z);
@@ -310,56 +257,36 @@ public class Jogador {
 				int id = Mundo.obterBlocoMundo(atualX, yCheque, atualZ);
 				if(id != 0) {
 					Bloco b = Bloco.numIds.get(id);
-					// se encontrar um bloco solido na camada de checagem, ha suporte
 					if(b != null && b.solido) return true;
 				}
 			}
 		}
-		// não encontrou suporte solido em nenhuma parte da area debaixo
 		return false;
 	}
-	
-	public void render(PerspectiveCamera cam) {
-		if (modelo == null) return;
 
-		// 1. Força uma escala maior e a posição
-		// Se o boneco for muito pequeno, 10f vai deixar ele com 10 blocos de altura
-		modelo.transform.setToTranslation(0f, 80f, 0f);
-		modelo.transform.scale(10f, 10f, 10f); 
-		modelo.transform.rotate(Vector3.Y, yaw);
+	public void criarModelo3D() {
+		loteModelos = new ModelBatch(); // gerenciador padrão de modelos 3D
+		modelo = new ModeloJogador();
+	}
 
-		// 2. Desabilita o descarte de faces (se o modelo estiver invertido, ele aparece)
-		Gdx.gl.glDisable(GL20.GL_CULL_FACE);
-		// Força o desenho mesmo que algo esteja na frente
-		Gdx.gl.glDisable(GL20.GL_DEPTH_TEST); 
+	public void render() {
+		if(modelo == null || loteModelos == null) return;
 
-		shaderModelo.begin();
+		// sincroniza o modelo visual com a logica do jogador
+		modelo.instancia.transform.setToTranslation(0f, 80f, 0f);
 
-		// IMPORTANTE: Use uma cópia da matriz para não estragar a câmera global
-		shaderModelo.setUniformMatrix("u_projTrans", cam.combined.cpy().mul(modelo.transform));
+		// aplica a rotação(yaw) da camera ao corpo
+		float anguloRotacao = -((float)Math.toDegrees(Math.atan2(camera.direction.z, camera.direction.x)) - 90);
+		modelo.instancia.transform.rotate(Vector3.Y, anguloRotacao);
 
-		for (int i = 0; i < modelo.nodes.size; i++) {
-			Node node = modelo.nodes.get(i);
-			for (NodePart nodePart : node.parts) {
-				TextureAttribute texAttr = (TextureAttribute) nodePart.material.get(TextureAttribute.Diffuse);
-				if (texAttr != null) {
-					texAttr.textureDescription.texture.bind(0);
-					shaderModelo.setUniformi("u_texture", 0);
-				}
+		// renderiza
+		loteModelos.begin(camera);
+		modelo.render(loteModelos);
+		loteModelos.end();
+	}
 
-				nodePart.meshPart.mesh.render(
-					shaderModelo, 
-					nodePart.meshPart.primitiveType, 
-					nodePart.meshPart.offset, 
-					nodePart.meshPart.size
-				);
-			}
-		}
-
-		shaderModelo.end();
-
-		// 3. Reativa as funções para não estragar o resto do mundo
-		Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
-		Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+	public void liberar() {
+		if(modelo != null) modelo.liberar();
+		if(loteModelos != null) loteModelos.dispose();
 	}
 }

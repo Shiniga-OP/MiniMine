@@ -17,7 +17,7 @@ public class Texturas {
 			// atlas:
 			blocos = new Texture(Gdx.files.internal("blocos/blocos.png"));
 			agua = new Texture(Gdx.files.internal("blocos/anims/agua.png"));
-			// modelos:
+			// blocos:
 			atlas.put("grama_topo", new TextureRegion(blocos, 0, 0, 16, 16));
 			atlas.put("grama_lado", new TextureRegion(blocos, 16, 0, 16, 16));
 			atlas.put("terra", new TextureRegion(blocos, 32, 0, 16, 16));

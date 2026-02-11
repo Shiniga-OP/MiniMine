@@ -20,14 +20,12 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 public class Render {
     public UI ui;
     public Mundo mundo;
-
     public static ShaderProgram shader;
 
-    // ATUALIZADO: Removido a_atlasCoords(4), adicionado a_texId(1)
     public static final VertexAttribute[] atriburs = new VertexAttribute[] {
         new VertexAttribute(VertexAttributes.Usage.Position, 3, "a_pos"),
         new VertexAttribute(VertexAttributes.Usage.TextureCoordinates, 2, "a_texCoord"),
-        new VertexAttribute(VertexAttributes.Usage.Generic, 1, "a_texId"), // O novo atributo leve
+        new VertexAttribute(VertexAttributes.Usage.Generic, 1, "a_texId"),
         new VertexAttribute(VertexAttributes.Usage.ColorPacked, 4, "a_cor")
     };
 
@@ -107,9 +105,9 @@ public class Render {
             Texturas.atlas.get("agua_a2")
         };
         Animacoes2D.add("agua", framesAgua, 3f); 
-		
+
 		ui.jg.criarModelo3D();
-		
+
         EmissorParticulas.iniciar();
 
         ShaderProgram.pedantic = false;
@@ -132,6 +130,7 @@ public class Render {
         Gdx.gl.glClearColor(r, g, b, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+		Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
         if(mundo.nuvens) NuvensUtil.att(delta, ui.jg.posicao);
 
@@ -185,13 +184,10 @@ public class Render {
             }
             ui.jg.att(delta);
         }
-		
-		ui.jg.render(ui.camera);
-		
         Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 
         ui.att(delta, mundo);
-		
+
 		if(ui.debug) {
 			if(debugCaixas == null) {
 				debugCaixas = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
@@ -204,6 +200,7 @@ public class Render {
 
             debugCaixas.end();
 		}
+		ui.jg.render();
     }
 
     public void liberar() {
@@ -212,3 +209,4 @@ public class Render {
         mundo.liberar();
     }
 }
+

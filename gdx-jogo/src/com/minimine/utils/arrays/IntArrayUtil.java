@@ -1,8 +1,7 @@
 package com.minimine.utils.arrays;
 
 public class IntArrayUtil {
-    private static final int TAM_INICIAL = 256;
-
+    public static final int TAM_INICIAL = 256;
     public int[] arr;
     public int tam = 0;
 
