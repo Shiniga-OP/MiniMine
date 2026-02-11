@@ -403,7 +403,7 @@ public class Mundo {
 
 	public static void gerarMalha(final long chave) {
 		final Chunk chunk = chunks.get(chave);
-        if(chunk == null) return;
+		if(chunk == null) return;
 		chunk.fazendo = true;
 
 		exec.submit(new Runnable() {
@@ -415,38 +415,45 @@ public class Mundo {
 
 					ChunkMalha.attMalha(chunk, vertsGeral, idcSolidos, idcTransp);
 
-					// junta os indices: primeiro solidos depois transparentes
 					final short[] idcFinal = new short[idcSolidos.tam + idcTransp.tam];
 					System.arraycopy(idcSolidos.praArray(), 0, idcFinal, 0, idcSolidos.tam);
 					System.arraycopy(idcTransp.praArray(), 0, idcFinal, idcSolidos.tam, idcTransp.tam);
 
-					chunk.contaSolida = idcSolidos.tam;
-					chunk.contaTransp = idcTransp.tam;
+					// armazena o tamanho real do buffer de indices
+					final int totalIndices = idcFinal.length;
 
 					Gdx.app.postRunnable(new Runnable() {
 							@Override
 							public void run() {
-								if(chunk.malha == null) {
-									// calcula o tamanho necessario
-									final int numVerts = vertsGeral.tam / 7;
-									final int numIndices = idcFinal.length;
-									chunk.malha = new Mesh(true, numVerts, numIndices, Render.atriburs);
-								}
 								try {
+									if(chunk.malha != null) {
+										chunk.malha.dispose();
+										chunk.malha = null;
+									}
+									final int numVerts = vertsGeral.tam / 7;
+
+									// usa totalIndices pra evitar crash
+									chunk.malha = new Mesh(true, numVerts, totalIndices, Render.atriburs);
 									chunk.malha.setVertices(vertsGeral.praArray());
 									chunk.malha.setIndices(idcFinal);
 
 									matrizTmp.setToTranslation(chunk.x << 4, 0, chunk.z << 4);
 									chunk.malha.transform(matrizTmp);
 
+									// verifica se ta consistente
+									if(chunk.malha.getNumIndices() != totalIndices) {
+										Gdx.app.error("Mundo", "INCONSISTÊNCIA CRÍTICA: mesh tem " + 
+													  chunk.malha.getNumIndices() + " índices, mas deveria ter " + totalIndices);
+									}
+									// atualiza os contadores
+									chunk.contaSolida = idcSolidos.tam;
+									chunk.contaTransp = idcTransp.tam;
 									chunk.fazendo = false;
 									chunk.att = false;
 									estados.put(chave, 2);
-									
-									ArrayReuso.devolver(vertsGeral);
-									ArrayReuso.devolver(idcSolidos);
-									ArrayReuso.devolver(idcTransp);
 								} catch(Exception e) {
+									Gdx.app.error("Mundo", "Erro ao gerar malha do chunk", e);
+								} finally {
 									ArrayReuso.devolver(vertsGeral);
 									ArrayReuso.devolver(idcSolidos);
 									ArrayReuso.devolver(idcTransp);
@@ -466,39 +473,51 @@ public class Mundo {
 		exec.submit(new Runnable() {
 				@Override
 				public void run() {
-					// 1: gera apenas os dados dos blocos(se ainda não existirem)
-					// garante que a chunk central e suas 4 vizinhas diretas tenham dados
 					prepararDadosVizinhos(chunk.x, chunk.z);
 
-					// 2: gera a malha
 					final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
 					final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
 					final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
 
-					// agora a attmalha pode checar os vizinhos com segurança
 					ChunkMalha.attMalha(chunk, vertsGeral, idcSolidos, idcTransp);
+
+					final short[] idcFinal = new short[idcSolidos.tam + idcTransp.tam];
+					System.arraycopy(idcSolidos.praArray(), 0, idcFinal, 0, idcSolidos.tam);
+					System.arraycopy(idcTransp.praArray(), 0, idcFinal, idcSolidos.tam, idcTransp.tam);
+
+					// guarda o total de indices pra não perder a referencia
+					final int totalIndices = idcFinal.length;
 
 					Gdx.app.postRunnable(new Runnable() {
 							@Override
 							public void run() {
-								if(chunk.malha != null) {
-									chunk.malha.dispose();
+								try {
+									if(chunk.malha != null) {
+										chunk.malha.dispose();
+										chunk.malha = null;
+									}
+									final int numVerts = vertsGeral.tam / 7;
+
+									// usa totalIndices
+									chunk.malha = new Mesh(true, numVerts, totalIndices, Render.atriburs);
+									chunk.malha.setVertices(vertsGeral.praArray());
+									chunk.malha.setIndices(idcFinal);
+
+									matrizTmp.setToTranslation(chunk.x << 4, 0, chunk.z << 4);
+									chunk.malha.transform(matrizTmp);
+
+									// atualiza os contadores
+									chunk.contaSolida = idcSolidos.tam;
+									chunk.contaTransp = idcTransp.tam;
+									chunk.fazendo = false;
+									chunk.att = false;
+								} catch(Exception e) {
+									Gdx.app.error("Mundo", "Erro em gerarChunk", e);
+								} finally {
+									ArrayReuso.devolver(vertsGeral);
+									ArrayReuso.devolver(idcSolidos);
+									ArrayReuso.devolver(idcTransp);
 								}
-								final int numVerts = vertsGeral.tam / 7;
-								final int numIndices = idcSolidos.tam + idcTransp.tam;
-								chunk.malha = new Mesh(true, numVerts, numIndices, Render.atriburs);
-								chunk.malha.setVertices(vertsGeral.praArray());
-								chunk.malha.setIndices(idcSolidos.praArray());
-
-								matrizTmp.setToTranslation(chunk.x << 4, 0, chunk.z << 4);
-								chunk.malha.transform(matrizTmp);
-
-								chunk.fazendo = false;
-								chunk.att = false;
-								
-								ArrayReuso.devolver(vertsGeral);
-								ArrayReuso.devolver(idcSolidos);
-								ArrayReuso.devolver(idcTransp);
 							}
 						});
 				}

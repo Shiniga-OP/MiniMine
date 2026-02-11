@@ -107,7 +107,9 @@ public class Render {
             Texturas.atlas.get("agua_a2")
         };
         Animacoes2D.add("agua", framesAgua, 3f); 
-
+		
+		ui.jg.criarModelo3D();
+		
         EmissorParticulas.iniciar();
 
         ShaderProgram.pedantic = false;
@@ -183,6 +185,9 @@ public class Render {
             }
             ui.jg.att(delta);
         }
+		
+		ui.jg.render(ui.camera);
+		
         Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 
         ui.att(delta, mundo);

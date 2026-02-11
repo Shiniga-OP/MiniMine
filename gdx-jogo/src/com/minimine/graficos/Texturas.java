@@ -21,7 +21,7 @@ public class Texturas {
 			atlas.put("grama_topo", new TextureRegion(blocos, 0, 0, 16, 16));
 			atlas.put("grama_lado", new TextureRegion(blocos, 16, 0, 16, 16));
 			atlas.put("terra", new TextureRegion(blocos, 32, 0, 16, 16));
-			atlas.put("pedra", new TextureRegion(blocos, 48, 0, 16, 16));
+			atlas.put("pedregulho", new TextureRegion(blocos, 48, 0, 16, 16));
 			atlas.put("agua", new TextureRegion(blocos, 64, 0, 16, 16));
 			atlas.put("areia", new TextureRegion(blocos, 80, 0, 16, 16));
 			atlas.put("tronco_topo", new TextureRegion(blocos, 96, 0, 16, 16));
@@ -32,6 +32,7 @@ public class Texturas {
 			atlas.put("cacto_lado", new TextureRegion(blocos, 48, 16, 16, 16));
 			atlas.put("vidro", new TextureRegion(blocos, 64, 16, 16, 16));
 			atlas.put("tocha", new TextureRegion(blocos, 80, 16, 16, 16));
+			atlas.put("pedra", new TextureRegion(blocos, 96, 16, 16, 16));
 			
 			// animações:
 			atlas.put("agua_a1", new TextureRegion(agua, 0, 0, 16, 16));

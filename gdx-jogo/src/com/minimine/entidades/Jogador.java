@@ -17,6 +17,11 @@ import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.audio.Audio;
 import com.minimine.mundo.Mundo;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.graphics.g3d.model.MeshPart;
+import com.badlogic.gdx.graphics.g3d.model.NodePart;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.GL20;
 
 public class Jogador {
 	public ModelInstance modelo;
@@ -39,10 +44,41 @@ public class Jogador {
 	public Inventario inv = new Inventario(this);
 
 	public float yaw = 180f, tom = -20f;
+	
+	// Adicione no topo do Jogador.java
+	public static ShaderProgram shaderModelo;
+	private static final String vertMod = 
+    "attribute vec3 a_position;\n" +
+    "attribute vec2 a_texCoord0;\n" +
+    "uniform mat4 u_projTrans;\n" +
+    "varying vec2 v_texCoord;\n" +
+    "void main() {\n" +
+    "   v_texCoord = a_texCoord0;\n" +
+    "   gl_Position = u_projTrans * vec4(a_position, 1.0);\n" +
+    "}";
+
+	private static final String fragMod = 
+    "#ifdef GL_ES\n" +
+    "precision mediump float;\n" +
+    "#endif\n" +
+    "varying vec2 v_texCoord;\n" +
+    "uniform sampler2D u_texture;\n" +
+    "void main() {\n" +
+    "   gl_FragColor = texture2D(u_texture, v_texCoord);\n" +
+    "}";
+	
 
 	public void criarModelo3D() {
-		SceneAsset asset = new GLTFLoader().load(Gdx.files.internal("modelos/jogador.gltf"));
-		this.modelo = new ModelInstance(asset.scene.model);
+		try {
+			if(shaderModelo == null) shaderModelo = new ShaderProgram(vertMod, fragMod);
+			
+			if(!shaderModelo.isCompiled()) Gdx.app.log("[Jogador]", "[ERRO] no shader: "+shaderModelo.getLog());
+			
+			SceneAsset asset = new GLTFLoader().load(Gdx.files.internal("modelos/jogador.gltf"));
+			this.modelo = new ModelInstance(asset.scene.model);
+		} catch(Exception e) {
+			Gdx.app.log("[Jogador]", "[ERRO]: "+e);
+		}
 	}
 
 	public void interagirBloco() {
@@ -281,5 +317,49 @@ public class Jogador {
 		}
 		// não encontrou suporte solido em nenhuma parte da area debaixo
 		return false;
+	}
+	
+	public void render(PerspectiveCamera cam) {
+		if (modelo == null) return;
+
+		// 1. Força uma escala maior e a posição
+		// Se o boneco for muito pequeno, 10f vai deixar ele com 10 blocos de altura
+		modelo.transform.setToTranslation(0f, 80f, 0f);
+		modelo.transform.scale(10f, 10f, 10f); 
+		modelo.transform.rotate(Vector3.Y, yaw);
+
+		// 2. Desabilita o descarte de faces (se o modelo estiver invertido, ele aparece)
+		Gdx.gl.glDisable(GL20.GL_CULL_FACE);
+		// Força o desenho mesmo que algo esteja na frente
+		Gdx.gl.glDisable(GL20.GL_DEPTH_TEST); 
+
+		shaderModelo.begin();
+
+		// IMPORTANTE: Use uma cópia da matriz para não estragar a câmera global
+		shaderModelo.setUniformMatrix("u_projTrans", cam.combined.cpy().mul(modelo.transform));
+
+		for (int i = 0; i < modelo.nodes.size; i++) {
+			Node node = modelo.nodes.get(i);
+			for (NodePart nodePart : node.parts) {
+				TextureAttribute texAttr = (TextureAttribute) nodePart.material.get(TextureAttribute.Diffuse);
+				if (texAttr != null) {
+					texAttr.textureDescription.texture.bind(0);
+					shaderModelo.setUniformi("u_texture", 0);
+				}
+
+				nodePart.meshPart.mesh.render(
+					shaderModelo, 
+					nodePart.meshPart.primitiveType, 
+					nodePart.meshPart.offset, 
+					nodePart.meshPart.size
+				);
+			}
+		}
+
+		shaderModelo.end();
+
+		// 3. Reativa as funções para não estragar o resto do mundo
+		Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+		Gdx.gl.glEnable(GL20.GL_CULL_FACE);
 	}
 }
