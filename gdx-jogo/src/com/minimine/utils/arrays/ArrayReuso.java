@@ -1,7 +1,6 @@
 package com.minimine.utils.arrays;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 /*
  * arrays reutilizaveis pra reduzir GC
  * evita criar novos arrays a cada chunk
@@ -16,7 +15,7 @@ public class ArrayReuso {
     public static final ConcurrentLinkedQueue<ShortArrayUtil> reusoShort = new ConcurrentLinkedQueue<>();
     public static final ConcurrentLinkedQueue<IntArrayUtil> reusoInt = new ConcurrentLinkedQueue<>();
 
-    // estatísticas(debug)
+    // estatisticas(debug)
     public static int totalFloatCriados = 0;
     public static int totalFloatReutilizados = 0;
     public static int totalShortCriados = 0;

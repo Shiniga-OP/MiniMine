@@ -184,6 +184,8 @@ public class Render {
             }
             ui.jg.att(delta);
         }
+		ui.jg.render();
+		
         Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 
         ui.att(delta, mundo);
@@ -200,7 +202,6 @@ public class Render {
 
             debugCaixas.end();
 		}
-		ui.jg.render();
     }
 
     public void liberar() {

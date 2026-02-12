@@ -45,7 +45,6 @@ public class Config implements Screen, InputProcessor {
     
     public Rotulo rotuloRaioValor;
     public Rotulo rotuloSensiValor;
-    public Rotulo rotuloAproxValor;
     public Rotulo rotuloDistanciaValor;
     public Rotulo rotuloPOVValor;
 
@@ -169,39 +168,6 @@ public class Config implements Screen, InputProcessor {
         Botao botaoAumentarSensi = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarSensi);
         painelPrincipal.addAncorado(botaoAumentarSensi, Ancora.CENTRO, 230, posYInicial - espacoY);
         
-        // === APROXIMACAO ===
-        Rotulo labelAprox = new Rotulo("Aproximacao:", fonteTexto, escalaPixel * 0.8f);
-        labelAprox.largura = larguraLabel;
-        labelAprox.altura = alturaBotao;
-        painelPrincipal.addAncorado(labelAprox, Ancora.CENTRO, -200, posYInicial - espacoY * 2);
-        
-        rotuloAproxValor = new Rotulo(String.format("%.1f", UI.aprox), fonteTexto, escalaPixel * 0.8f);
-        rotuloAproxValor.largura = larguraValor;
-        rotuloAproxValor.altura = alturaBotao;
-        painelPrincipal.addAncorado(rotuloAproxValor, Ancora.CENTRO, 50, posYInicial - espacoY * 2);
-        
-        Acao acaoDiminuirAprox = new Acao() {
-            public void exec() {
-                if(UI.aprox > 0.1f) {
-                    UI.aprox -= 0.1f;
-                    rotuloAproxValor.texto = String.format("%.1f", UI.aprox);
-                }
-            }
-        };
-        Botao botaoDiminuirAprox = new Botao("-", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoDiminuirAprox);
-        painelPrincipal.addAncorado(botaoDiminuirAprox, Ancora.CENTRO, 160, posYInicial - espacoY * 2);
-        
-        Acao acaoAumentarAprox = new Acao() {
-            public void exec() {
-                if(UI.aprox < 200f) {
-                    UI.aprox += 0.1f;
-                    rotuloAproxValor.texto = String.format("%.1f", UI.aprox);
-                }
-            }
-        };
-        Botao botaoAumentarAprox = new Botao("+", visualBotao, fonteTexto, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoAumentarAprox);
-        painelPrincipal.addAncorado(botaoAumentarAprox, Ancora.CENTRO, 230, posYInicial - espacoY * 2);
-        
         // === DISTANCIA ===
         Rotulo labelDistancia = new Rotulo("Distancia:", fonteTexto, escalaPixel * 0.8f);
         labelDistancia.largura = larguraLabel;
@@ -274,7 +240,6 @@ public class Config implements Screen, InputProcessor {
                 prefs.putInteger("raioChunks", Mundo.RAIO_CHUNKS);
                 prefs.putInteger("pov", UI.pov);
                 prefs.putFloat("sensi", UI.sensi);
-                prefs.putFloat("aprox", UI.aprox);
                 prefs.putFloat("distancia", UI.distancia);
                 prefs.flush();
                 Inicio.defTela(Cenas.menu);
@@ -298,7 +263,6 @@ public class Config implements Screen, InputProcessor {
         // atualiza valores dos rotulos
         rotuloRaioValor.texto = String.valueOf(Mundo.RAIO_CHUNKS);
         rotuloSensiValor.texto = String.format("%.2f", UI.sensi);
-        rotuloAproxValor.texto = String.format("%.1f", UI.aprox);
         rotuloDistanciaValor.texto = String.format("%.0f", UI.distancia);
         rotuloPOVValor.texto = String.valueOf(UI.pov);
 

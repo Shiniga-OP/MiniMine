@@ -49,9 +49,9 @@ public class UI implements InputProcessor {
     public final Vector2 ultimaDir = new Vector2();
 
 	public static float sensi = 0.25f;
-	public static float aprox = 0.07f;
+	public static float aprox = 0.01f;
 	public static float distancia = 400f;
-	public static int pov = 120;
+	public static int pov = 90;
 	public static final HashMap<Integer, CharSequence> toques = new HashMap<>();
 	public static Runtime rt = Runtime.getRuntime();
 
@@ -66,6 +66,10 @@ public class UI implements InputProcessor {
 	
 	public static EstanteVertical menuOpcoes;
 	public static boolean menuAberto = false;
+	
+	public boolean chatAberto = false;
+	public String ultimaMensagem = "";
+	public List<String> msgs = new ArrayList<String>();
 
     public UI(Jogador jg) {
 		camera = new PerspectiveCamera(pov, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -88,10 +92,6 @@ public class UI implements InputProcessor {
 		configDpad(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		otimizadorC = Inicio.ehArm64 ? "ativo" : "não suportado";
     }
-
-	public boolean chatAberto = false;
-	public String ultimaMensagem = "";
-	public List<String> msgs = new ArrayList<String>();
 
 	public void abrirChat() {
 		if(chatAberto) return;
