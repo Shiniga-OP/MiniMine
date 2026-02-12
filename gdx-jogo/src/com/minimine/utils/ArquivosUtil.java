@@ -343,12 +343,20 @@ public class ArquivosUtil {
 					String nome = dis.readUTF();
 					int quantidade = dis.readInt();
 
-					TextureRegion textura = Texturas.atlas.obter(nome);
+					TextureRegion textura = null;
 					
-					if(textura == null) {
-						Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
-						textura = Texturas.atlas.obter("terra"); // padrão
-					}
+					for(Bloco b : Bloco.blocos) {
+                        if(b == null) continue;
+                        if(b.nome.equals(nome)) {
+                            // pega a textura do bloco
+                            textura = Texturas.atlas.obter(b.lados);
+                            break;
+                        }
+                    }
+                    if(textura == null) {
+                        Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
+                        textura = Texturas.atlas.obter("terra"); // padrão
+                    }
 					jogador.inv.itens[i] = new Inventario.Item(nome, textura, quantidade);
 				} else {
 					jogador.inv.itens[i] = null;
