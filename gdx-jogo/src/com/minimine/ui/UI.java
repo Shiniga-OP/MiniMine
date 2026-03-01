@@ -26,7 +26,6 @@ import com.minimine.mundo.Mundo;
 import com.minimine.entidades.Inventario;
 import com.minimine.entidades.Jogador;
 import com.minimine.utils.DiaNoiteUtil;
-import com.minimine.utils.Objeto;
 import com.minimine.utils.Receitas;
 
 import com.micro.GerenciadorUI;
@@ -36,7 +35,7 @@ import com.micro.Rotulo;
 import com.micro.PainelFatiado;
 import com.micro.Acao;
 
-public class UI extends Objeto implements InputProcessor {
+public class UI implements InputProcessor {
     // camera 3D e renderização
     public static PerspectiveCamera camera;
     public static SpriteBatch sb;
@@ -100,19 +99,18 @@ public class UI extends Objeto implements InputProcessor {
 
         criarDialogos();
         configDpad(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
+		
+		MenuPause.iniciar();
         MenuPause.sr = new ShapeRenderer();
 
         Gdx.input.setInputProcessor(this);
         Gdx.input.setCursorCatched(true);
-
-        liberado = false;
     }
 
     // === criação de componentes Micro ===
 
     // cria o diálogo de chat e os dialogos de alerta simples
-    private void criarDialogos() {
+    public void criarDialogos() {
         // dialogo de chat
         dialogoChat = new CaixaDialogo(visualBase, fonte, 3f,
 									   new ShapeRenderer()); // ShapeRenderer proprio do dialogo
@@ -511,13 +509,11 @@ public class UI extends Objeto implements InputProcessor {
         configDpad(v, h);
     }
 
-    @Override
     public void liberar() {
-        super.liberar();
         sb.dispose();
         fonte.dispose();
         gerenciador.liberar();
-        new MenuPause().liberar();
+        MenuPause.liberar();
     }
 
     @Override

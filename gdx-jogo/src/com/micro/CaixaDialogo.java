@@ -205,7 +205,6 @@ public class CaixaDialogo extends Componente {
 	@Override
 	public void liberar() {
 		super.liberar();
-		fonte.dispose();
 		rotuloTitulo.liberar();
 		rotulomsg.liberar();
 	}

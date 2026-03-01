@@ -15,7 +15,6 @@ import java.util.concurrent.Executors;
 import com.minimine.utils.arrays.FloatArrayUtil;
 import com.minimine.utils.arrays.ShortArrayUtil;
 import com.minimine.utils.Mat;
-import com.minimine.utils.Objeto;
 import com.minimine.utils.NuvensUtil;
 import com.minimine.utils.DiaNoiteUtil;
 import com.minimine.graficos.Texturas;
@@ -51,7 +50,7 @@ import com.minimine.utils.arrays.ArrayReuso;
 import com.minimine.entidades.Entidade;
 import com.minimine.mundo.blocos.BlocoModelo;
 
-public class Mundo extends Objeto {
+public class Mundo {
     public static String nome = "novo mundo";
 
 	public static List<Entidade> entidades = new ArrayList<>();
@@ -122,8 +121,6 @@ public class Mundo extends Objeto {
 		Biomas.iniciar();
 
         if(exec == null || exec.isShutdown()) exec = Executors.newFixedThreadPool(8);
-
-		liberado = false;
     }
 
     // chamado em render:
@@ -146,10 +143,7 @@ public class Mundo extends Objeto {
     }
 
     // chamado em dispose:
-	@Override
     public void liberar() {
-		super.liberar();
-		if(liberado) return;
         for(Chunk chunk : chunks.values()) {
             if(chunk.malha != null) {
                 chunk.malha.dispose();

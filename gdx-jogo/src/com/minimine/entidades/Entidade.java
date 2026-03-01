@@ -6,9 +6,8 @@ import com.minimine.mundo.Mundo;
 import com.minimine.utils.Mat;
 import com.minimine.mundo.blocos.Bloco;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.minimine.utils.Objeto;
 
-public class Entidade extends Objeto {
+public class Entidade {
 	public int vida;
 	public int vidaMax;
 	public float velo = 8f; // velocidade maxima no chão
@@ -37,10 +36,6 @@ public class Entidade extends Objeto {
 	public float VELO_MAX_QUEDA = -50f;
 
 	public String bioma = "";
-
-	public Entidade() {
-		liberado = false;
-	}
 
 	public void attHitbox() {
 		float x = posicao.x;
@@ -185,7 +180,6 @@ public class Entidade extends Objeto {
 		movendo = noChao && (Math.abs(velocidade.x) > 1f || Math.abs(velocidade.z) > 1f);
 	}
 	public void render(ModelBatch mb) {}
-	@Override
-	public void liberar() {super.liberar();}
+	public void liberar() {}
 }
 

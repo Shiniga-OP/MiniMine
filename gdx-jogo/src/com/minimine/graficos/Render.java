@@ -21,16 +21,15 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.minimine.entidades.Entidade;
 import com.minimine.entidades.Foca;
-import com.minimine.utils.Objeto;
 
-public class Render extends Objeto {
+public class Render {
     public UI ui;
     public Mundo mundo;
 	public static boolean pause = false;
     public static ShaderProgram shader;
     public static ShapeRenderer debugCaixas;
     public static GerenciadorParticulas gp;
-    public static ModelBatch sb; // gerenciador de modelos 3D de entidades
+    public static ModelBatch mb; // gerenciador de modelos 3D de entidades
     
     public static final VertexAttribute[] atriburs = new VertexAttribute[] {
         new VertexAttribute(VertexAttributes.Usage.Position, 1, "a_pos"),
@@ -143,13 +142,10 @@ public class Render extends Objeto {
         if(mundo.nuvens && NuvensUtil.primeiraVez) NuvensUtil.iniciar();
         if(mundo.ciclo) CorposCelestes.iniciar();
 
-        sb = new ModelBatch(); // carrega o gerenciador de modelos das entidades
-
-        liberado = false;
+        mb = new ModelBatch(); // carrega o gerenciador de modelos das entidades
     }
 
     public void att(float delta) {
-        if(liberado) return;
 		if(!pause) {
 			float fator = DiaNoiteUtil.obterFatorTransicao();
 			float[] corNoite = {0.05f, 0.05f, 0.15f};
@@ -219,13 +215,13 @@ public class Render extends Objeto {
 			gp.att(delta);
 			
 			// renderiza os modelos 3D
-			sb.begin(ui.jg.camera);
+			mb.begin(ui.jg.camera);
 
-			ui.jg.render(sb);
+			ui.jg.render(mb);
 			for(Entidade e : mundo.entidades) {
-				e.render(sb);
+				e.render(mb);
 			}
-			sb.end();
+			mb.end();
 			
 			// renderiza o debug:
 			if(ui.debug) {
@@ -267,19 +263,15 @@ public class Render extends Objeto {
 
 		return jogador.camera.frustum.boundsInFrustum(globalX, 0, globalZ, 16, 255, 16);
 	}
-
-    @Override
     public void liberar() {
-        super.liberar();
-        if(liberado) return;
         shader.dispose();
         debugCaixas.dispose();
         ui.liberar();
         ui.jg.liberar();
         mundo.liberar();
-        sb.dispose();
+        mb.dispose();
         gp.liberar();
-        new Animacoes2D().liberar();
+		Animacoes2D.liberar();
     }
 }
 

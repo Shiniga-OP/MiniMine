@@ -8,9 +8,8 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.minimine.entidades.Jogador;
-import com.minimine.utils.Objeto;
 
-public class GerenciadorParticulas extends Objeto {
+public class GerenciadorParticulas {
     public DecalBatch lote;
     public Array<Decal> particulas = new Array<>();
     public Array<DadosParticula> dados = new Array<>();
@@ -24,8 +23,6 @@ public class GerenciadorParticulas extends Objeto {
     public GerenciadorParticulas(Jogador jogador) {
         jogadorRef = jogador;
         lote = new DecalBatch(new CameraGroupStrategy(jogador.camera));
-		
-		liberado = false;
     }
 
     /*
@@ -105,10 +102,7 @@ public class GerenciadorParticulas extends Objeto {
         lote.flush();
     }
 
-    @Override
     public void liberar() {
-        super.liberar();
-		if(liberado) return;
         if(lote != null) lote.dispose();
     }
 }

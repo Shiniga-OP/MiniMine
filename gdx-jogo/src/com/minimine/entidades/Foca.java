@@ -360,7 +360,7 @@ public class Foca extends Entidade {
 
     // render e liberação
     @Override
-    public void render(ModelBatch sb) {
+    public void render(ModelBatch mb) {
         if(instancia == null) return;
 
         // rotaciona o modelo pra direção de movimento
@@ -368,13 +368,10 @@ public class Foca extends Entidade {
             instancia.transform.setToRotation(Vector3.Y, (float)Math.toDegrees(Math.atan2(-direcaoSuave.x, -direcaoSuave.z)));
         }
         instancia.transform.setTranslation(posicao);
-        sb.render(instancia);
+        mb.render(instancia);
     }
-
-    @Override
+	@Override
     public void liberar() {
-		super.liberar();
-		if(liberado) return;
         if(modelo != null) modelo.dispose();
         if(ativoCena != null) ativoCena.dispose();
 		modelo = null;

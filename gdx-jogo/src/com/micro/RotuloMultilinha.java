@@ -82,6 +82,5 @@ public class RotuloMultilinha extends Componente {
 	public void liberar() {
 		super.liberar();
 		linhas.clear();
-		fonte.dispose();
 	}
 }

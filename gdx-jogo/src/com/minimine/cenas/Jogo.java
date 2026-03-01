@@ -25,6 +25,9 @@ public class Jogo implements Screen {
 		mundo.ciclo = true;
 		
 		render = new Render(jogador, mundo);
+		
+		mundo.chunksMod.clear();
+		
 		if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) ArquivosUtil.crMundo(mundo, jogador);
 		render.mundo.iniciar();
 		

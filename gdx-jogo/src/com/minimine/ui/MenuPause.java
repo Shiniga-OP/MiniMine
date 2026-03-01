@@ -10,7 +10,6 @@ import com.minimine.Inicio;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.cenas.Jogo;
 import com.minimine.Cenas;
-import com.minimine.utils.Objeto;
 
 import com.micro.GerenciadorUI;
 import com.micro.Painel;
@@ -19,7 +18,7 @@ import com.micro.Botao;
 import com.micro.Ancora;
 import com.micro.Acao;
 
-public class MenuPause extends Objeto {
+public class MenuPause {
     public static GerenciadorUI gerenciador;
     public static Painel painelMenu;
     public static PainelFatiado visualBotao;
@@ -76,14 +75,9 @@ public class MenuPause extends Objeto {
 			new Acao() {
 				@Override
 				public void exec() {
-					try {
-						salvarJogo();
-						fecharMenu();
-						Inicio.defTela(Cenas.menu);
-						Cenas.jogo.dispose();
-					} catch (Exception e) {
-						Gdx.app.log("[MenuPause]", "[ERRO]: " + e);
-					}
+					salvarJogo();
+					fecharMenu();
+					Inicio.defTela(Cenas.menu);
 				}
 			});
         painelMenu.addAncorado(botaoSair, Ancora.INFERIOR_CENTRO, 0, 0);
@@ -157,12 +151,10 @@ public class MenuPause extends Objeto {
         if(!menuAberto || gerenciador == null) return;
         gerenciador.processarArraste(x, y);
     }
-
-    @Override
-    public void liberar() {
-        super.liberar();
+	
+    public static void liberar() {
         if(sr != null) sr.dispose();
-        if(gerenciador != null)   gerenciador.liberar();
+        if(gerenciador != null) gerenciador.liberar();
     }
 }
 
