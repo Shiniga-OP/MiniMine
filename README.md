@@ -176,15 +176,27 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * Sistema Operacional: Android 12 64-bit.
 * FPS padrão: 40-60.
 
-## PC:
+## PCs:
+### Melhor condição
 * Placa Mãe: Dell OptiPlex 780.
 * Processador: Intel Core 2 Quad.
 * Memória RAM: 4GB(2x2GB DDR3).
 * Armazenamento: SSD 256GB.
 * Video: Intel 4 Series(Integrada).
 * OpenGL: 2.1.
-* Sistema Operaciobal: Linux Mint XCFE 64-bit.
+* Sistema Operacional: Linux Mint XCFE 64-bit.
 * FPS padrão: 45-64.
+
+### Pior condição
+* Placa Mãe: PCWare IPX1800E2.
+* Processador: Intel Celeron CPU J1800.
+* Memória RAM: 2GB(DDR3).
+* Armazenamento: HD 150GB.
+* Video: Intel HD Bay Trail(Integrada)
+* OpenGL: 4.2.
+* Sistema Operacional: Debian GNU/Linux 12 (bookworm) i686.
+* FPS padrão: 83-142.
+
 
 ## Notebook:
 * Modelo: Aspire ES 15.
@@ -229,8 +241,8 @@ VDLN7
 Green
 Dorganhozo
 
-**Canais:**:
-Shiniga-OP: https://youtube.com/@shiniga-op?si=A78wk-sm3EJvgavE
-VDLN7: https://youtube.com/@violetbrasilofc?si=Ip8AkZdPnDDdFjGm
-Green: https://youtube.com/@greenlevelcreatordev?si=q1HhyS115FbbPhOI
-Dorganhozo: https://youtube.com/@dorganzo?si=phKKbJ4P5C87TMJ0
+**Canais:**
+- [Shiniga-OP](https://youtube.com/@shiniga-op?si=A78wk-sm3EJvgavE)
+- [VDLN7](https://youtube.com/@violetbrasilofc?si=Ip8AkZdPnDDdFjGm)
+- [Green](https://youtube.com/@greenlevelcreatordev?si=q1HhyS115FbbPhOI)
+- [Dorganhozo](https://youtube.com/@dorganzo?si=phKKbJ4P5C87TMJ0)
