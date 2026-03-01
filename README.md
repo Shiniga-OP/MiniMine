@@ -149,7 +149,7 @@ Erosão Hidraulica.
 FPS de 40 a 60 padrão testado com até 112 chunks ativas (raio de 5).
 
 ## uso de mémoria testada:
-50 MBs do heap java & 25 MBs do heap nativo. (112 chunks ativas)
+50 MBs do heap java & 22 MBs do heap nativo. (112 chunks ativas)
 
 ## Mods Lua:
 você pode criar mods achando a pasta *MiniMine/mods/* no armazenamento externo. Adicione os arquivos Lua necéssarios:
@@ -225,21 +225,27 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 ## Créditos:
 
 **Programação**:
-Shiniga-OP
-Green
-Xaniim
+* Shiniga-OP
+* Green
+* Xaniim
+* Dorganhozo
 
 **Efeitos sonoros**:
-Shiniga-OP
-VDLN7
+* Shiniga-OP
+* VDLN7
 
-**Pixel art**:
-Shiniga-OP
+**Pixel arte**:
+* Shiniga-OP
+* Marin
+
+**Modelagem 3D**:
+* Shiniga-OP
+* Green
 
 **Teste da API de mods e documentação ou ambiente de execução**:
-VDLN7
-Green
-Dorganhozo
+* VDLN7
+* Green
+* Dorganhozo
 
 **Canais:**
 - [Shiniga-OP](https://youtube.com/@shiniga-op?si=A78wk-sm3EJvgavE)
