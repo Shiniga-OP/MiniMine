@@ -246,6 +246,7 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * VDLN7
 * Green
 * Dorganhozo
+* Marin
 
 **Canais:**
 - [Shiniga-OP](https://youtube.com/@shiniga-op?si=A78wk-sm3EJvgavE)
