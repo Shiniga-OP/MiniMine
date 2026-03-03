@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.math.Vector3;
+import com.minimine.graficos.Modelos;
 /*
  * foca com IA de aprendizado por reforço
  
@@ -57,7 +58,6 @@ public class Foca extends Entidade {
 	public Vector3 direcaoSuave = new Vector3();
 
     public static SceneAsset ativoCena;
-    public static Model modelo;
     public ModelInstance instancia;
     public AnimationController animCtr;
 	
@@ -85,11 +85,7 @@ public class Foca extends Entidade {
         ia = new IA();
 
         try {
-            if(modelo == null && ativoCena == null) {
-				ativoCena = new GLTFLoader().load(Gdx.files.internal("modelos/foca.gltf"));
-				modelo = ativoCena.scene.model;
-			}
-            instancia = new ModelInstance(modelo);
+            instancia = new ModelInstance(Modelos.obterModelo("modelos/foca.gltf"));
             animCtr = new AnimationController(instancia);
             animCtr.setAnimation("nadando", -1);
         } catch(Exception e) {
@@ -369,13 +365,6 @@ public class Foca extends Entidade {
         }
         instancia.transform.setTranslation(posicao);
         mb.render(instancia);
-    }
-	@Override
-    public void liberar() {
-        if(modelo != null) modelo.dispose();
-        if(ativoCena != null) ativoCena.dispose();
-		modelo = null;
-		ativoCena = null;
     }
 }
 

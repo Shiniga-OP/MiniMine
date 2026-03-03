@@ -283,13 +283,12 @@ public class ArquivosUtil {
         int totalChunks = dis.readInt();
 
         for(int i = 0; i < totalChunks; i++) {
-            int chunkX = dis.readInt();
-            int chunkZ = dis.readInt();
-
+            long chave = dis.readLong();
+            
             Chunk chunk = new Chunk();
             ChunkUtil.compactar(ChunkUtil.bitsPraMaxId(chunk.maxIds), chunk);
-            chunk.x = chunkX;
-            chunk.z = chunkZ;
+            chunk.x = Chave.x(chave);
+            chunk.z = Chave.z(chave);
 
             int totalNaoAr = dis.readInt();
             for(int k = 0; k < totalNaoAr; k++) {
@@ -303,12 +302,12 @@ public class ArquivosUtil {
             if(mundo.chunksMod == null) mundo.chunksMod = new ConcurrentHashMap<Long, Chunk>();
             if(mundo.chunks == null) mundo.chunks = new ConcurrentHashMap<Long, Chunk>();
 
-            mundo.chunksMod.put(Chave.calcularChave(chunkX, chunkZ), chunk);
-			mundo.chunks.put(Chave.calcularChave(chunkX, chunkZ), chunk);
+            mundo.chunksMod.put(chave, chunk);
+			mundo.chunks.put(chave, chunk);
             
             chunk.att = true;
 			chunk.dadosProntos = true;
-			mundo.estados.put(Chave.calcularChave(chunkX, chunkZ), 1);
+			mundo.estados.put(chave, 1);
         }
     }
 

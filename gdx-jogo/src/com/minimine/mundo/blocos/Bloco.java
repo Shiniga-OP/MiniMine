@@ -44,6 +44,40 @@ public class Bloco {
 	}
 
 	public Bloco() {}
+	
+	public static void iniciar() {
+		Bloco.blocos.add(null);
+        Bloco.blocos.add(new Bloco("grama", "grama_topo", "grama_lado", "terra"));
+        Bloco.blocos.add(new Bloco("terra", "terra"));
+        Bloco.blocos.add(new Bloco("pedra", "pedra"));
+        Bloco.blocos.add(new Bloco("agua", "agua", true, false, false));
+        Bloco.blocos.add(new Bloco("areia", "areia"));
+        Bloco.blocos.add(new Bloco("tronco", "tronco_topo", "tronco_lado"));
+        Bloco.blocos.add(new Bloco("folha", "folha", true, true, false));
+        Bloco.blocos.add(new Bloco("tabua_madeira", "tabua_madeira"));
+        Bloco.blocos.add(new Bloco("cacto", "cacto_topo", "cacto_lado"));
+        Bloco.blocos.add(new Bloco("vidro", "vidro", true, true, false));
+        Bloco.blocos.add(new Bloco("tocha", "tocha", false, true, true, 13));
+		Bloco.blocos.add(new Bloco("pedregulho", "pedregulho"));
+		Bloco.blocos.add(new Bloco("cascalho", "cascalho"));
+		Bloco.blocos.add(new Bloco("gelo", "gelo"));
+		Bloco.blocos.add(new Bloco("neve", "neve"));
+		Bloco.blocos.add(new Bloco("coral_rosa", "coral_rosa"));
+		Bloco.blocos.add(new Bloco("coral_azul", "coral_azul"));
+		Bloco.blocos.add(new Bloco("coral_amarelo", "coral_amarelo"));
+		Bloco.blocos.add(new Bloco("capim", "capim", true, false, false, 0, true));
+		Bloco.blocos.add(new Bloco("tulipa", "tulipa", true, false, false, 3, true));
+		Bloco.blocos.add(new Bloco("iris_azul", "iris_azul", true, false, false, 1, true));
+
+		Bloco.addSom("grama", "grama_1", "terra_1", "terra_2", "terra_3");
+		Bloco.addSom("terra", "terra_1", "terra_2", "terra_3");
+		Bloco.addSom("areia", "terra_1", "terra_2", "terra_3");
+		Bloco.addSom("cascalho", "terra_1", "terra_2", "terra_3");
+		Bloco.addSom("pedra", "pedra_1", "pedra_2");
+		Bloco.addSom("folha", "terra_1", "terra_2", "terra_3");
+		Bloco.addSom("tabua_madeira", "madeira_1", "madeira_2", "madeira_3");
+		Bloco.addSom("tocha", "madeira_1", "madeira_2", "madeira_3");
+	}
 
 	public String texturaId(int faceId) {
         switch(faceId) {
@@ -72,6 +106,13 @@ public class Bloco {
 		} else {
 			tocarSom("pedra");
 		}
+	}
+	
+	public static void liberar() {
+		Bloco.blocos.clear();
+		Bloco.numIds.clear();
+		Bloco.texIds.clear();
+		Bloco.sons.clear();
 	}
 }
 

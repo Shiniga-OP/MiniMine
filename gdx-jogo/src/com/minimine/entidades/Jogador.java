@@ -19,6 +19,7 @@ import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
 import com.minimine.mundo.Biomas;
 import com.minimine.cenas.Jogo;
+import com.minimine.graficos.Modelos;
 
 public class Jogador extends Entidade {
 	public int modo = 2; // 0 = espectador, 1 = criativo, 2 = sobrevivencia
@@ -27,12 +28,10 @@ public class Jogador extends Entidade {
 
 	public CharSequence item = "ar";
 	public int ALCANCE = 7;
-	public Inventario inv = new Inventario(this);
+	public Inventario inv;
 	
-	public Model modelo;
     public ModelInstance instancia;
-    public SceneAsset ativoCena;
-
+    
     public float tempoAnimacao = 0;
 
     public Quaternion rotTemp = new Quaternion();
@@ -53,6 +52,7 @@ public class Jogador extends Entidade {
 		super();
 		vida = 20;
 		vidaMax = 20;
+		this.inv = new Inventario(this);
 		Jogo.relogio.schedule(
 			new java.util.TimerTask() {
 				@Override
@@ -61,9 +61,7 @@ public class Jogador extends Entidade {
 				}
 			}, 0, 500);
 		try {
-            ativoCena = new GLTFLoader().load(Gdx.files.internal("modelos/jogador.gltf"));
-            modelo = ativoCena.scene.model;
-            instancia = new ModelInstance(modelo);
+            instancia = new ModelInstance(Modelos.obterModelo("modelos/jogador.gltf"));
 			
             pegarNos();
             salvarRotacoes();
@@ -210,8 +208,15 @@ public class Jogador extends Entidade {
 	}
 
 	public void render(ModelBatch mb) {
-		instancia.transform.set(camera.view).inv();
-
+		instancia.transform.set(camera.view);
+		
+		if(Math.abs(instancia.transform.det()) > 1e-6f) {
+			instancia.transform.inv();
+		} else {
+			camera.update();
+			return; // camera ainda não ta pronta, pula o render desse frame
+		}
+		
 		// calculo do balanço(oscilação)
 		// seno faz o movimento lateral(X)
 		float balancoX = (float)Math.sin(tempoAnimacao * 0.5f) * 0.05f;
@@ -224,12 +229,6 @@ public class Jogador extends Entidade {
 		instancia.transform.rotate(Vector3.Y, 15); 
 
 		mb.render(instancia);
-	}
-	
-	@Override
-	public void liberar() {
-		if(modelo != null) modelo.dispose();
-		if(ativoCena != null) ativoCena.dispose();
 	}
 
     public void pegarNos() {

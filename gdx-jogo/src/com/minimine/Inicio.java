@@ -12,6 +12,7 @@ import com.minimine.utils.CorposCelestes;
 import com.minimine.mundo.Mundo;
 import com.minimine.audio.Audio;
 import com.minimine.audio.Musicas;
+import com.minimine.graficos.Modelos;
 
 public class Inicio extends Game {
 	public static boolean ehArm64;
@@ -77,6 +78,7 @@ public class Inicio extends Game {
 			CorposCelestes.liberar();
 			Audio.liberar();
 			Musicas.liberar();
+			Modelos.liberar();
 		} catch(Exception e) {
 			Gdx.app.log("Inicio", "[ERRO] ao liberar: "+e);
 		}

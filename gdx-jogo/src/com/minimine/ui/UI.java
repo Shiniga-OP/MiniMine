@@ -112,8 +112,7 @@ public class UI implements InputProcessor {
     // cria o diálogo de chat e os dialogos de alerta simples
     public void criarDialogos() {
         // dialogo de chat
-        dialogoChat = new CaixaDialogo(visualBase, fonte, 3f,
-									   new ShapeRenderer()); // ShapeRenderer proprio do dialogo
+        dialogoChat = new CaixaDialogo(visualBase, fonte, 3f, new ShapeRenderer()); // ShapeRenderer proprio do dialogo
         dialogoChat.largura = 500;
         dialogoChat.altura  = 200;
 
@@ -514,6 +513,8 @@ public class UI implements InputProcessor {
         gerenciador.liberar();
         MenuPause.liberar();
 		botoesDpad.clear();
+		rotulos.clear();
+		toquesDpad.clear();
     }
 
     @Override

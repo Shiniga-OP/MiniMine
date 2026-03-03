@@ -9,6 +9,7 @@ import com.minimine.utils.ArquivosUtil;
 import com.minimine.mods.LuaAPI;
 import com.minimine.Inicio;
 import com.minimine.utils.DiaNoiteUtil;
+import com.minimine.mundo.blocos.Bloco;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
@@ -22,9 +23,10 @@ public class Jogo implements Screen {
 		relogio = new java.util.Timer();
 		mundo = new Mundo();
 		jogador = new Jogador();
-		mundo.ciclo = true;
 		
 		render = new Render(jogador, mundo);
+		
+		Bloco.iniciar();
 		
 		mundo.chunksMod.clear();
 		
@@ -60,6 +62,7 @@ public class Jogo implements Screen {
 		mundo.carregado = false;
 		relogio.cancel();
 		render.liberar();
+		Bloco.liberar();
     }
 	
 	@Override
@@ -73,12 +76,6 @@ public class Jogo implements Screen {
 		ArquivosUtil.svMundo(mundo, jogador);
 		dispose();
 	}
-	@Override
-	public void pause() {
-		hide();
-	}
-	@Override
-	public void resume() {
-		show();
-	}
+	@Override public void pause() {}
+	@Override public void resume() {}
 }
