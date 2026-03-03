@@ -97,7 +97,7 @@ public class Mundo {
 
 		if(!carregado && estados.size() >= 1) {
 			Integer x = estados.get(Chave.calcularChave((int)jg.posicao.x, (int)jg.posicao.z));
-			if(x != null && x == 1) carregado = true;
+			if(x != null && x == 2) carregado = true;
 		}
 		GerenciadorEntidades.att(delta, this, jg);
         if(ciclo) {
