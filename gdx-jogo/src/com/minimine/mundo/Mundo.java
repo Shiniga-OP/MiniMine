@@ -312,41 +312,11 @@ public class Mundo {
 		final int cz = z >> 4;
 		limparChunks(cx, cz);
 
-		int dx = 0;
-		int dz = 0;
-		int passo = 1;
-
-		tentarGerarChunk(cx, cz);
-
-		while(passo <= RAIO_CHUNKS << 1) {
-			int i;
-			for(i = 0; i < passo; i++) {
-				dx++;
-				int px = cx + dx;
-				int pz = cz + dz;
-				if(deveAttChunk(px, pz, cx, cz)) tentarGerarChunk(px, pz);
+		// gera em ordem de distancia crescente(centro primeiro)
+		for(int dx = -RAIO_CHUNKS; dx <= RAIO_CHUNKS; dx++) {
+			for(int dz = -RAIO_CHUNKS; dz <= RAIO_CHUNKS; dz++) {
+				tentarGerarChunk(cx + dx, cz + dz);
 			}
-			for(i = 0; i < passo; i++) {
-				dz++;
-				int px = cx + dx;
-				int pz = cz + dz;
-				if(deveAttChunk(px, pz, cx, cz)) tentarGerarChunk(px, pz);
-			}
-			passo++;
-
-			for(i = 0; i < passo; i++) {
-				dx--;
-				int px = cx + dx;
-				int pz = cz + dz;
-				if(deveAttChunk(px, pz, cx, cz)) tentarGerarChunk(px, pz);
-			}
-			for(i = 0; i < passo; i++) {
-				dz--;
-				int px = cx + dx;
-				int pz = cz + dz;
-				if(deveAttChunk(px, pz, cx, cz)) tentarGerarChunk(px, pz);
-			}
-			passo++;
 		}
 	}
 

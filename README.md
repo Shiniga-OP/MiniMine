@@ -146,10 +146,10 @@ Erosão Hidraulica.
 * Windows XP até Windows 11.
 
 ## Desempenho:
-FPS de 40 a 60 padrão testado com até 112 chunks ativas (raio de 5).
+FPS de 40 a 60 padrão testado com até 121 chunks ativas (raio de 5).
 
 ## uso de mémoria testada:
-50 MBs do heap java & 22 MBs do heap nativo. (112 chunks ativas)
+50 MBs do heap java & 24 MBs do heap nativo. (121 chunks ativas)
 
 ## Mods Lua:
 você pode criar mods achando a pasta *MiniMine/mods/* no armazenamento externo. Adicione os arquivos Lua necéssarios:
