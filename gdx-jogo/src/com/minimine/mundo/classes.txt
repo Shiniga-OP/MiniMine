@@ -12,6 +12,8 @@ public class Biomas {
 	 que addArvores chame calcularDadosColuna de novo pra cada coluna(eliminava
 	 até 144 chamadas extras por chunk de floresta, duplicando o tempo de geração)
 	 */
+	public static volatile TipoBioma[][] biomasCache = new TipoBioma[16][16];
+
     public static void iniciar() {
         gerador = new GeradorTerreno(Mundo.semente);
     }
@@ -21,7 +23,6 @@ public class Biomas {
         int chunkZ = chunk.z << 4;
 		
 		final int[][] alturas = new int[16][16];
-		final TipoBioma[][] biomasCache = new TipoBioma[16][16];
 		
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {

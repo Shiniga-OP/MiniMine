@@ -68,7 +68,7 @@ public class Mundo {
     public static final int TAM_CHUNK = 16, Y_CHUNK = 255;
     public static final int CHUNK_AREA = TAM_CHUNK * TAM_CHUNK;
     public static long semente = 0L;
-	public static int RAIO_CHUNKS = 5;
+	public static int RAIO_CHUNKS = 1;
 
     public static Simplex2D s2D;
 	public static Simplex3D s3D;
@@ -366,8 +366,8 @@ public class Mundo {
 					if(chunk.malha != null) praLiberar.add(chunk);
 				}
 				praRemover.add(chave);
-			} else if(chunk.att && !chunk.fazendo) {
-				// Se a luz está suja, recalcula antes de gerar a malha
+			} else if(chunk.att && !chunk.fazendo && estados.getOrDefault(chave, 0) >= 1) {
+				// Só atualiza se os dados já estão prontos — evita gerar malha de chunk ainda em geração
 				if(chunk.luzSuja) {
 					ChunkLuz.attLuz(chunk);
 				}
@@ -438,19 +438,10 @@ public class Mundo {
 		exec.submit(new Runnable() {
 				@Override
 				public void run() {
+					// pré-processa tudo antes de publicar o estado
 					Biomas.escolher(chunk);
-					ChunkLuz.calcularLuz(chunk);
 					chunk.dadosProntos = true;
-					estados.put(chave, 1); // agora ta pronta pra que as vizinhas gerem malha
-
-					// notifica as 4 vizinhas diretas que um novo vizinho ficou disponível
-					// garante que faces de borda omitidas (chunk era null na geração) sejam regeneradas
-					int[] dxs = {-1, 1, 0, 0};
-					int[] dzs = {0, 0, -1, 1};
-					for(int i = 0; i < 4; i++) {
-						Chunk viz = chunks.get(Chave.calcularChave(chunk.x + dxs[i], chunk.z + dzs[i]));
-						if(viz != null && !viz.fazendo) viz.att = true;
-					}
+					estados.put(chave, 1); // sinal atomico: so agora o chunk é elegivel pra malha
 				}
 			});
 	}
@@ -463,6 +454,8 @@ public class Mundo {
 		exec.submit(new Runnable() {
 				@Override
 				public void run() {
+					ChunkLuz.calcularLuz(chunk);
+					
 					final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
 					final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
 					final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
@@ -626,5 +619,6 @@ public class Mundo {
         return Bloco.blocos.get(Bloco.blocos.size()-1);
     }
 }
+
 
 
