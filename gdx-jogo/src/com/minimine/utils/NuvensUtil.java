@@ -21,8 +21,7 @@ public class NuvensUtil {
     public static final float VELO = 0.2f;
 	
     public static Vector3 centro= new Vector3();
-    public static boolean primeiraVez = true;
-	
+    
     public static String vert = 
     "attribute vec3 a_pos;\n" +
     "uniform mat4 u_projPos;\n" +
@@ -41,11 +40,17 @@ public class NuvensUtil {
 	
 	public static VertexAttribute atribus = new VertexAttribute(VertexAttributes.Usage.Position, 3, "a_pos");
 
-    public static void iniciar() {
+    public static void iniciar(Vector3 pos) {
         nuvensPos = new float[NUM_NUVENS * 4];
         shader = new ShaderProgram(vert, frag);
 
         if(!shader.isCompiled()) Gdx.app.log("Shader", "[ERRO]: " + shader.getLog());
+		
+		for(int i = 0; i < NUM_NUVENS; i++) {
+			gerarNuvem(i, pos);
+		}
+		attMesh();
+		centro.set(pos);
     }
 
     public static void gerarNuvem(int idc, Vector3 centro) {
@@ -121,15 +126,7 @@ public class NuvensUtil {
 
     public static void att(float delta, Vector3 pos) {
         tempo = DiaNoiteUtil.tempo_velo;
-        if(primeiraVez) {
-            for(int i = 0; i < NUM_NUVENS; i++) {
-                gerarNuvem(i, pos);
-            }
-            attMesh();
-            centro.set(pos);
-            primeiraVez = false;
-            return;
-        }
+        
         boolean precisaAtt = false;
         // movimento
         for(int i = 0; i < NUM_NUVENS; i++) {
@@ -180,5 +177,6 @@ public class NuvensUtil {
     public static void liberar() {
 		malha.dispose();
         shader.dispose();
+		malha = null;
     }
 }

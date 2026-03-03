@@ -77,7 +77,6 @@ public class Inicio extends Game {
 			Texturas.icones.dispose();
 			Texturas.base.dispose();
 			Texturas.atlas.clear();
-			NuvensUtil.liberar();
 			CorposCelestes.liberar();
 			Audio.liberar();
 			Musicas.liberar();

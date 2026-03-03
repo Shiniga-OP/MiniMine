@@ -139,7 +139,7 @@ public class Render {
 
         ShaderProgram.pedantic = false;
 
-        if(mundo.nuvens && NuvensUtil.primeiraVez) NuvensUtil.iniciar();
+        if(mundo.nuvens) NuvensUtil.iniciar(ui.jg.posicao);
         if(mundo.ciclo) CorposCelestes.iniciar();
 
         mb = new ModelBatch(); // carrega o gerenciador de modelos das entidades
@@ -271,6 +271,7 @@ public class Render {
         mundo.liberar();
         mb.dispose();
         gp.liberar();
+		if(mundo.nuvens) NuvensUtil.liberar();
 		Animacoes2D.liberar();
     }
 }
