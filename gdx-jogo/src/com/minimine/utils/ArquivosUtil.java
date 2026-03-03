@@ -188,7 +188,6 @@ public class ArquivosUtil {
         } finally {
             try { if(zis != null) zis.close(); } catch(Throwable t) {}
         }
-        Mundo.carregado = sucesso;
         if(sucesso && debug) Gdx.app.log("ArquivosUtil", "[AVISO] mundo carregado");
     }
 	// gravadores e leitores de binarios:
