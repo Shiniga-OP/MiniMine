@@ -13,7 +13,7 @@ public class Modelos {
 	public static Model obterModelo(String caminho) {
 		if(modelos.containsKey(caminho)) return modelos.get(caminho).scene.model;
 		
-		SceneAsset ativoCena = new GLTFLoader().load(Gdx.files.internal("modelos/foca.gltf"));
+		SceneAsset ativoCena = new GLTFLoader().load(Gdx.files.internal(caminho));
 		 modelos.put(caminho, ativoCena);
 		 
 		 return modelos.get(caminho).scene.model;
