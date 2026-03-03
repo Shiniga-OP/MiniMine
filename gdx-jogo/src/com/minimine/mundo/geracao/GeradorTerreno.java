@@ -33,7 +33,7 @@ public class GeradorTerreno {
         this.erosao.simularGotas(500, dominio);
     }
 
-    public int[] calcularDadosColuna(int x, int z) {
+    public void calcularDadosColuna(int x, int z, int[] buffer) {
         double base = dominio.obterElevacaoContinental(x, z);
         double tipoTerreno = identificarTipo(base);
         double altura = base;
@@ -82,7 +82,8 @@ public class GeradorTerreno {
         int alturaFinal = Math.max(1, Math.min(240, blocos));
         TipoBioma bioma = determinarBioma(x, z, alturaFinal, base);
 
-        return new int[] { alturaFinal, bioma.ordinal() };
+        buffer[0] = alturaFinal;
+		buffer[1] = bioma.ordinal();
     }
 
     public double identificarTipo(double base) {
@@ -134,23 +135,26 @@ public class GeradorTerreno {
      * calcula de uma vez quais Y da coluna são vazios(caverna, ravina ou arco)
      * sem mais chamadas separadas a temRavina/temArco/temCaverna por bloco
      */
-    public boolean[] calcularVaziosColuna(int x, int z, int altura) {
-        boolean[] vazios = new boolean[altura];
+    public void calcularVaziosColuna(int x, int z, int altura, boolean[] buffer) {
+		final boolean podeArco = altura > nivelMar + 20;
+		double pilarArco = podeArco ? celular.ruido(x * 0.015, z * 0.015) : 0;
+		final boolean arcoViavel = podeArco
+			&& pilarArco > 0.35 && pilarArco < 0.55
+			&& ruido.ruido(x * 0.02, z * 0.02) > 0.4;
 
-        // pilar e formato de temArco são 2D puros: calculados uma vez por coluna
-        final boolean podeArco = altura > nivelMar + 20;
-        double pilarArco = podeArco ? celular.ruido(x * 0.015, z * 0.015) : 0;
-        final boolean arcoViavel = podeArco
-            && pilarArco > 0.35 && pilarArco < 0.55
-            && ruido.ruido(x * 0.02, z * 0.02) > 0.4;
-
-        for(int y = 1; y < altura; y++) {
-            vazios[y] = temRavina(x, y, z, altura)
-				|| temArcoY(x, y, z, altura, arcoViavel)
-				|| temCaverna(x, y, z);
-        }
-        return vazios;
-    }
+		// limites reais de cada sistema:
+		// caverna: y = 10..140
+		// ravina: y = (altura-40)..(altura)
+		// arco:  y = (altura-25)..(altura+15), mas array vai até altura
+		int yMin = Math.max(1, Math.min(altura - 40, 10));
+		
+		for(int y = yMin; y < altura; y++) {
+			boolean ravina = (y >= altura - 40) && temRavina(x, y, z, altura);
+			boolean arco = !ravina && arcoViavel && (y >= altura - 25) && temArcoY(x, y, z, altura, true);
+			boolean caverna = !ravina && !arco && (y >= 10 && y <= 140) && temCaverna(x, y, z);
+			buffer[y] = ravina || arco || caverna;
+		}
+	}
 
     // versão interna, recebe arcoViavel ja calculado fora do loop
     private boolean temArcoY(int x, int y, int z, int alturaSuperficie, boolean arcoViavel) {

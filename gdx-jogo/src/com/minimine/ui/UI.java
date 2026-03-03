@@ -240,7 +240,6 @@ public class UI implements InputProcessor {
 				}
 				public void aoSoltar(){jg.baixo = false;}
 			});
-
         botoesDpad.put("acao", new BotaoDpad(Texturas.atlas.get("clique"), tam) {
 				public void aoTocar() {
 					if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
@@ -255,11 +254,11 @@ public class UI implements InputProcessor {
 				public void aoSoltar() { jg.acao = false; }
 			});
         botoesDpad.put("inv", new BotaoDpad(Texturas.atlas.get("clique"), jg.inv.tamSlot) {
-				public void aoTocar()  { jg.inv.alternar(); }
+				public void aoTocar() { jg.inv.alternar(); }
 				public void aoSoltar() {}
 			});
         botoesDpad.put("receita", new BotaoDpad(Texturas.atlas.get("receita"), jg.inv.tamSlot) {
-				public void aoTocar()  { Receitas.fabricar(jg.inv); }
+				public void aoTocar() { Receitas.fabricar(jg.inv); }
 				public void aoSoltar() {}
 			});
         botoesDpad.put("menu_principal", new BotaoDpad(Texturas.atlas.get("receita"), tam) {
@@ -313,7 +312,7 @@ public class UI implements InputProcessor {
         }
         if(spriteMira != null) {
             spriteMira.setPosition(v / 2f - spriteMira.getWidth() / 2f,
-								   h / 2f - spriteMira.getHeight() / 2f);
+			h / 2f - spriteMira.getHeight() / 2f);
             spriteMira.setAlpha(0.9f);
         }
     }
@@ -514,6 +513,7 @@ public class UI implements InputProcessor {
         fonte.dispose();
         gerenciador.liberar();
         MenuPause.liberar();
+		botoesDpad.clear();
     }
 
     @Override
@@ -703,11 +703,11 @@ public class UI implements InputProcessor {
         return true;
     }
 
-    private abstract class BotaoDpad {
+    public abstract class BotaoDpad {
         public final Sprite sprite;
         public final com.badlogic.gdx.math.Rectangle hitbox;
 
-        public BotaoDpad(com.badlogic.gdx.graphics.g2d.TextureRegion textura, float tam) {
+        public BotaoDpad(TextureRegion textura, float tam) {
             sprite = new Sprite(textura);
             sprite.setSize(tam, tam);
             sprite.setAlpha(0.9f);

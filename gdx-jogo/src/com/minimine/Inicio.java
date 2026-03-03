@@ -50,6 +50,8 @@ public class Inicio extends Game {
 		Musicas.addMusica("igor", "audio/musicas/igor.ogg");
 		Musicas.addMusica("igor-2", "audio/musicas/igor-2.ogg");
 		
+		Texturas.iniciar();
+		
 		defTela(Cenas.intro);
 	}
 
@@ -71,12 +73,7 @@ public class Inicio extends Game {
 	public void dispose() {
 		super.dispose();
 		try {
-			for(Texture tex : Texturas.texs.values()) tex.dispose();
-			Texturas.blocos.dispose();
-			Texturas.agua.dispose();
-			Texturas.icones.dispose();
-			Texturas.base.dispose();
-			Texturas.atlas.clear();
+			Texturas.liberar();
 			CorposCelestes.liberar();
 			Audio.liberar();
 			Musicas.liberar();

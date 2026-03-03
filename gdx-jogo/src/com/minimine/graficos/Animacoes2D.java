@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.Gdx;
 import java.util.ArrayList;
 import java.util.List;
+import com.badlogic.gdx.graphics.GL20;
 
 public class Animacoes2D {
     // lista de animações ativas
@@ -105,13 +106,16 @@ public class Animacoes2D {
 
     public static void attTextura(InfoAnimacao anim) {
 		Pixmap p = anim.quadros[anim.quadroAtual];
-
+		
+		if(p == null) {
+			throw new RuntimeException("[Animacoes2D]: [ERRO] quadro é null, quantidade de quadros: "+anim.quadros.length+", quadro acessado: "+anim.quadroAtual);
+		}
 		// 1. vincula a textura que queremos alterar
 		Texturas.blocos.bind();
 
 		// 2. usa o OpenGL pra carimbar os pixels
 		Gdx.gl.glTexSubImage2D(
-			com.badlogic.gdx.graphics.GL20.GL_TEXTURE_2D, 
+			GL20.GL_TEXTURE_2D, 
 			0, // Nível de detalhe(mipmaps)
 			anim.destX, // posição X no atlas
 			anim.destY, // posição Y no atlas

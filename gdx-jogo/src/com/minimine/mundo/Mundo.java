@@ -79,8 +79,12 @@ public class Mundo {
 
     public static ExecutorService exec;
 
-    static {
-        Bloco.blocos.add(null);
+    public void iniciar() {
+        semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
+        s2D = new Simplex2D(semente);
+		s3D = new Simplex3D(semente >> 1);
+		
+		Bloco.blocos.add(null);
         Bloco.blocos.add(new Bloco("grama", "grama_topo", "grama_lado", "terra"));
         Bloco.blocos.add(new Bloco("terra", "terra"));
         Bloco.blocos.add(new Bloco("pedra", "pedra"));
@@ -111,12 +115,6 @@ public class Mundo {
 		Bloco.addSom("folha", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("tabua_madeira", "madeira_1", "madeira_2", "madeira_3");
 		Bloco.addSom("tocha", "madeira_1", "madeira_2", "madeira_3");
-    }
-
-    public void iniciar() {
-        semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
-        s2D = new Simplex2D(semente);
-		s3D = new Simplex3D(semente >> 1);
 
 		Biomas.iniciar();
 
@@ -166,6 +164,10 @@ public class Mundo {
         exec.shutdown();
 		if(com.minimine.ui.UI.debug) Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
 		ArrayReuso.limparPools();
+		Bloco.blocos.clear();
+		Bloco.numIds.clear();
+		Bloco.texIds.clear();
+		Bloco.sons.clear();
     }
 
     public static int obterBlocoMundo(int x, int y, int z) {

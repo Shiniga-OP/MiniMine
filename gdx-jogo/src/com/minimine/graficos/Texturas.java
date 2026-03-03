@@ -14,7 +14,7 @@ public class Texturas {
 	public static Texture icones;
 	public static Texture base;
 	
-	static {
+	public static void iniciar() {
 		try {
 			// atlas:
 			blocos = new Texture(Gdx.files.internal("blocos/blocos.png"));
@@ -73,8 +73,11 @@ public class Texturas {
 		public V obter(Object chave) {
 			V o = super.get(chave);
 			if(o == null) {
-				Gdx.app.log("Texturas", "[ERRO] em: " + chave);
-				if(containsKey("slot")) return super.get("slot");
+				throw new RuntimeException("Texturas: [ERRO] null na textura: " + chave);
+			}
+			TextureRegion tr = (TextureRegion)o;
+			if(tr.getTexture() == null) {
+				throw new RuntimeException("Texturas: [ERRO] null na textura: " + chave);
 			}
 			return o;
 		}
@@ -82,6 +85,11 @@ public class Texturas {
 	
 	public static void liberar() {
 		for(Texture tex : texs.values()) tex.dispose();
+		texs.clear();
+		atlas.clear();
 		blocos.dispose();
+		agua.dispose();
+		icones.dispose();
+		base.dispose();
 	}
 }

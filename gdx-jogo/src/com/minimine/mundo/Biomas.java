@@ -7,6 +7,8 @@ import com.minimine.mundo.geracao.Arvores;
 // interface entre o gerador de terreno e o sistema de chunks
 public class Biomas {
     public static GeradorTerreno gerador;
+	public static final TipoBioma[][] biomasCache = new TipoBioma[16][16];
+	public static final int[] bufferDados = new int[2];
 	/*
 	 calcula e armazena alturas/biomas em cache pra evitar
 	 que addArvores chame calcularDadosColuna de novo pra cada coluna(eliminava
@@ -21,14 +23,15 @@ public class Biomas {
         int chunkZ = chunk.z << 4;
 		
 		final int[][] alturas = new int[16][16];
-		final TipoBioma[][] biomasCache = new TipoBioma[16][16];
 		
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
                 int mundoX = chunkX + x;
                 int mundoZ = chunkZ + z;
+				
+				final int[] dados = new int[2];
 
-                int[] dados = gerador.calcularDadosColuna(mundoX, mundoZ);
+                gerador.calcularDadosColuna(mundoX, mundoZ, dados);
                 alturas[x][z] = dados[0];
                 biomasCache[x][z] = TipoBioma.values()[dados[1]];
 
@@ -45,7 +48,8 @@ public class Biomas {
         ChunkUtil.defBloco(x, 0, z, "pedra", chunk);
 
         // uma chamada por coluna, o gerador resolve internamente quais Y são vazios
-        boolean[] vazios = gerador.calcularVaziosColuna(mundoX, mundoZ, altura);
+		final boolean[] vazios = new boolean[altura];
+        gerador.calcularVaziosColuna(mundoX, mundoZ, altura, vazios);
 
         // blocos de pedra/cascalho do interior
         for(int y = 1; y < altura - 4; y++) {
@@ -170,7 +174,9 @@ public class Biomas {
                 TipoBioma bioma = biomasCache[x][z];
 
                 // atalho rapido: outros biomas não têm arvores
-                if(bioma != TipoBioma.FLORESTA && bioma != TipoBioma.FLORESTA_COSTEIRA && bioma != TipoBioma.FLORESTA_MONTANHOSA) {
+                if(bioma != TipoBioma.FLORESTA &&
+				bioma != TipoBioma.FLORESTA_COSTEIRA &&
+				bioma != TipoBioma.FLORESTA_MONTANHOSA) {
                     continue;
                 }
                 // encontra a altura do terreno nesta posição
@@ -246,8 +252,10 @@ public class Biomas {
 
 	public static String obterBioma(int x, int z) {
 		if(gerador == null) return "Desconhecido";
-
-		TipoBioma bioma = TipoBioma.values()[gerador.calcularDadosColuna(x, z)[1]];
+		
+		gerador.calcularDadosColuna(x, z, bufferDados);
+		
+		TipoBioma bioma = TipoBioma.values()[bufferDados[1]];
 
 		// retorna o nome formatado
 		return bioma_str(bioma);
@@ -277,8 +285,9 @@ public class Biomas {
 					int x = origemX + dx;
 					int z = origemZ + dz;
 
-					int[] dados = gerador.calcularDadosColuna(x, z);
-					TipoBioma bioma = TipoBioma.values()[dados[1]];
+					gerador.calcularDadosColuna(x, z, bufferDados);
+					
+					TipoBioma bioma = TipoBioma.values()[bufferDados[1]];
 
 					if(bioma == alvo) {
 						return new int[]{ x, z };
