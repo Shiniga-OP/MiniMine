@@ -96,10 +96,10 @@ public class Mundo {
 		attChunks((int)jg.posicao.x, (int)jg.posicao.z);
 
 		if(!carregado && estados.size() >= 1) {
-			Integer x = estados.get(Chave.calcularChave((int)jg.posicao.x, (int)jg.posicao.z));
+			Integer x = estados.get(Chave.calcularChave((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4));
 			if(x != null && x == 2) carregado = true;
 		}
-		GerenciadorEntidades.att(delta, this, jg);
+		if(carregado) GerenciadorEntidades.att(delta, this, jg);
         if(ciclo) {
 			CorposCelestes.att(jg.camera.combined, jg.posicao);
 			// ciclo de dia e noite:

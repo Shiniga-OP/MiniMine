@@ -40,6 +40,7 @@ public class Biomas {
         }
         // adiciona arvores depois de gerar todas as colunas, usando o cache
         addArvores(chunk, chunkX, chunkZ, biomasCache, alturas);
+        addVegetacao(chunk, chunkX, chunkZ, biomasCache, alturas);
         chunk.dadosProntos = true;
     }
 
@@ -227,6 +228,74 @@ public class Biomas {
         } else {
             // arvore com copa larga
             Arvores.gerarArvoreLarga(chunk, x, y, z, alturaTronco);
+        }
+    }
+
+    public static void addVegetacao(Chunk chunk, int chunkX, int chunkZ, TipoBioma[][] biomasCache, int[][] alturas) {
+        for(int x = 0; x < 16; x++) {
+            for(int z = 0; z < 16; z++) {
+                int mundoX = chunkX + x;
+                int mundoZ = chunkZ + z;
+                TipoBioma bioma = biomasCache[x][z];
+                int altura = alturas[x][z];
+
+                // so decora superficies acima da água
+                if(altura <= 62) continue;
+
+                // o bloco superficial tem que ser grama
+                int blocoTopo = ChunkUtil.obterBloco(x, altura - 1, z, chunk);
+                if(blocoTopo != 1) continue; // 1 = grama
+
+                // ruidos independentes para tipo e densidade
+                double densRuido  = Mundo.s2D.ruido(mundoX * 0.15, mundoZ * 0.15);
+                double tipoRuido  = Mundo.s2D.ruido(mundoX * 0.35, mundoZ * 0.35);
+                double florRuido  = Mundo.s2D.ruido(mundoX * 0.55, mundoZ * 0.55);
+
+                switch(bioma) {
+                    case PLANICIES:
+                    case PLANICIES_MONTANHOSAS:
+                        // capim denso nas planicies
+                        if(densRuido > 0.45) {
+                            ChunkUtil.defBloco(x, altura, z, "capim", chunk);
+                        }
+                        // flores esparsas
+                        if(florRuido > 0.80) {
+                            String flor = tipoRuido > 0.5 ? "tulipa" : "iris_azul";
+                            ChunkUtil.defBloco(x, altura, z, flor, chunk);
+                        }
+                        break;
+                    case FLORESTA:
+                    case FLORESTA_COSTEIRA:
+                        // sub-bosque: capim moderado + flores ocasionais
+                        if(densRuido > 0.55) {
+                            ChunkUtil.defBloco(x, altura, z, "capim", chunk);
+                        }
+                        if(florRuido > 0.85) {
+                            String flor = tipoRuido > 0.6 ? "iris_azul" : "tulipa";
+                            ChunkUtil.defBloco(x, altura, z, flor, chunk);
+                        }
+                        break;
+
+                    case FLORESTA_MONTANHOSA:
+                        // vegetação esparsa de altitude
+                        if(densRuido > 0.65) {
+                            ChunkUtil.defBloco(x, altura, z, "capim", chunk);
+                        }
+                        // iris azul combina bem com altitude
+                        if(florRuido > 0.88) {
+                            ChunkUtil.defBloco(x, altura, z, "iris_azul", chunk);
+                        }
+                        break;
+                    case TUNDRA:
+                        // vegetação rala — só capim isolado
+                        if(densRuido > 0.78) {
+                            ChunkUtil.defBloco(x, altura, z, "capim", chunk);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
 
