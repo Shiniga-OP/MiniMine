@@ -312,7 +312,7 @@ public class ArquivosUtil {
 
     public static void lerJogador(DataInputStream dis, Jogador jogador) throws IOException {
         jogador.modo = dis.readInt();
-        jogador.posicao = new Vector3(dis.readFloat(), dis.readFloat() + 2f, dis.readFloat());
+        jogador.posicao = new Vector3(dis.readFloat(), dis.readFloat(), dis.readFloat());
         jogador.yaw = dis.readFloat();
         jogador.tom = dis.readFloat();
         jogador.item = dis.readUTF();
