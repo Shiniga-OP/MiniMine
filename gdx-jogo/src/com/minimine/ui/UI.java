@@ -509,7 +509,6 @@ public class UI implements InputProcessor {
 
     public void liberar() {
         sb.dispose();
-        fonte.dispose();
         gerenciador.liberar();
         MenuPause.liberar();
 		botoesDpad.clear();

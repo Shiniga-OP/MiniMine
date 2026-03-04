@@ -26,7 +26,7 @@ refeito com LibGDX.
 7. Debug visual.
 8. Sistema de construção.
 9. Barra Rápida.
-10. Mods por Lua no armazenamento externo.
+10. Gerenciador de recursos nativos.
 11. Sistema de ciclo noturno e diário.
 12. Nuvens.
 13. Salvamento dinamico de mundos binario.
@@ -49,8 +49,6 @@ refeito com LibGDX.
 * 0: espectador. Não sofre gravidade ou colisão com blocos. Seus recursos não acabam
 * 1: criativo. Não sofre com gravidade mas colide com blocos. Seus recursos não acabam
 * 2: sobrevivencia. Sofre com gravidade e colide com blocos. Seus recursos acabam.
-
-você pode descobrir mais sobre a API Lua em doc.txt.
 
 ## Blocos:
 0. Ar.
@@ -91,6 +89,9 @@ essas são as receitas atuais e seus resultados:
 
 Dominio de Deformação.
 Erosão Hidraulica.
+
+## Entidades:
+* Foca: Mar Congelado.
 
 ## Biomas:
 
@@ -151,19 +152,9 @@ FPS de 40 a 60 padrão testado com até 121 chunks ativas (raio de 5).
 ## uso de mémoria testada:
 50 MBs do heap java & 24 MBs do heap nativo. (121 chunks ativas)
 
-## Mods Lua:
-você pode criar mods achando a pasta *MiniMine/mods/* no armazenamento externo. Adicione os arquivos Lua necéssarios:
-
-att.lua // será chamado no loop principal
-
-e para adicionar mais de um arquivo individual, adicione o caminho relativo a pasta atual em *MiniMine/mods/arquivos.mini*. os arquivos são separados e carregados por quebra de linha.
-
-## AVISO
-o jogo ainda não foi lançado e a API Lua ainda pode mudar bastante.
-
 ## Adicionais:
 
-caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMine/debug/logs.txt*, onde logs são acumulados a cada entrada em um mundo.
+caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMine/debug/logs.txt*, onde logs são acumulados.
 
 ## Dispositivos usados para testes:
 ## Celular:

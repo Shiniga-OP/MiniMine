@@ -153,7 +153,7 @@ public class ChunkMalha {
     }
 
     public static void malhaPlana(int[] mascara, int largura, int altura,
-								  int profundidade, int faceId, Chunk chunk, FloatArrayUtil verts, ShortArrayUtil idcSolidos, ShortArrayUtil idcTransp) {
+	int profundidade, int faceId, Chunk chunk, FloatArrayUtil verts, ShortArrayUtil idcSolidos, ShortArrayUtil idcTransp) {
         int n = 0;
         for(int j = 0; j < altura; j++) {
             for(int i = 0; i < largura; ) {

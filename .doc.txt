@@ -1,0 +1,26 @@
+/*
+* Documentação Oficial do MiniMine.
+* Versão v0.0.1.
+* Atualizada: 08/12/2025.
+* Por: Shiniga-OP.
+* Contribuidores da documentação: 
+* Green: https://youtube.com/@greenlevelcreatordev?si=q1HhyS115FbbPhOI
+* VDLN7: https://youtube.com/@violetbrasilofc?si=Ip8AkZdPnDDdFjGm
+*/
+### BÁSICO ###
+
+vá até a pasta /MiniMine/mods/
+
+adicione um arquivo .lua e escreva seu codigo nele. "script.lua" por exemplo.
+
+abra o arquivo "arquivos.mini" e escreva o caminho de seu script nele.
+
+inicie um mundo e veja seu script ser executado. Adicione mais scripts colocando seus caminhos separados por quebra de linha.
+
+caso queira um loop de execução em tempo de jogo, crie um arquivo att.lua, que não precisa ser adicionado ao "arquivos.mini".
+
+ele será um loop automatico do jogo, e tudo nele será executado diversas vezes até o app fechar.
+
+sobre especificações:
+
+todos os caminhos devem ser relativos a pasta "/MiniMine/mods/".

@@ -216,7 +216,6 @@ public class Jogador extends Entidade {
 			camera.update();
 			return; // camera ainda não ta pronta, pula o render desse frame
 		}
-		
 		// calculo do balanço(oscilação)
 		// seno faz o movimento lateral(X)
 		float balancoX = (float)Math.sin(tempoAnimacao * 0.5f) * 0.05f;

@@ -21,6 +21,14 @@ import com.minimine.audio.Audio;
 import com.minimine.Cenas;
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.graficos.Render;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.minimine.graficos.Modelos;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.minimine.ui.InterUtil;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.minimine.entidades.Jogador;
 
 public class LuaAPI {
 	public static Globals globais;
@@ -30,30 +38,18 @@ public class LuaAPI {
 	public static float delta;
 	public static String pacote;
 	public static boolean existeAtt = false;
+	public static Jogador jogador;
 	
 	public static void iniciar() {
 		pacote = Inicio.externo+"/MiniMine/mods/";
+		
+		jogador = Jogo.render.ui.jg;
 		
 		String script = "";
 		
 		globais = JsePlatform.standardGlobals();
 		
-		globais.set("mundo", CoerceJavaToLua.coerce(Jogo.mundo));
-		globais.set("jogador", CoerceJavaToLua.coerce(Jogo.render.ui.jg));
-		globais.set("ui", CoerceJavaToLua.coerce(Jogo.render.ui));
-		globais.set("util", CoerceJavaToLua.coerce(new Util()));
-		globais.set("biomas", CoerceJavaToLua.coerce(new Biomas()));
-		globais.set("chunkutil", CoerceJavaToLua.coerce(new ChunkUtil()));
-		globais.set("texutil", CoerceJavaToLua.coerce(new Texturas()));
-		globais.set("nuvens", CoerceJavaToLua.coerce(new NuvensUtil()));
-		globais.set("ciclo", CoerceJavaToLua.coerce(new DiaNoiteUtil()));
-		globais.set("gdx", CoerceJavaToLua.coerce(new Gdx()));
-		globais.set("lua", CoerceJavaToLua.coerce(new LuaAPI()));
-		globais.set("arquivos", CoerceJavaToLua.coerce(new ArquivosUtil()));
-		globais.set("audio", CoerceJavaToLua.coerce(new Audio()));
-		globais.set("cenas", CoerceJavaToLua.coerce(new Cenas()));
-		globais.set("bloco", CoerceJavaToLua.coerce(new Bloco()));
-		globais.set("particulas", CoerceJavaToLua.coerce(Render.gp));
+		globais.set("api", CoerceJavaToLua.coerce(new LuaAPI()));
 		
 		aoAjustar = new LuaFunction() {
 			public LuaValue call(LuaValue arg) {
@@ -117,5 +113,40 @@ public class LuaAPI {
 	
 	public static void exec(String codigo) {
 		globais.load(codigo, "script").call();
+	}
+	
+	public static Bloco criarBloco(String nome, String pedacoAtlas) {
+		return new Bloco(nome, pedacoAtlas);
+	}
+	
+	public static ModelInstance obterModeloGLTF(String caminho) {
+		return new ModelInstance(Modelos.obterModelo(caminho, false));
+	}
+
+	public static Texture carregarTextura(String nome, String caminho) {
+		if(Texturas.texs.containsKey(nome)) Texturas.texs.get(nome).dispose();
+		Texturas.texs.put(nome, new Texture(Gdx.files.absolute(Inicio.externo+"/MiniMine/mods/"+caminho)));
+		return Texturas.texs.get(nome);
+	}
+	
+	public static TextureRegion obterRegiaoAtlas(String nome, Texture textura, int x, int y, int tamX, int tamY) {
+		Texturas.atlas.put(nome, new TextureRegion(textura, x, y, tamX, tamY));
+		return Texturas.atlas.get(nome);
+	}
+
+	public static BitmapFont carregarFonte(String caminho, int tam) {
+		return InterUtil.carregarFonte(caminho, tam);
+	}
+
+	public static Sprite criarSprite(Texture textura) {
+		return new Sprite(textura);
+	}
+	
+	public static Sprite criarSprite(TextureRegion textura) {
+		return new Sprite(textura);
+	}
+
+	public static Sprite criarSprite(String textura) {
+		return new Sprite(Texturas.texs.get(textura));
 	}
 }

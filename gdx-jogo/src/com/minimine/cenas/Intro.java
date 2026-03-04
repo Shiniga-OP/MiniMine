@@ -231,7 +231,6 @@ public class Intro implements Screen {
     public void dispose() {
         mb.dispose();
         sb.dispose();
-        fonte.dispose();
     }
     @Override public void hide() {
 		dispose();

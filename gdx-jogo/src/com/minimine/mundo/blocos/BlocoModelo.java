@@ -43,8 +43,8 @@ public class BlocoModelo {
         if(mapaTexturas.containsKey(nome)) {
             return (float) mapaTexturas.get(nome, 0);
         }
-        TextureRegion region = Texturas.atlas.get(nome);
-        if(region == null) return 0f; // textura faltando, usa ID 0 ou trata erro
+        TextureRegion regiao = Texturas.atlas.get(nome);
+        if(regiao == null) return 0f; // textura faltando, usa ID 0 ou trata erro
 
         int id = contaTexturas;
         if(id >= 256) return 0f; // limite de segurança do array/shader
@@ -53,13 +53,13 @@ public class BlocoModelo {
 
         // preenche os dados que o shader vai ler(uMin, vMin, uMax, vMax)
         int idc = id * 4;
-        dadosAtlas[idc] = region.getU();
-        dadosAtlas[idc + 1] = region.getV();
-        dadosAtlas[idc + 2] = region.getU2();
-        dadosAtlas[idc + 3] = region.getV2();
+        dadosAtlas[idc] = regiao.getU();
+        dadosAtlas[idc + 1] = regiao.getV();
+        dadosAtlas[idc + 2] = regiao.getU2();
+        dadosAtlas[idc + 3] = regiao.getV2();
 
         contaTexturas++;
-        return (float) id;
+        return (float)id;
     }
 
     /*
@@ -70,7 +70,7 @@ public class BlocoModelo {
      * Y: 0-511(9 bits, pos 5) 
      * Z: 0-31(5 bits, pos 14)
      */
-    private static int compactarPosicao(int x, int y, int z) {
+    public static final int compactarPosicao(int x, int y, int z) {
         return (x & 0x1F) | ((y & 0x1FF) << 5) | ((z & 0x1F) << 14);
     }
 

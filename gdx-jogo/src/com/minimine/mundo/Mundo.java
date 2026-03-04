@@ -534,28 +534,5 @@ public class Mundo {
 			return "Desconhecido";
 	    } 
     }
-    // API:
-    public static Bloco addBloco(String nome, String topo) {
-        return addBloco(nome, topo, topo, topo, false, true);
-    }
-
-    public static Bloco addBloco(String nome, String topo, String lados) {
-        return addBloco(nome, topo, lados, topo, false, true);
-    }
-
-    public static Bloco addBloco(String nome, String topo, String lados, String baixo) {
-        return addBloco(nome, topo, lados, baixo, false, true);
-    }
-
-    public static Bloco addBloco(String nome, String topo, String lados, String baixo, boolean alfa, boolean solido) {
-        return addBloco(nome, topo, lados, baixo, alfa, solido, 0);
-    }
-
-	public static Bloco addBloco(String nome, String topo, String lados, String baixo, boolean alfa, boolean solido, int luz) {
-        Bloco.blocos.add(new Bloco(nome, topo, lados, baixo, alfa, solido, true, luz, false));
-        return Bloco.blocos.get(Bloco.blocos.size()-1);
-    }
 }
-
-
 
