@@ -10,7 +10,7 @@ public class ChunkMalha {
     public static final int MASCARA_MAX = 16 * Mundo.Y_CHUNK;
 
     // reutiliza array de mascara por thread
-    private static final ThreadLocal<int[]> MASCARA_CACHE = new ThreadLocal<int[]>() {
+    public static final ThreadLocal<int[]> MASCARA_CACHE = new ThreadLocal<int[]>() {
         @Override protected int[] initialValue() { return new int[MASCARA_MAX]; }
     };
 

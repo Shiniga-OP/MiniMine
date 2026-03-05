@@ -3,28 +3,36 @@ package com.minimine.mundo;
 import com.minimine.mundo.blocos.Bloco;
 
 public class ChunkUtil {
+	public static final int[] LOG2_BLOCOS = new int[33];
+	static {
+		LOG2_BLOCOS[4] = 2;
+		LOG2_BLOCOS[8] = 3;
+		LOG2_BLOCOS[16] = 4;
+		LOG2_BLOCOS[32] = 5;
+	}
+	
 	public static byte obterLuzCompleta(int x, int y, int z, Chunk chunk) {
-		int idc = x + (z << 4) + (y * Mundo.CHUNK_AREA);
+		int idc = x + (z << 4) + (y << 8);
 		return chunk.luz[idc];
 	}
 
 	public static byte obterLuzBloco(int x, int y, int z, Chunk chunk) {
-		int idc = x + (z << 4) + (y * Mundo.CHUNK_AREA);
+		int idc = x + (z << 4) + (y << 8);
 		return (byte)(chunk.luz[idc] & 15);
 	}
 
 	public static byte obterLuzCeu(int x, int y, int z, Chunk chunk) {
-		int idc = x + (z << 4) + (y * Mundo.CHUNK_AREA);
+		int idc = x + (z << 4) + (y << 8);
 		return (byte)((chunk.luz[idc] >> 4) & 15);
 	}
 
 	public static void defLuzBloco(int x, int y, int z, byte valor, Chunk chunk) {
-		int idc = x + (z << 4) + (y * Mundo.CHUNK_AREA);
+		int idc = x + (z << 4) + (y << 8);
 		chunk.luz[idc] = (byte)((chunk.luz[idc] & 0xF0) | (valor & 15));
 	}
 
 	public static void defLuzCeu(int x, int y, int z, byte valor, Chunk chunk) {
-		int idc = x + (z << 4) + (y * Mundo.CHUNK_AREA);
+		int idc = x + (z << 4) + (y << 8);
 		chunk.luz[idc] = (byte)((chunk.luz[idc] & 0x0F) | ((valor & 15) << 4));
 	}
 
@@ -49,45 +57,43 @@ public class ChunkUtil {
 	}
 
 	public static boolean ehSolido(int x, int y, int z, Chunk chunk) {
-		if(x < 0 || x >= 16 || y < 0 || y >= Mundo.Y_CHUNK || z < 0 || z >= 16) {
+		if(x < 0 || x >= 16 || y < 0 || y >= 256 || z < 0 || z >= 16) {
 			return false;
 		}
-		int total = x + (z << 4) + (y * 256);
+		int total = x + (z << 4) + (y << 8);
 		int[] arr = chunk.blocos;
 
 		int bloco;
 		if(chunk.usaPaleta) {
-			int idc = lerPacote(total, chunk.paletaBits, arr, chunk.blocosPorInt);
+			int idc = lerPacote(total, chunk.paletaBits, arr, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 			bloco = chunk.paleta[idc];
 		} else {
-			bloco = lerPacote(total, chunk.bitsPorBloco, arr, chunk.blocosPorInt);
+			bloco = lerPacote(total, chunk.bitsPorBloco, arr, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 		}
 		return bloco != 0;
 	}
 
 	public static int bitsPraMaxId(int maxId) {
-		// lerPacote/gravarPacote usam bit-shift assumindo que blocosPorInt é potência de 2.
-		// Isso só é verdade quando bits ∈ {1, 2, 4, 8} → blocosPorInt ∈ {32, 16, 8, 4}.
-		// Valores como 3, 5, 6, 7 resultam em blocosPorInt ímpar e corrompem o índice.
+		// lerPacote/gravarPacote usam bit-shift assumindo que blocosPorInt é potencia de 2
+		// isso so é verdade quando bits e {1, 2, 4, 8} -> blocosPorInt e {32, 16, 8, 4}.
+		// valores como 3, 5, 6, 7 resultam em blocosPorInt ímpar e corrompem o indice
 		if(maxId <= 1)  return 1; // 32 blocos/int
 		if(maxId <= 3)  return 2; // 16 blocos/int
 		if(maxId <= 15) return 4; //  8 blocos/int
-		return 8;                 //  4 blocos/int
+		return 8; //  4 blocos/int
 	}
-
+	
 	// usa bit-shift
-	// blocosPorInt é sempre potência de 2 (32/1=32, 32/2=16, 32/4=8, 32/8=4),
-	// então: x/n == x>>log2(n)  e  x%n == x&(n-1)
-	public static int lerPacote(int indiceGlobal, int bits, int[] arr, int blocosPorInt) {
-		int log2 = Integer.numberOfTrailingZeros(blocosPorInt);
+	// blocosPorInt é sempre potencia de 2(32/1=32, 32/2=16, 32/4=8, 32/8=4),
+	// então: x/n == x>>log2(n) e x%n == x&(n-1)
+	public static int lerPacote(int indiceGlobal, int bits, int[] arr, int blocosPorInt, int log2) {
 		int idc = indiceGlobal >> log2;
 		int bitPos = (indiceGlobal & (blocosPorInt - 1)) * bits;
 		int mascara = (1 << bits) - 1;
 		return (arr[idc] >>> bitPos) & mascara;
 	}
 
-	public static void gravarPacote(int indiceGlobal, int valor, int bits, int[] arr, int blocosPorInt) {
-		int log2 = Integer.numberOfTrailingZeros(blocosPorInt);
+	public static void gravarPacote(int indiceGlobal, int valor, int bits, int[] arr, int blocosPorInt, int log2) {
 		int idc = indiceGlobal >> log2;
 		int bitPos = (indiceGlobal & (blocosPorInt - 1)) * bits;
 		int mascara = ((1 << bits) - 1) << bitPos;
@@ -100,18 +106,17 @@ public class ChunkUtil {
 		if(chunk.blocos == null) return 0;
 
 		if(chunk.usaPaleta) {
-			int idc = lerPacote(total, chunk.paletaBits, chunk.blocos, chunk.blocosPorInt);
+			int idc = lerPacote(total, chunk.paletaBits, chunk.blocos, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 			if(idc < 0 || idc >= chunk.paletaTam) return 0;
 			return chunk.paleta[idc];
 		} else {
-			return lerPacote(total, chunk.bitsPorBloco, chunk.blocos, chunk.blocosPorInt);
+			return lerPacote(total, chunk.bitsPorBloco, chunk.blocos, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 		}
 	}
 
 	public static void defBloco(int x, int y, int z, CharSequence nome, Chunk chunk) {
 		int bloco = nome.equals("ar") ? 0 : Bloco.texIds.get(nome).tipo;
-		int totalTam = Mundo.TAM_CHUNK; // local pra JIT
-		int total = x + (z * totalTam) + (y * totalTam * totalTam);
+		final int total = x + (z << 4) + (y << 8);
 		// se ta em modo paleta, tenta usar/expandir paleta
 		if(chunk.usaPaleta) {
 			// procura na paleta
@@ -126,7 +131,7 @@ public class ChunkUtil {
 					// cabe na paleta atual
 					if(chunk.paletaTam >= chunk.paleta.length) {
 						// aumenta array se necessario
-						int[] novo = new int[Math.max(chunk.paleta.length * 2, capacidade)];
+						int[] novo = new int[Math.max(chunk.paleta.length << 1, capacidade)];
 						System.arraycopy(chunk.paleta, 0, novo, 0, chunk.paleta.length);
 						chunk.paleta = novo;
 					}
@@ -144,7 +149,7 @@ public class ChunkUtil {
 						}
 						if(idc == -1) {
 							if(chunk.paletaTam >= chunk.paleta.length) {
-								int[] novo = new int[Math.max(chunk.paleta.length * 2, 1 << chunk.paletaBits)];
+								int[] novo = new int[Math.max(chunk.paleta.length << 1, 1 << chunk.paletaBits)];
 								System.arraycopy(chunk.paleta, 0, novo, 0, chunk.paleta.length);
 								chunk.paleta = novo;
 							}
@@ -160,7 +165,7 @@ public class ChunkUtil {
 			}
 			// se ainda estamos em paleta(idc valido), grava indice
 			if(chunk.usaPaleta) {
-				gravarPacote(total, idc, chunk.paletaBits, chunk.blocos, chunk.blocosPorInt);
+				gravarPacote(total, idc, chunk.paletaBits, chunk.blocos, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 				return;
 			}
 			// caso contrario, conversão ocorreu e prossegue pra modo direto
@@ -168,10 +173,13 @@ public class ChunkUtil {
 		// modo direto: garantias de bits e compactação se necessario
 		if(!chunk.usaPaleta) {
 			if(bloco > chunk.maxIds) {
-				ChunkUtil.compactar(ChunkUtil.bitsPraMaxId(bloco), chunk);
+				int novosBits = ChunkUtil.bitsPraMaxId(bloco);
+				if(chunk.bitsPorBloco != novosBits) {
+					ChunkUtil.compactar(novosBits, chunk);
+				}
 			}
 			// escrever valor direto
-			gravarPacote(total, bloco, chunk.bitsPorBloco, chunk.blocos, chunk.blocosPorInt);
+			gravarPacote(total, bloco, chunk.bitsPorBloco, chunk.blocos, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 		}
 	}
 
@@ -181,22 +189,29 @@ public class ChunkUtil {
 
 		int bitsAntigo = chunk.paletaBits;
 		int blocosPorIntAntigo = chunk.blocosPorInt;
+		
+		// nem precisa repacotar
+		if(bitsAntigo == novosBits) {
+			return; // nada muda
+		}
 		int[] antigos = chunk.blocos;
 
 		chunk.paletaBits = novosBits;
 		chunk.blocosPorInt = 32 / chunk.paletaBits;
 
-		int totalBlocos = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+		final int totalBlocos = 1 << 16;
 		int tamNovo = (totalBlocos + chunk.blocosPorInt - 1) / chunk.blocosPorInt;
 		int[] novos = new int[tamNovo];
+		
+		final int log2Antigo = LOG2_BLOCOS[blocosPorIntAntigo];
+		final int log2Novo = LOG2_BLOCOS[chunk.blocosPorInt];
 
 		if(antigos != null && blocosPorIntAntigo > 0 && bitsAntigo > 0) {
+			// lerPacote/gravarPacote usam bit-shift internamente (blocosPorInt é sempre potência de 2)
+			// evita divisão inteira em loop de 65280 iterações
 			for(int i = 0; i < totalBlocos; i++) {
-				int idAntigo = (antigos[i / blocosPorIntAntigo] >>> ((i % blocosPorIntAntigo) * bitsAntigo))
-					& ((1 << bitsAntigo) - 1);
-				int idNovoIdc = i / chunk.blocosPorInt;
-				int idNovoBit = (i % chunk.blocosPorInt) * chunk.paletaBits;
-				novos[idNovoIdc] |= (idAntigo & ((1 << chunk.paletaBits) - 1)) << idNovoBit;
+				int idAntigo = lerPacote(i, bitsAntigo, antigos, blocosPorIntAntigo, log2Antigo);
+				gravarPacote(i, idAntigo, chunk.paletaBits, novos, chunk.blocosPorInt, log2Novo);
 			}
 		}
 		chunk.blocos = novos;
@@ -221,19 +236,21 @@ public class ChunkUtil {
 		chunk.blocosPorInt = 32 / chunk.bitsPorBloco;
 		chunk.maxIds = (1 << chunk.bitsPorBloco) - 1;
 
-		int totalBlocos = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+		int totalBlocos = 1 << 16;
 		int tamNovo = (totalBlocos + chunk.blocosPorInt - 1) / chunk.blocosPorInt;
 		int[] novos = new int[tamNovo];
 
+		
+		final int log2Antigo = LOG2_BLOCOS[blocosPorIntAntigo];
+		final int log2Novo = LOG2_BLOCOS[chunk.blocosPorInt];
+
 		if(antigos != null && blocosPorIntAntigo > 0 && bitsAntigo > 0) {
+			// lerPacote/gravarPacote usam bit-shift internamente(blocosPorInt é sempre potencia de 2)
+			// evita divisão inteira em loop de 65280 iterações
 			for(int i = 0; i < totalBlocos; i++) {
-				int idxPal = (antigos[i / blocosPorIntAntigo] >>> ((i % blocosPorIntAntigo) * bitsAntigo))
-					& ((1 << bitsAntigo) - 1);
-				int real = 0;
-				if(idxPal >= 0 && idxPal < chunk.paletaTam) real = chunk.paleta[idxPal];
-				int idNovoIdc = i / chunk.blocosPorInt;
-				int idNovoBit = (i % chunk.blocosPorInt) * chunk.bitsPorBloco;
-				novos[idNovoIdc] |= (real & ((1 << chunk.bitsPorBloco) - 1)) << idNovoBit;
+				int idcPal = lerPacote(i, bitsAntigo, antigos, blocosPorIntAntigo, log2Antigo);
+				int real = (idcPal >= 0 && idcPal < chunk.paletaTam) ? chunk.paleta[idcPal] : 0;
+				gravarPacote(i, real, chunk.bitsPorBloco, novos, chunk.blocosPorInt, log2Novo);
 			}
 		}
 		chunk.blocos = novos;
@@ -259,23 +276,28 @@ public class ChunkUtil {
 			if(chunk.bitsPorBloco < bitsPorBloco) {
 				int bitsAntigo = chunk.bitsPorBloco;
 				int blocosPorIntAntigo = chunk.blocosPorInt;
+				
+				if(bitsAntigo == bitsPorBloco) return; // evita o loop
+				
 				int[] antigos = chunk.blocos;
 
 				chunk.bitsPorBloco = bitsPorBloco;
 				chunk.blocosPorInt = 32 / chunk.bitsPorBloco;
 				chunk.maxIds = (1 << chunk.bitsPorBloco) - 1;
 
-				int totalBlocos = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
-				int tamNovo = (totalBlocos + chunk.blocosPorInt - 1) / chunk.blocosPorInt;
+				final int totalBlocos = 1 << 16;
+				final int tamNovo = (totalBlocos + chunk.blocosPorInt - 1) / chunk.blocosPorInt;
 				int[] novos = new int[tamNovo];
-
+				
+				final int log2Antigo = LOG2_BLOCOS[blocosPorIntAntigo];
+				final int log2Novo = LOG2_BLOCOS[chunk.blocosPorInt];
+				
 				if(antigos != null && blocosPorIntAntigo > 0 && bitsAntigo > 0) {
+					// lerPacote/gravarPacote usam bit-shift internamente(blocosPorInt é sempre potencia de 2)
+					// evita divisão inteira em loop de 65280 iterações
 					for(int i = 0; i < totalBlocos; i++) {
-						int idAntigo = (antigos[i / blocosPorIntAntigo] >>> ((i % blocosPorIntAntigo) * bitsAntigo))
-							& ((1 << bitsAntigo) - 1);
-						int idNovoIdc = i / chunk.blocosPorInt;
-						int idNovoBit = (i % chunk.blocosPorInt) * chunk.bitsPorBloco;
-						novos[idNovoIdc] |= (idAntigo & ((1 << chunk.bitsPorBloco) - 1)) << idNovoBit;
+						int idAntigo = lerPacote(i, bitsAntigo, antigos, blocosPorIntAntigo, log2Antigo);
+						gravarPacote(i, idAntigo, chunk.bitsPorBloco, novos, chunk.blocosPorInt, log2Novo);
 					}
 				}
 				chunk.blocos = novos;
@@ -293,21 +315,22 @@ public class ChunkUtil {
 		chunk.bitsPorBloco = bitsPorBloco;
 		chunk.blocosPorInt = 32 / chunk.bitsPorBloco;
 
-		int totalBlocos = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+		final int totalBlocos = 1 << 16;
 		int tamNovo = (totalBlocos + chunk.blocosPorInt - 1) / chunk.blocosPorInt;
 		int[] novos = new int[tamNovo];
+		
+		final int log2Antigo = LOG2_BLOCOS[blocosPorIntAntigo];
+		final int log2Novo = LOG2_BLOCOS[chunk.blocosPorInt];
 
 		if(antigos != null && blocosPorIntAntigo > 0 && bitsAntigo > 0) {
+			// lerPacote/gravarPacote usam bit-shift internamente(blocosPorInt é sempre potencia de 2)
+			// evita divisão inteira em loop de 65280 iterações
 			for(int i = 0; i < totalBlocos; i++) {
-				int idAntigo = (antigos[i / blocosPorIntAntigo] >>> ((i % blocosPorIntAntigo) * bitsAntigo))
-					& ((1 << bitsAntigo) - 1);
-				int idNovoIdc = i / chunk.blocosPorInt;
-				int idNovoBit = (i % chunk.blocosPorInt) * chunk.bitsPorBloco;
-				novos[idNovoIdc] |= (idAntigo & ((1 << chunk.bitsPorBloco) - 1)) << idNovoBit;
+				int idAntigo = lerPacote(i, bitsAntigo, antigos, blocosPorIntAntigo, log2Antigo);
+				gravarPacote(i, idAntigo, chunk.bitsPorBloco, novos, chunk.blocosPorInt, log2Novo);
 			}
 		}
 		chunk.blocos = novos;
 	}
 }
-
 

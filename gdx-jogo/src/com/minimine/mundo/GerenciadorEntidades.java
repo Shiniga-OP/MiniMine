@@ -78,7 +78,7 @@ public class GerenciadorEntidades {
 			
 			Entidade entidade = null;
 			
-			String bioma = Biomas.obterBioma(mx, mz);
+			String bioma = Mundo.motor.obterBioma(mx, mz);
 			
 			if(bioma.equals("Mar Congelado")) entidade = new Foca(mx, wy, mz);
 			

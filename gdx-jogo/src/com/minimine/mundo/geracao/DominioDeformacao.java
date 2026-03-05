@@ -25,11 +25,11 @@ public class DominioDeformacao {
         // === camada 2: distorção de dominio em escala media ===
         // ruido2 distorce antes de amostrar o detalhe regional;
         // posição grande(3000/5000) evita correlação entre eixos
-        double warpX = ruido2.ruidoFractal(x * 0.00018, z * 0.00018, 2, 0.5, 2.0) * 600.0;
-        double warpZ = ruido2.ruidoFractal(x * 0.00018 + 3000, z * 0.00018 + 5000, 2, 0.5, 2.0) * 600.0;
+        double tamX = ruido2.ruidoFractal(x * 0.00018, z * 0.00018, 2, 0.5, 2.0) * 600.0;
+        double tamZ = ruido2.ruidoFractal(x * 0.00018 + 3000, z * 0.00018 + 5000, 2, 0.5, 2.0) * 600.0;
 
-        double x1 = x + warpX;
-        double z1 = z + warpZ;
+        double x1 = x + tamX;
+        double z1 = z + tamZ;
 
         // === camada 3: detalhe regional(bordas de costas, golfos) ===
         double posX2 = ruido3.ruidoFractal(x1 * 0.00028, z1 * 0.00028, 2, 0.45, 2.0) * 280.0;

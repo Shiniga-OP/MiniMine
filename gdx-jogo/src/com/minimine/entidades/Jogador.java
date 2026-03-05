@@ -17,7 +17,6 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.Model;
 import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
-import com.minimine.mundo.Biomas;
 import com.minimine.cenas.Jogo;
 import com.minimine.graficos.Modelos;
 
@@ -57,7 +56,8 @@ public class Jogador extends Entidade {
 			new java.util.TimerTask() {
 				@Override
 				public void run() {
-					bioma = Biomas.obterBioma((int)posicao.x, (int)posicao.z);
+					if(!Mundo.carregado) return;
+					bioma = Mundo.motor.obterBioma((int)posicao.x, (int)posicao.z);
 				}
 			}, 0, 500);
 		try {

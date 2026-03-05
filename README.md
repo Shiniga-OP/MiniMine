@@ -134,6 +134,10 @@ Erosão Hidraulica.
 * Reutilização de texturas 2D para criação de menus e botões via fatiação.
 * Geração inteligente que econimiza cálculos com base em uma variavel previsivel.
 * Cache de tipos de biomas(também ajuda na transição mais caotica de biomas com neve e areia).
+* Operações bit a bit.
+* Tabela de Log2 pra pacotes de chunks.
+* Cache de alturas para geração de biomas.
+* Travas de segurança para otimização de loops em caso de imutalidado do pacote.
 
 ## Ruídos utilitários:
 3. Simplex2D.java

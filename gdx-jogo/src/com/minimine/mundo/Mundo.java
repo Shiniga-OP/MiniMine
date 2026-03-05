@@ -49,6 +49,7 @@ import java.net.URLDecoder;
 import com.minimine.utils.arrays.ArrayReuso;
 import com.minimine.entidades.Entidade;
 import com.minimine.mundo.blocos.BlocoModelo;
+import com.minimine.mundo.geracao.MotorGeracao;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -65,7 +66,7 @@ public class Mundo {
 	// estados: 0 = vazia, 1 = dados Prontos, 2 = malha Pronta
 	public static final Map<Long, Integer> estados = new ConcurrentHashMap<>();
 
-    public static final int TAM_CHUNK = 16, Y_CHUNK = 255;
+    public static final int TAM_CHUNK = 16, Y_CHUNK = 256;
     public static final int CHUNK_AREA = TAM_CHUNK * TAM_CHUNK;
     public static long semente = 0;
 	public static int RAIO_CHUNKS = 5;
@@ -77,13 +78,15 @@ public class Mundo {
     public static float tick = 0.2f;
 
     public static ExecutorService exec;
+	
+	public static MotorGeracao motor;
 
     public void iniciar() {
         semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
         s2D = new Simplex2D(semente);
 		s3D = new Simplex3D(semente >> 1);
 
-		Biomas.iniciar();
+		motor = new MotorGeracao(semente);
 
         if(exec == null || exec.isShutdown()) exec = Executors.newFixedThreadPool(8);
     }
@@ -375,7 +378,7 @@ public class Mundo {
 				@Override
 				public void run() {
 					// pré-processa tudo antes de publicar o estado
-					Biomas.escolher(chunk);
+					motor.gerarChunk(chunk);
 					chunk.dadosProntos = true;
 					estados.put(chave, 1); // sinal atomico: so agora o chunk é elegivel pra malha
 				}
@@ -517,7 +520,7 @@ public class Mundo {
 				}
 				// se os blocos ainda não foram gerados(biomas não escolhidos)
 				if(!v.dadosProntos) {
-					Biomas.escolher(v);
+					motor.gerarChunk(v);
 					ChunkLuz.calcularLuz(v);
 					v.dadosProntos = true;
 				}

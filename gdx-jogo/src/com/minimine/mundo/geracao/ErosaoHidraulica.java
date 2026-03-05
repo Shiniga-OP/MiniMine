@@ -10,7 +10,7 @@ public class ErosaoHidraulica {
     public final double[][] campoErosao;
     public final int tamMapa;
     public final double escala;
-	public final double[] gradBuffer = new double[2];
+	
     // parametros fisicos
     public static final double CAPACIDADE_SEDIMENTO = 4.0;
     public static final double TAXA_DEPOSICAO = 0.3;
@@ -55,6 +55,7 @@ public class ErosaoHidraulica {
             double alturaAtual = dominio.obterElevacaoContinental(x, z);
 
             // calcula gradiente
+			final double[] gradBuffer = new double[2];
             dominio.obterGradiente(x, z, escala, gradBuffer);
 			double gradX = gradBuffer[0];
 			double gradZ = gradBuffer[1];

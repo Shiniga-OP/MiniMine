@@ -11,7 +11,6 @@ import org.luaj.vm2.LuaFunction;
 import java.io.File;
 import java.io.IOException;
 import com.minimine.utils.ArquivosUtil;
-import com.minimine.mundo.Biomas;
 import com.minimine.mundo.ChunkUtil;
 import com.minimine.graficos.Texturas;
 import com.minimine.utils.NuvensUtil;
@@ -29,6 +28,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.minimine.ui.InterUtil;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.minimine.entidades.Jogador;
+import com.minimine.mundo.geracao.MotorGeracao;
 
 public class LuaAPI {
 	public static Globals globais;
@@ -50,7 +50,7 @@ public class LuaAPI {
 		globais = JsePlatform.standardGlobals();
 		
 		globais.set("api", CoerceJavaToLua.coerce(new LuaAPI()));
-		globais.set("biomas", CoerceJavaToLua.coerce(new Biomas()));
+		globais.set("biomas", CoerceJavaToLua.coerce(Jogo.render.ui));
 		globais.set("jogador", CoerceJavaToLua.coerce(jogador));
 		
 		aoAjustar = new LuaFunction() {

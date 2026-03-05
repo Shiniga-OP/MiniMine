@@ -10,6 +10,7 @@ import com.minimine.mods.LuaAPI;
 import com.minimine.Inicio;
 import com.minimine.utils.DiaNoiteUtil;
 import com.minimine.mundo.blocos.Bloco;
+import com.minimine.mundo.geracao.MotorGeracao;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
@@ -26,11 +27,12 @@ public class Jogo implements Screen {
 		
 		render = new Render(jogador, mundo);
 		
-		Bloco.iniciar();
-		
 		mundo.chunksMod.clear();
 		
+		Bloco.iniciar();
+		
 		if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) ArquivosUtil.crMundo(mundo, jogador);
+		
 		render.mundo.iniciar();
 		
 		LuaAPI.iniciar();

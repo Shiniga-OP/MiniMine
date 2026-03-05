@@ -539,7 +539,7 @@ public class ChunkLuz {
         }
     }
 
-    public static Chunk obterChunk(int cx, int cz) {
+    public static final Chunk obterChunk(int cx, int cz) {
         return Mundo.chunks.get(Chave.calcularChave(cx, cz));
     }
 }
