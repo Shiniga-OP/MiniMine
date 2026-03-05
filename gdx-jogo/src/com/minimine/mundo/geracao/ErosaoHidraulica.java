@@ -1,148 +1,85 @@
 package com.minimine.mundo.geracao;
 
-import com.minimine.utils.ruidos.Simplex2D;
+import com.minimine.utils.ruidos.OpenSimplex2;
 /*
- * simulação de erosão hidraulica usando particulas de água
- * baseia em papeis de geração procedural(olsen, mei, etc)
+ * erosão hidraulica sem estado, infinita
+ * calcula analiticamente o quanto um ponto (x,z) seria erodido
+ * dado o campo de elevação ao redor
+ * forças modeladas:
+ *   1. curvatura local(laplaciano), concavo erode, convexo deposita
+ *   2. inclinação — amplifica o efeito da curvatura, sem sinal próprio
+ *   3. resistência da rocha, ruido regional que modula o resultado
+ * retorna negativo onde houve erosão, positivo onde houve deposição
  */
 public class ErosaoHidraulica {
-    public final Simplex2D ruido;
-    public final double[][] campoErosao;
-    public final int tamMapa;
-    public final double escala;
-	
-    // parametros fisicos
-    public static final double CAPACIDADE_SEDIMENTO = 4.0;
-    public static final double TAXA_DEPOSICAO = 0.3;
-    public static final double TAXA_EROSAO = 0.3;
-    public static final double EVAPORACAO = 0.01;
-    public static final double GRAVIDADE = 4.0;
-    public static final double INERCIA = 0.05;
+    // delta proporcional ao período do campo de elevação
+    // DominioDeformacao tem detalhe mais fino em escala ~0.00038 -> período ~2600 blocos
+    // 100 blocos captura curvatura real sem ser sensivel a erro numerico de ponto flutuante
+    public static final double DELTA = 100.0;
 
-    public ErosaoHidraulica(long semente, int tamMapa, double escala) {
-        this.ruido = new Simplex2D(semente);
-        this.tamMapa = tamMapa;
-        this.escala = escala;
-        this.campoErosao = new double[tamMapa][tamMapa];
-    }
-    // simula gotas de chuva que erodem o terreno
-    public void simularGotas(int numGotas, DominioDeformacao dominio) {
-        for(int i = 0; i < numGotas; i++) {
-            // posição inicial aleatoria
-            double x = ruido.ruido(i * 123.456, i * 789.012) * tamMapa * escala;
-            double z = ruido.ruido(i * 456.789, i * 234.567) * tamMapa * escala;
+    // com delta=100 o laplaciano fica na casa de 1e-8 a 1e-6
+    // tanh(x * NORM) mapeia isso para [-1, 1] suavemente
+    public static final double NORM_CURVATURA  = 8_000_000.0;
 
-            simularGota(x, z, dominio);
-        }
-    }
+    // gradiente típico do campo está em torno de 1e-4 a 5e-4
+    public static final double NORM_INCLINACAO = 8_000.0;
 
-    public void simularGota(double x, double z, DominioDeformacao dominio) {
-        double dirX = 0;
-        double dirZ = 0;
-        double velocidade = 1.0;
-        double agua = 1.0;
-        double sedimento = 0.0;
+    // inclinação amplifica a curvatura, não tem sinal proprio
+    // 1.0 = encosta muito ingreme pode dobrar o efeito
+    public static final double PESO_INCLINACAO = 1.0;
 
-        for(int vida = 0; vida < 20; vida++) {
-            // posição na grade
-            int xi = (int)(x / escala);
-            int zi = (int)(z / escala);
+    // resistencia da rocha, frequencia baixa -> variações regionais
+    public static final double ESCALA_RESISTENCIA = 0.00035;
+    public static final double PESO_RESISTENCIA   = 0.30;
 
-            if(xi < 0 || xi >= tamMapa - 1 || zi < 0 || zi >= tamMapa - 1) {
-                break;
-            }
-            // altura atual
-            double alturaAtual = dominio.obterElevacaoContinental(x, z);
+    // deposição é fisicamente mais fraca que erosão
+    public static final double VALOR_MIN = -1.0;
+    public static final double VALOR_MAX =  0.5;
 
-            // calcula gradiente
-			final double[] gradBuffer = new double[2];
-            dominio.obterGradiente(x, z, escala, gradBuffer);
-			double gradX = gradBuffer[0];
-			double gradZ = gradBuffer[1];
+    public final DominioDeformacao dominio;
+    public final long seedResistencia;
 
-            // atualiza direção com inercia
-            dirX = dirX * INERCIA - gradX * (1.0 - INERCIA);
-            dirZ = dirZ * INERCIA - gradZ * (1.0 - INERCIA);
-
-            // normaliza direção
-            double tam = Math.sqrt(dirX * dirX + dirZ * dirZ);
-            if(tam > 0) {
-                dirX /= tam;
-                dirZ /= tam;
-            }
-            // move particula
-            double xNovo = x + dirX;
-            double zNovo = z + dirZ;
-
-            // altura nova
-            double alturaNova = dominio.obterElevacaoContinental(xNovo, zNovo);
-
-            // diferença de altura
-            double deltaA = alturaNova - alturaAtual;
-
-            // capacidade de carregar sedimento
-            double capacidade = Math.max(-deltaA, 0.01) * velocidade * agua * CAPACIDADE_SEDIMENTO;
-
-            // erosão ou deposição
-            if(sedimento > capacidade) {
-                // deposita excesso
-                double deposito = (sedimento - capacidade) * TAXA_DEPOSICAO;
-                sedimento -= deposito;
-                campoErosao[xi][zi] += deposito;
-            } else {
-                // erode
-                double erosao = Math.min((capacidade - sedimento) * TAXA_EROSAO, -deltaA);
-                sedimento += erosao;
-                campoErosao[xi][zi] -= erosao;
-            }
-            // atualiza velocidade
-            velocidade = Math.sqrt(velocidade * velocidade + deltaA * GRAVIDADE);
-            agua *= (1.0 - EVAPORACAO);
-
-            // para se ficou sem água
-            if(agua < 0.01) {
-                break;
-            }
-            x = xNovo;
-            z = zNovo;
-        }
-    }
-    // obtem o valor de erosão acumulada em uma posição
-    public double obterErosao(double x, double z) {
-        int xi = (int)(x / escala);
-        int zi = (int)(z / escala);
-
-        if(xi < 0 || xi >= tamMapa || zi < 0 || zi >= tamMapa) {
-            return 0;
-        }
-        return campoErosao[xi][zi];
+    public ErosaoHidraulica(long semente, DominioDeformacao dominio) {
+        this.dominio = dominio;
+        this.seedResistencia = semente ^ 0xB5AD4ECBE2A9A0EEL;
     }
 
-    // obtem erosão interpolada bilinear
     public double obterErosaoInterpolada(double x, double z) {
-        double fx = x / escala;
-        double fz = z / escala;
+        // cinco amostras — reutilizadas para curvatura e gradiente
+        double c = dominio.obterElevacaoContinental(x, z);
+        double cx1 = dominio.obterElevacaoContinental(x + DELTA, z);
+        double cx2 = dominio.obterElevacaoContinental(x - DELTA, z);
+        double cz1 = dominio.obterElevacaoContinental(x, z + DELTA);
+        double cz2 = dominio.obterElevacaoContinental(x, z - DELTA);
 
-        int x0 = (int)Math.floor(fx);
-        int z0 = (int)Math.floor(fz);
-        int x1 = x0 + 1;
-        int z1 = z0 + 1;
+        // === curvatura (laplaciano de segunda ordem) ===
+        // negativo = concavo = bacia = erode
+        // positivo = convexo = cume  = deposita
+        double curvatura = (cx1 + cx2 + cz1 + cz2 - 4.0 * c) / (DELTA * DELTA);
+        curvatura = Math.tanh(curvatura * NORM_CURVATURA);
 
-        if(x0 < 0 || x1 >= tamMapa || z0 < 0 || z1 >= tamMapa) {
-            return 0;
-        }
-        double sx = fx - x0;
-        double sz = fz - z0;
+        // === inclinação ===
+        // sempre positiva, so amplifica, não define sinal
+        double gx = (cx1 - cx2) / (2.0 * DELTA);
+        double gz = (cz1 - cz2) / (2.0 * DELTA);
+        double inclinacao = Math.sqrt(gx * gx + gz * gz);
+        inclinacao = Math.tanh(inclinacao * NORM_INCLINACAO);
 
-        double e00 = campoErosao[x0][z0];
-        double e10 = campoErosao[x1][z0];
-        double e01 = campoErosao[x0][z1];
-        double e11 = campoErosao[x1][z1];
+        // inclinação amplifica a curvatura
+        // concavo íngreme erode muito, convexo íngreme deposita muito, plano quase não muda
+        double erosaoGeom = -curvatura * (1.0 + inclinacao * PESO_INCLINACAO);
 
-        double e0 = e00 * (1.0 - sx) + e10 * sx;
-        double e1 = e01 * (1.0 - sx) + e11 * sx;
+        // === resistencia da rocha ===
+        double rocha = OpenSimplex2.ruido2Fractal(
+            seedResistencia,
+            x * ESCALA_RESISTENCIA,
+            z * ESCALA_RESISTENCIA,
+            3, 0.5, 2.0
+        );
+        double fatorRocha = 1.0 - rocha * PESO_RESISTENCIA;
 
-        return e0 * (1.0 - sz) + e1 * sz;
+        double resultado = erosaoGeom * fatorRocha;
+        return Math.max(VALOR_MIN, Math.min(VALOR_MAX, resultado));
     }
 }
 

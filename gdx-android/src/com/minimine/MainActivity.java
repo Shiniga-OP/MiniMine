@@ -5,6 +5,7 @@ import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import android.app.Activity;
 import java.io.File;
+import android.content.pm.ActivityInfo;
 
 public class MainActivity extends AndroidApplication {
 	public static Activity ISSO;
@@ -12,6 +13,8 @@ public class MainActivity extends AndroidApplication {
     @Override
     public void onCreate(Bundle s) {
         super.onCreate(s);
+		
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		
 		try {
 			java.lang.reflect.Method m = android.os.StrictMode.class.getMethod("disableDeathOnFileUriExposure");

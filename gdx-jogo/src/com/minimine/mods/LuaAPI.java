@@ -38,20 +38,20 @@ public class LuaAPI {
 	public static float delta;
 	public static String pacote;
 	public static boolean existeAtt = false;
-	public static Jogador jogador;
+	public static Render render;
 	
 	public static void iniciar() {
 		pacote = Inicio.externo+"/MiniMine/mods/";
 		
-		jogador = Jogo.render.ui.jg;
+		render = Jogo.render;
 		
 		String script = "";
 		
 		globais = JsePlatform.standardGlobals();
 		
 		globais.set("api", CoerceJavaToLua.coerce(new LuaAPI()));
-		globais.set("biomas", CoerceJavaToLua.coerce(Jogo.render.ui));
-		globais.set("jogador", CoerceJavaToLua.coerce(jogador));
+		globais.set("biomas", CoerceJavaToLua.coerce(Jogo.render.mundo.motor));
+		globais.set("jogador", CoerceJavaToLua.coerce(render.ui.jg));
 		
 		aoAjustar = new LuaFunction() {
 			public LuaValue call(LuaValue arg) {

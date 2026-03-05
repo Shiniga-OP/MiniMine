@@ -71,9 +71,6 @@ public class Mundo {
     public static long semente = 0;
 	public static int RAIO_CHUNKS = 5;
 
-    public static Simplex2D s2D;
-	public static Simplex3D s3D;
-
     public static boolean carregado = false, ciclo = true, nuvens = true;
     public static float tick = 0.2f;
 
@@ -83,9 +80,7 @@ public class Mundo {
 
     public void iniciar() {
         semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
-        s2D = new Simplex2D(semente);
-		s3D = new Simplex3D(semente >> 1);
-
+        
 		motor = new MotorGeracao(semente);
 
         if(exec == null || exec.isShutdown()) exec = Executors.newFixedThreadPool(8);

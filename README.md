@@ -17,33 +17,33 @@ refeito com LibGDX.
 * OpenGL: 2.
 
 ## Já feito:
-1. Gerenciamento de chunks dinâmico.
-2. Motor de geração.
-3. Colisão.
-4. Gravidade.
-5. Iluminação global.
-6. Interface de botões de movimentação.
-7. Debug visual.
-8. Sistema de construção.
-9. Barra Rápida.
-10. Gerenciador de recursos nativos.
-11. Sistema de ciclo noturno e diário.
-12. Nuvens.
-13. Salvamento dinamico de mundos binario.
-14. Aúdio (ainda temporario até aúdios gravados manualmente).
-15. Agachamento (evita cair de bordas dos blocos).
-16. Tela de menu e configurações padrão.
-17. Divisão de biomas.
-18. Água animada via *Gdx.gl.glTexSubImage2D(...)*.
-19. Névoa no horizonte.
-20. Inventario.
-21. Menu de pause.
-22. Partículas ao quebrar blocos.
-23. 1-2 músicas.
-24. Divisão de biomas com rúido celular.
-25. Entidades.
-26. Sistema de nascimento de entidades baseado em bioma.
-27. Auto atualização quando ligado a internet.
+* Gerenciamento de chunks dinâmico.
+* Motor de geração.
+* Colisão.
+* Gravidade.
+* Iluminação global.
+* Interface de botões de movimentação.
+* Debug visual.
+* Sistema de construção.
+* Barra Rápida.
+* Gerenciador de recursos nativos.
+* Sistema de ciclo noturno e diário.
+* Nuvens.
+* Salvamento dinamico de mundos binario.
+* Aúdio (ainda temporario até aúdios gravados manualmente).
+* Agachamento (evita cair de bordas dos blocos).
+* Tela de menu e configurações padrão.
+* Divisão de biomas.
+* Água animada via *Gdx.gl.glTexSubImage2D(...)*.
+* Névoa no horizonte.
+* Inventario.
+* Menu de pause.
+* Partículas ao quebrar blocos.
+* 1-2 músicas.
+* Divisão de biomas com rúido celular.
+* Entidades.
+* Sistema de nascimento de entidades baseado em bioma.
+* Auto atualização quando ligado a internet.
 
 ## Modos de jogo:
 * 0: espectador. Não sofre gravidade ou colisão com blocos. Seus recursos não acabam
@@ -140,10 +140,11 @@ Erosão Hidraulica.
 * Travas de segurança para otimização de loops em caso de imutalidado do pacote.
 
 ## Ruídos utilitários:
-3. Simplex2D.java
-4. Simplex3D.java
-5. CristaRuido2D.java
-6. CelularRuido2D.java
+* Simplex2D.java
+* Simplex3D.java
+* CristaRuido2D.java
+* CelularRuido2D.java
+* OpenSimplex2.java
 
 ## compatibilidade:
 * Android 4 até Android 15.
