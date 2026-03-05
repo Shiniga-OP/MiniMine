@@ -27,12 +27,13 @@ public class Jogo implements Screen {
 		render = new Render(jogador, mundo);
 		
 		Bloco.iniciar();
-		LuaAPI.iniciar();
 		
 		mundo.chunksMod.clear();
 		
 		if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) ArquivosUtil.crMundo(mundo, jogador);
 		render.mundo.iniciar();
+		
+		LuaAPI.iniciar();
 		
 		relogio.schedule(
 			new java.util.TimerTask() {

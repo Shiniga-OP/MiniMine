@@ -21,14 +21,14 @@ public class Biomas {
     public static void escolher(Chunk chunk) {
         int chunkX = chunk.x << 4;
         int chunkZ = chunk.z << 4;
-		
+
 		final int[][] alturas = new int[16][16];
-		
+
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
                 int mundoX = chunkX + x;
                 int mundoZ = chunkZ + z;
-				
+
 				final int[] dados = new int[2];
 
                 gerador.calcularDadosColuna(mundoX, mundoZ, dados);
@@ -84,15 +84,29 @@ public class Biomas {
                 for(int y = altura; y <= 62; y++) {
                     ChunkUtil.defBloco(x, y, z, "agua", chunk);
                 }
-				break;
+                break;
             case OCEANO_COSTEIRO:
-                for(int y = altura - 3; y < altura; y++) {
-                    if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "areia", chunk);
+                // distingue praia de margem de rio usando o fator de rio
+                double fatorRio = gerador.calcularFatorRio(mundoX, mundoZ,
+				gerador.identificarTipo(gerador.dominio.obterElevacaoContinental(mundoX, mundoZ)));
+                if(fatorRio > 0.4 && altura <= 62) {
+                    // leito de rio: cascalho no fundo, água acima
+                    for(int y = altura - 3; y < altura; y++) {
+                        if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "cascalho", chunk);
+                    }
+                    for(int y = altura; y <= 62; y++) {
+                        ChunkUtil.defBloco(x, y, z, "agua", chunk);
+                    }
+                } else {
+                    // praia normal
+                    for(int y = altura - 3; y < altura; y++) {
+                        if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "areia", chunk);
+                    }
+                    for(int y = altura; y <= 62; y++) {
+                        ChunkUtil.defBloco(x, y, z, "agua", chunk);
+                    }
                 }
-                for(int y = altura; y <= 62; y++) {
-                    ChunkUtil.defBloco(x, y, z, "agua", chunk);
-                }
-				break;
+                break;
             case DESERTO:
             case COLINAS_DESERTO:
                 for(int y = altura - 5; y < altura; y++) {
@@ -129,20 +143,40 @@ public class Biomas {
                 }
                 if(!vazios[altura - 1]) ChunkUtil.defBloco(x, altura - 1, z, "grama", chunk);
 				break;
-			case MAR_CONGELADO:
-				// camada de gelo na superficie e água abaixo
-				for(int y = altura - 3; y < altura; y++) {
-					if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "pedra", chunk);
-				}
-				// gelo no nivel do mar ou no topo da coluna
-				if(!vazios[altura - 1]) ChunkUtil.defBloco(x, altura - 1, z, "gelo", chunk);
+            case MAR_CONGELADO:
+                // camada de pedra no fundo
+                for(int y = altura - 3; y < altura; y++) {
+                    if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "pedra", chunk);
+                }
+                // gelo no nível do mar ou topo da coluna
+                if(!vazios[altura - 1]) ChunkUtil.defBloco(x, altura - 1, z, "gelo", chunk);
 
-				for(int y = altura; y <= 62; y++) {
-					// no topo do mar, coloca gelo, abaixo coloca água
-					if(y == 62) ChunkUtil.defBloco(x, y, z, "gelo", chunk);
-					else ChunkUtil.defBloco(x, y, z, "agua", chunk);
-				}
-				break;
+                for(int y = altura; y <= 62; y++) {
+                    if(y == 62) ChunkUtil.defBloco(x, y, z, "gelo", chunk);
+                    else ChunkUtil.defBloco(x, y, z, "agua", chunk);
+                }
+
+                // icebergs: colinas de gelo emergindo acima do nível do mar
+                // ativados por ruído celular — garante formas irregulares e orgânicas
+                double icebergVal = gerador.celular.ruido(mundoX * 0.009, mundoZ * 0.009);
+                if(icebergVal > 0.72) {
+                    // centro do iceberg: mais alto, pedra interna coberta de gelo
+                    double alturaCrua = (icebergVal - 0.72) / 0.28; // [0,1]
+                    int blocosTopo = (int)(alturaCrua * 18) + 2; // 2..20 blocos acima do mar
+                    for(int y = 63; y < 63 + blocosTopo; y++) {
+                        // pedra no miolo, gelo na casca exterior
+                        double distCentro = Math.abs(gerador.ruido.ruido(mundoX * 0.04 + y, mundoZ * 0.04));
+                        String bloco = distCentro < 0.25 ? "pedra" : "gelo";
+                        ChunkUtil.defBloco(x, y, z, bloco, chunk);
+                    }
+                } else if(icebergVal > 0.62) {
+                    // borda do iceberg: camada fina de gelo sobressaindo levemente
+                    int blocosBorda = (int)((icebergVal - 0.62) / 0.10 * 4) + 1;
+                    for(int y = 63; y < 63 + blocosBorda; y++) {
+                        ChunkUtil.defBloco(x, y, z, "gelo", chunk);
+                    }
+                }
+                break;
 			case TUNDRA:
 				// chão de terra coberto com uma camada de neve
 				for(int y = altura - 4; y < altura - 1; y++) {
@@ -176,8 +210,8 @@ public class Biomas {
 
                 // atalho rapido: outros biomas não têm arvores
                 if(bioma != TipoBioma.FLORESTA &&
-				bioma != TipoBioma.FLORESTA_COSTEIRA &&
-				bioma != TipoBioma.FLORESTA_MONTANHOSA) {
+				   bioma != TipoBioma.FLORESTA_COSTEIRA &&
+				   bioma != TipoBioma.FLORESTA_MONTANHOSA) {
                     continue;
                 }
                 // encontra a altura do terreno nesta posição
@@ -305,8 +339,10 @@ public class Biomas {
 			case OCEANO_COSTEIRO: return "Costa";
 			case OCEANO_QUENTE: return "Mar Quente";
 			case OCEANO_ABISSAL: return "Oceano Abissal";
-			case PLANICIES: return "Planície";
-			case PLANICIES_MONTANHOSAS: return "Planície Alta";
+			case RIO: return "Rio";
+			case LAGO: return "Lago";
+			case PLANICIES: return "Planicie";
+			case PLANICIES_MONTANHOSAS: return "Planicie Alta";
 			case FLORESTA: return "Floresta";
 			case FLORESTA_COSTEIRA: return "Mata Costeira";
 			case FLORESTA_MONTANHOSA: return "Serrania";
@@ -321,9 +357,9 @@ public class Biomas {
 
 	public static String obterBioma(int x, int z) {
 		if(gerador == null) return "Desconhecido";
-		
+
 		gerador.calcularDadosColuna(x, z, bufferDados);
-		
+
 		TipoBioma bioma = TipoBioma.values()[bufferDados[1]];
 
 		// retorna o nome formatado
@@ -355,7 +391,7 @@ public class Biomas {
 					int z = origemZ + dz;
 
 					gerador.calcularDadosColuna(x, z, bufferDados);
-					
+
 					TipoBioma bioma = TipoBioma.values()[bufferDados[1]];
 
 					if(bioma == alvo) {
@@ -367,4 +403,5 @@ public class Biomas {
 		return null; // não encontrado no raio maximo
 	}
 }
+
 

@@ -13,13 +13,11 @@ public class Texturas {
 	public static Texture agua;
 	public static Texture icones;
 	public static Texture base;
-	public static Pixmap pixmapBlocos;
 	
 	public static void iniciar() {
 		try {
 			// atlas:
 			blocos = new Texture(Gdx.files.internal("blocos/blocos.png"));
-			pixmapBlocos = new Pixmap(Gdx.files.internal("blocos/blocos.png"));
 			agua = new Texture(Gdx.files.internal("blocos/anims/agua.png"));
 			icones = new Texture(Gdx.files.internal("ui/icones_16x16.png"));
 			base = new Texture(Gdx.files.internal("ui/base_botao.png"));
@@ -93,6 +91,5 @@ public class Texturas {
 		agua.dispose();
 		icones.dispose();
 		base.dispose();
-		pixmapBlocos.dispose();
 	}
 }

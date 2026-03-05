@@ -11,7 +11,7 @@ public class ErosaoHidraulica {
     public final int tamMapa;
     public final double escala;
 	public final double[] gradBuffer = new double[2];
-    // parametros físicos
+    // parametros fisicos
     public static final double CAPACIDADE_SEDIMENTO = 4.0;
     public static final double TAXA_DEPOSICAO = 0.3;
     public static final double TAXA_EROSAO = 0.3;
@@ -77,10 +77,10 @@ public class ErosaoHidraulica {
             double alturaNova = dominio.obterElevacaoContinental(xNovo, zNovo);
 
             // diferença de altura
-            double deltaH = alturaNova - alturaAtual;
+            double deltaA = alturaNova - alturaAtual;
 
             // capacidade de carregar sedimento
-            double capacidade = Math.max(-deltaH, 0.01) * velocidade * agua * CAPACIDADE_SEDIMENTO;
+            double capacidade = Math.max(-deltaA, 0.01) * velocidade * agua * CAPACIDADE_SEDIMENTO;
 
             // erosão ou deposição
             if(sedimento > capacidade) {
@@ -90,12 +90,12 @@ public class ErosaoHidraulica {
                 campoErosao[xi][zi] += deposito;
             } else {
                 // erode
-                double erosao = Math.min((capacidade - sedimento) * TAXA_EROSAO, -deltaH);
+                double erosao = Math.min((capacidade - sedimento) * TAXA_EROSAO, -deltaA);
                 sedimento += erosao;
                 campoErosao[xi][zi] -= erosao;
             }
             // atualiza velocidade
-            velocidade = Math.sqrt(velocidade * velocidade + deltaH * GRAVIDADE);
+            velocidade = Math.sqrt(velocidade * velocidade + deltaA * GRAVIDADE);
             agua *= (1.0 - EVAPORACAO);
 
             // para se ficou sem água
@@ -144,3 +144,4 @@ public class ErosaoHidraulica {
         return e0 * (1.0 - sz) + e1 * sz;
     }
 }
+

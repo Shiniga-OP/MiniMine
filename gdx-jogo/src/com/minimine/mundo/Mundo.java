@@ -67,14 +67,13 @@ public class Mundo {
 
     public static final int TAM_CHUNK = 16, Y_CHUNK = 255;
     public static final int CHUNK_AREA = TAM_CHUNK * TAM_CHUNK;
-    public static long semente = 0L;
-	public static int RAIO_CHUNKS = 1;
+    public static long semente = 0;
+	public static int RAIO_CHUNKS = 5;
 
     public static Simplex2D s2D;
 	public static Simplex3D s3D;
 
     public static boolean carregado = false, ciclo = true, nuvens = true;
-    public static boolean debugColisao = false;
     public static float tick = 0.2f;
 
     public static ExecutorService exec;

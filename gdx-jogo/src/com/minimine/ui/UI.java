@@ -184,7 +184,8 @@ public class UI implements InputProcessor {
         alerta.y = Gdx.graphics.getHeight() / 2f - alerta.altura  / 2f;
         alerta.addOk(visualBase);
         gerenciador.addDialogo(alerta);
-        alerta.mostrar(titulo, "", fechar != null ? fechar : new CaixaDialogo.Fechar(){@Override public void aoFechar(boolean c){}});
+		Gdx.input.setCursorCatched(false);
+        alerta.mostrar(titulo, "", fechar != null ? fechar : new CaixaDialogo.Fechar(){@Override public void aoFechar(boolean c){Gdx.input.setCursorCatched(true);}});
     }
     // dpad(mantido como sprites, texturas direcionais não fazem sentido na Micro)
     public void criarBotoesDpad() {
@@ -659,7 +660,6 @@ public class UI implements InputProcessor {
         }
         if(p == Input.Keys.F1) debug = !debug;
         if(p == Input.Keys.T) abrirChat();
-        if(p == Input.Keys.P) Mundo.debugColisao = !Mundo.debugColisao;
         if(p == Input.Keys.ESCAPE) MenuPause.alternarMenu();
         if(p == Input.Keys.R) Receitas.fabricar(jg.inv);
         return true;
