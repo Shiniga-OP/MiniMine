@@ -50,6 +50,7 @@ import com.minimine.utils.arrays.ArrayReuso;
 import com.minimine.entidades.Entidade;
 import com.minimine.mundo.blocos.BlocoModelo;
 import com.minimine.mundo.geracao.MotorGeracao;
+import com.minimine.mundo.geracao.RegistroBiomas;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -72,8 +73,7 @@ public class Mundo {
 	public static int RAIO_CHUNKS = 5;
 
     public static boolean carregado = false, ciclo = true, nuvens = true;
-    public static float tick = 0.2f;
-
+    
     public static ExecutorService exec;
 	
 	public static MotorGeracao motor;
@@ -81,7 +81,10 @@ public class Mundo {
     public void iniciar() {
         semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
         
-		motor = new MotorGeracao(semente);
+		RegistroBiomas re = new RegistroBiomas();
+		re.carregarBiomas(Gdx.files.internal("biomas/"));
+		
+		motor = new MotorGeracao(semente, re);
 
         if(exec == null || exec.isShutdown()) exec = Executors.newFixedThreadPool(8);
     }
@@ -96,13 +99,9 @@ public class Mundo {
 			Integer x = estados.get(Chave.calcularChave((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4));
 			if(x != null && x == 2) carregado = true;
 		}
-		if(carregado) GerenciadorEntidades.att(delta, this, jg);
-        if(ciclo) {
-			CorposCelestes.att(jg.camera.combined, jg.posicao);
-			// ciclo de dia e noite:
-			if(tick > 0.03f) {
-				tick = 0;
-			}
+		if(carregado) {
+			GerenciadorEntidades.att(delta, this, jg);
+			if(ciclo) CorposCelestes.att(jg.camera.combined, jg.posicao);
 		}
     }
 
@@ -368,14 +367,19 @@ public class Mundo {
 
 	public static void gerarDados(final long chave) {
 		final Chunk chunk = chunks.get(chave);
-
+		
 		exec.submit(new Runnable() {
 				@Override
 				public void run() {
-					// pré-processa tudo antes de publicar o estado
-					motor.gerarChunk(chunk);
-					chunk.dadosProntos = true;
-					estados.put(chave, 1); // sinal atomico: so agora o chunk é elegivel pra malha
+					try {
+						// pré-processa tudo antes de publicar o estado
+						motor.gerarChunk(chunk);
+						chunk.dadosProntos = true;
+						// sinal atomico: so agora o chunk é elegivel pra malha
+						estados.put(chave, 1);
+					} catch(final Exception e) {
+						throw new RuntimeException("[Mundo]: [ERRO]: ao gerar dados: "+e);
+					}
 				}
 			});
 	}

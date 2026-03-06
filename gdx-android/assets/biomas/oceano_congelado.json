@@ -1,0 +1,32 @@
+{
+    "nome": "oceano_congelado",
+    "raridade": 0.15,
+
+    "clima": {
+        "temperatura": { "min": 0.0, "max": 0.25 },
+        "umidade": { "min": 0.8, "max": 1.0 }
+    },
+
+    "superficie": {
+        "topo": "gelo",
+        "subtopo": "pedra",
+        "prof": 3,
+        "interior": "pedra"
+    },
+
+    "subsolo": {
+        "cavernas": {
+            "rasa": { "taxa": 0.04, "escala": 0.025 },
+            "media": { "taxa": 0.04, "escala": 0.020 },
+            "profunda": { "taxa": 0.03, "escala": 0.015 }
+        }
+    },
+
+    "coluna": { "tipo": "gelado" },
+
+    "arvores": null,
+    "plantas": null,
+    "minerios": [],
+    "estruturas": []
+}
+

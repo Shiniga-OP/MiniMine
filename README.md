@@ -44,6 +44,8 @@ refeito com LibGDX.
 * Entidades.
 * Sistema de nascimento de entidades baseado em bioma.
 * Auto atualização quando ligado a internet.
+* MJson para análise e conversão de JSON string para objetos Java em Java 7.
+* Biomas escritos em JSON.
 
 ## Modos de jogo:
 * 0: espectador. Não sofre gravidade ou colisão com blocos. Seus recursos não acabam
@@ -95,20 +97,24 @@ Erosão Hidraulica.
 
 ## Biomas:
 
-1. OCEANO.
-2. OCEANO_COSTEIRO.
-3. OCEANO_QUENTE.
-4. OCEANO_ABISSAL.
-5. PLANICIES.
-6. PLANICIES_MONTANHOSAS.
-7. FLORESTA.
-8. FLORESTA_COSTEIRA.
-9. FLORESTA_MONTANHOSA.
-10. DESERTO.
-11. COLINAS_DESERTO.
-12. MAR_CONGELADO.
-13. TUNDRA.
-14. PICOS_GELADOS.
+```
+[DadosBioma]: carregado: costa
+[DadosBioma]: carregado: deserto
+[DadosBioma]: carregado: dunas
+[DadosBioma]: carregado: floresta
+[DadosBioma]: carregado: floresta_costeira
+[DadosBioma]: carregado: montanha
+[DadosBioma]: carregado: oceano
+[DadosBioma]: carregado: oceano_abissal
+[DadosBioma]: carregado: oceano_congelado
+[DadosBioma]: carregado: oceano_quente
+[DadosBioma]: carregado: picos_gelados
+[DadosBioma]: carregado: planicie
+[DadosBioma]: carregado: serrania
+[DadosBioma]: carregado: tundra
+```
+
+em log mesmo porque eu to com preguiça de ficar listando.
 
 ## Otimizações:
 * Geração em Thread separada com ExecutorService.

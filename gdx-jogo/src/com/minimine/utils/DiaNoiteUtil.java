@@ -38,7 +38,6 @@ public class DiaNoiteUtil {
         corLua[3] = visibiLua;
 
         ultimaAtt = System.currentTimeMillis();
-		Mundo.tick += tempo_velo;
     }
 
     public static float calcularvisibiSol(float alturaNorm) {

@@ -2,60 +2,58 @@ package com.minimine.mundo.geracao;
 
 import com.minimine.mundo.Chunk;
 import com.minimine.mundo.ChunkUtil;
-import com.minimine.utils.ruidos.OpenSimplex2;
 import com.minimine.mundo.Mundo;
-/*
- * motor de geração central
- * toda a logica de geração de coluna por bioma ta aqui
- * a TabelaBiomas tem só dados; o motor decide o que fazer com eles
- 
- * todas as chamadas de ruido usam OpenSimplex2 estatico com sementes derivadas do ContextoGeracao
- 
- * exceções que ainda usam instâncias:
- *   ctx.crista -> CristaRuido2D
- *   ctx.celular -> CelularRuido2D
- *   ctx.crista -> ainda instância até reescrita de CristaRuido2D
- *   ctx.celular -> ainda instância até reescrita de CelularRuido2D
- */
+import com.minimine.utils.ruidos.OpenSimplex2;
+
 public final class MotorGeracao {
     public static final int NIVEL_MAR = 62;
+
     public final ContextoGeracao ctx;
+    public final RegistroBiomas  registro;
 
     public static final ThreadLocal<int[][]> ALTURAS_CACHE = new ThreadLocal<int[][]>() {
-        @Override protected final int[][] initialValue() { return new int[16][16]; }
+        @Override protected int[][] initialValue() { return new int[16][16]; }
     };
-    public static final ThreadLocal<int[][]> BIOMAS_CACHE = new ThreadLocal<int[][]>() {
-        @Override protected final int[][] initialValue() { return new int[16][16]; }
+    public static final ThreadLocal<DadosBioma[][]> BIOMAS_CACHE = new ThreadLocal<DadosBioma[][]>() {
+        @Override protected DadosBioma[][] initialValue() { return new DadosBioma[16][16]; }
     };
     public static final ThreadLocal<double[]> GRAD_CACHE = new ThreadLocal<double[]>() {
-        @Override protected final double[] initialValue() { return new double[2]; }
+        @Override protected double[] initialValue() { return new double[2]; }
     };
 
-    public MotorGeracao(long semente) {
+    public MotorGeracao(long semente, RegistroBiomas registro) {
         this.ctx = new ContextoGeracao(semente);
+        this.registro = registro;
     }
 
     public void gerarChunk(Chunk chunk) {
         final int chunkX = chunk.x << 4;
         final int chunkZ = chunk.z << 4;
 
-        final int[][] alturas  = ALTURAS_CACHE.get();
-        final int[][] biomaIds = BIOMAS_CACHE.get();
+        final int[][] alturas = ALTURAS_CACHE.get();
+        final DadosBioma[][] biomas  = BIOMAS_CACHE.get();
 
-        for(int x = 0; x < 16; x++) {
-            for(int z = 0; z < 16; z++) {
+        // fase 1 + 2: preenche coluna e pinta superficie
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
                 int mx = chunkX + x, mz = chunkZ + z;
                 double elev = ctx.dominio.obterElevacaoContinental(mx, mz);
                 double tipo = identificarTipo(elev);
                 int alt = calcularAltura(mx, mz, elev, tipo);
-                int bioma = determinarBioma(mx, mz, alt, elev, tipo);
-                alturas [x][z] = alt;
-                biomaIds[x][z] = bioma;
-                gerarColuna(chunk, x, z, mx, mz, alt, bioma, tipo);
+                DadosBioma bioma = determinarBioma(mx, mz, alt, elev, tipo);
+
+                alturas[x][z] = alt;
+                biomas[x][z] = bioma;
+
+                boolean[] vazios = calcularVazios(mx, mz, alt);
+                preencherColuna(chunk, x, z, alt, vazios);
+                aplicarSuperficie(chunk, x, z, mx, mz, alt, bioma, tipo, vazios);
             }
         }
-        addArvores(chunk, chunkX, chunkZ, alturas, biomaIds);
-        addVegetacao(chunk, chunkX, chunkZ, alturas, biomaIds);
+        // fase 3: decoracoes, arvores, vegetacao
+        addDecoracoes(chunk, chunkX, chunkZ, alturas, biomas);
+        addArvores   (chunk, chunkX, chunkZ, alturas, biomas);
+        addVegetacao (chunk, chunkX, chunkZ, alturas, biomas);
         chunk.dadosProntos = true;
     }
 	
@@ -65,12 +63,12 @@ public final class MotorGeracao {
         double suavizacao = OpenSimplex2.ruido2(ctx.sementeRuido, x * 0.0002, z * 0.0002) * 0.5 + 0.5;
 
         if(tipo > 0.45) {
-            double montanhas   = ctx.crista.cristaFractal(x * 0.0008, z * 0.0008, 2, 2.2, 0.5);
+            double montanhas = ctx.crista.cristaFractal(x * 0.0008, z * 0.0008, 2, 2.2, 0.5);
             double cordilheiras = ctx.crista.cristaBilateral(x * 0.0004, z * 0.0004, 2, 2.0, 0.5);
             double fator = (tipo - 0.45) / 0.55;
-            altura += montanhas    * fator * 0.32;
+            altura += montanhas * fator * 0.32;
             altura += cordilheiras * fator * 0.14;
-            altura  = altura * (0.75 + suavizacao * 0.25);
+            altura = altura * (0.75 + suavizacao * 0.25);
             if(fator > 0.6) {
                 double rochoso = ctx.crista.swiss(x * 0.002, z * 0.002, 2, 2.0, 0.4, 0.5);
                 altura += rochoso * (fator - 0.6) * 0.10;
@@ -97,7 +95,6 @@ public final class MotorGeracao {
         else blocos = NIVEL_MAR + (int)(altura * 97.0);
 
         if(blocos > NIVEL_MAR + 40) {
-            // ruido3XZ, planos horizontais primarios, correto para variação de altura
             double v3d = OpenSimplex2.ruido3XZ(ctx.sementeRuido3d, x * 0.04, blocos * 0.08, z * 0.04);
             if(v3d > 0.45) blocos += (int)((v3d - 0.45) * 10.0);
         }
@@ -115,7 +112,7 @@ public final class MotorGeracao {
     public double calcularFatorRio(int x, int z, double tipo) {
         double desvX = OpenSimplex2.ruido2Fractal(ctx.sementeRioDesvio, x * 0.0006,       z * 0.0006,       2, 0.5, 2.0) * 180.0;
         double desvZ = OpenSimplex2.ruido2Fractal(ctx.sementeRioDesvio, x * 0.0006 + 700, z * 0.0006 + 700, 2, 0.5, 2.0) * 180.0;
-        double rv = OpenSimplex2.ruido2Fractal(ctx.sementeRioRuido,  (x + desvX) * 0.0003, (z + desvZ) * 0.0003, 2, 0.5, 2.0);
+        double rv = OpenSimplex2.ruido2Fractal(ctx.sementeRioRuido, (x + desvX) * 0.0003, (z + desvZ) * 0.0003, 2, 0.5, 2.0);
 
         double dist = Math.abs(rv);
         double largura = 0.06 + tipo * 0.04;
@@ -127,136 +124,93 @@ public final class MotorGeracao {
     }
 
     // === BIOMA ===
-    public int determinarBioma(int x, int z, int altura, double elev, double tipo) {
+    public DadosBioma determinarBioma(int x, int z, int altura, double elev, double tipo) {
         double celularVal  = ctx.celular.ruido(x * 0.0008, z * 0.0008);
         double distEquador = Math.abs(z * 0.00015);
+
         double temp = 1.0 - distEquador * 0.7;
         temp -= Math.max(0, (altura - NIVEL_MAR) * 0.004);
         temp += (celularVal - 0.3) * 0.2;
 
-        double umidade  = OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.0005, z * 0.0005, 2, 0.5, 2.0) * 0.5 + 0.5;
+        double umidade = OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.0005, z * 0.0005, 2, 0.5, 2.0) * 0.5 + 0.5;
         double varClima = OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.0003, z * 0.0003, 2, 0.6, 2.0);
         umidade += varClima * 0.3;
         umidade += (1.0 - celularVal) * 0.15;
 
-        if(altura <= NIVEL_MAR) {
-            if(temp < 0.25) return TabelaBiomas.MAR_CONGELADO;
-            if(altura < NIVEL_MAR - 35 || elev < -0.55) return TabelaBiomas.OCEANO_ABISSAL;
-            if(temp > 0.7) return TabelaBiomas.OCEANO_QUENTE;
-            return TabelaBiomas.OCEANO;
-        }
-        if(temp < 0.3) return altura > NIVEL_MAR + 40 ? TabelaBiomas.PICOS_GELADOS : TabelaBiomas.TUNDRA;
+        float t = (float) Math.max(0, Math.min(1, temp));
+        float u = (float) Math.max(0, Math.min(1, umidade));
 
-        if(altura < NIVEL_MAR + 7) {
+        boolean aquatico = altura <= NIVEL_MAR;
+        if(aquatico) u = 1.0f;
+
+        if(!aquatico && altura < NIVEL_MAR + 7) {
             final double[] grad = GRAD_CACHE.get();
             ctx.dominio.obterGradiente(x, z, 8, grad);
             double inclinacao = Math.sqrt(grad[0] * grad[0] + grad[1] * grad[1]);
-            if(inclinacao < 0.003) return TabelaBiomas.OCEANO_COSTEIRO;
+            if(inclinacao < 0.003) aquatico = true;
         }
-        if(tipo > -0.05 && tipo < 0.42) {
-            if(calcularFatorRio(x, z, tipo) > 0.4 && altura <= NIVEL_MAR + 3)
-                return TabelaBiomas.OCEANO_COSTEIRO;
+        if(!aquatico && tipo > -0.05 && tipo < 0.42) {
+            if(calcularFatorRio(x, z, tipo) > 0.4 && altura <= NIVEL_MAR + 3) aquatico = true;
         }
-        if(umidade < 0.25 - celularVal * 0.1) return altura > NIVEL_MAR + 15 ? TabelaBiomas.COLINAS_DESERTO : TabelaBiomas.DESERTO;
-
-        if(umidade > 0.55 + celularVal * 0.1) {
-            if(altura > NIVEL_MAR + 35) return TabelaBiomas.FLORESTA_MONTANHOSA;
-            if(elev < 0.05) return TabelaBiomas.FLORESTA_COSTEIRA;
-            return TabelaBiomas.FLORESTA;
-        }
-        return altura > NIVEL_MAR + 20 ? TabelaBiomas.PLANICIES_MONTANHOSAS : TabelaBiomas.PLANICIES;
+        return registro.selecionar(t, u, altura, NIVEL_MAR, aquatico);
     }
-
-    // === GERAÇÃO DE COLUNA ===
-    public void gerarColuna(Chunk chunk, int x, int z, int mx, int mz, int altura, int biomaId, double tipo) {
-        DadosBioma d = TabelaBiomas.TABELA[biomaId];
-
+	
+    // FASE 1: PREENCHIMENTO UNIVERSAL
+    public void preencherColuna(Chunk chunk, int x, int z, int altura, boolean[] vazios) {
         ChunkUtil.defBloco(x, 0, z, "pedra", chunk);
 
-        boolean[] vazios = calcularVazios(mx, mz, altura);
+        // pedra ate a superficie(com cavernas e cascalho)
+        for(int y = 1; y < altura; y++) {
+            if(!vazios[y])
+                ChunkUtil.defBloco(x, y, z, temCascalho(x, y, z, altura) ? "cascalho" : "pedra", chunk);
+        }
+        // agua acima da superficie ate o nivel do mar
+        for(int y = altura; y <= NIVEL_MAR; y++)
+            ChunkUtil.defBloco(x, y, z, "agua", chunk);
+    }
+    // FASE 2: PASSAGEM DA SUPERFICIE
+    public void aplicarSuperficie(Chunk chunk, int x, int z, int mx, int mz,
+	int altura, DadosBioma d, double tipo, boolean[] vazios) {
+        final DadosBioma.Superficie s = d.superficie;
+        int profAtual = 0;
+        int limSup = Math.min(altura + 1, Mundo.Y_CHUNK - 1) - 2;
 
-        for(int y = 1; y < altura - d.profSubTopo; y++) {
-            if(!vazios[y]) ChunkUtil.defBloco(x, y, z, temCascalho(mx, y, mz, altura) ? "cascalho" : d.blocoInterior, chunk);
+        for(int y = limSup; y >= 1; y--) {
+            // bloco atual: se e vazio(caverna/ar) ou agua, reinicia o contador
+            if(vazios[y] || ChunkUtil.obterBloco(x, y, z, chunk) == 0) {
+                profAtual = 0;
+                continue;
+            }
+            if(profAtual == 0) {
+                // topo da superficie
+                ChunkUtil.defBloco(x, y, z, s.topo, chunk);
+            } else if(profAtual < s.prof) {
+                // camadas de subtopo, respeita profundidade oceanica e rio
+                ChunkUtil.defBloco(x, y, z, resolverSubtopo(s, mx, mz, altura, tipo), chunk);
+            } else {
+                // interior: bloco padrao abaixo da superficie
+                ChunkUtil.defBloco(x, y, z, s.interior, chunk);
+                break;
+            }
+            profAtual++;
         }
-        switch(biomaId) {
-            case TabelaBiomas.OCEANO:
-            case TabelaBiomas.OCEANO_QUENTE: {
-					String fundo = (62 - altura) > 20 ? "pedra" : "areia";
-					for(int y = altura - 3; y < altura; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, fundo, chunk);
-					for(int y = altura; y <= 62; y++)
-						ChunkUtil.defBloco(x, y, z, "agua", chunk);
-					break;
-				}
-            case TabelaBiomas.OCEANO_ABISSAL: {
-					for(int y = altura - 4; y < altura; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "pedra", chunk);
-					for(int y = altura; y <= 62; y++)
-						ChunkUtil.defBloco(x, y, z, "agua", chunk);
-					break;
-				}
-            case TabelaBiomas.OCEANO_COSTEIRO: {
-					double fatorRio = calcularFatorRio(mx, mz, tipo);
-					String base = (fatorRio > 0.4 && altura <= 62) ? "cascalho" : "areia";
-					for(int y = altura - 3; y < altura; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, base, chunk);
-					for(int y = altura; y <= 62; y++)
-						ChunkUtil.defBloco(x, y, z, "agua", chunk);
-					break;
-				}
-            case TabelaBiomas.MAR_CONGELADO: {
-					for(int y = altura - 3; y < altura; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "pedra", chunk);
-					if(!vazios[altura - 1]) ChunkUtil.defBloco(x, altura - 1, z, "gelo", chunk);
-					for(int y = altura; y <= 62; y++)
-						ChunkUtil.defBloco(x, y, z, y == 62 ? "gelo" : "agua", chunk);
-					double iv = ctx.celular.ruido(mx * 0.009, mz * 0.009);
-					if(iv > 0.72) {
-						int topo = (int)((iv - 0.72) / 0.28 * 18) + 2;
-						for(int y = 63; y < 63 + topo; y++) {
-							double dist = Math.abs(OpenSimplex2.ruido2(ctx.sementeRuido, mx * 0.04 + y, mz * 0.04));
-							ChunkUtil.defBloco(x, y, z, dist < 0.25 ? "pedra" : "gelo", chunk);
-						}
-					} else if(iv > 0.62) {
-						int borda = (int)((iv - 0.62) / 0.10 * 4) + 1;
-						for(int y = 63; y < 63 + borda; y++)
-							ChunkUtil.defBloco(x, y, z, "gelo", chunk);
-					}
-					break;
-				}
-            case TabelaBiomas.DESERTO:
-            case TabelaBiomas.COLINAS_DESERTO: {
-					for(int y = altura - 5; y < altura; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "areia", chunk);
-					double chance = OpenSimplex2.ruido2(ctx.semente, mx * 0.1, mz * 0.1);
-					if(chance > 0.85 && altura > 62) {
-						int alt = (int)((OpenSimplex2.ruido2(ctx.semente, mx * 0.3, mz * 0.3) * 0.5 + 0.5) * 3) + 2;
-						for(int cy = 0; cy < alt; cy++)
-							ChunkUtil.defBloco(x, altura + cy, z, "cacto", chunk);
-					}
-					break;
-				}
-            case TabelaBiomas.PICOS_GELADOS: {
-					for(int y = altura - 5; y < altura - 2; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, "pedra", chunk);
-					if(!vazios[altura - 2]) ChunkUtil.defBloco(x, altura - 2, z, "gelo", chunk);
-					if(!vazios[altura - 1]) ChunkUtil.defBloco(x, altura - 1, z, "neve", chunk);
-					break;
-				}
-            default: {
-					for(int y = altura - d.profSubTopo; y < altura - 1; y++)
-						if(!vazios[y]) ChunkUtil.defBloco(x, y, z, d.blocoSubTopo, chunk);
-					if(!vazios[altura - 1]) ChunkUtil.defBloco(x, altura - 1, z, d.blocoTopo, chunk);
-					break;
-				}
+    }
+    
+    public String resolverSubtopo(DadosBioma.Superficie s, int mx, int mz, int altura, double tipo) {
+        if(s.profFundoPedra > 0 && (NIVEL_MAR - altura) > s.profFundoPedra)
+            return "pedra";
+        if(s.fundoRioBloco != null) {
+            double fatorRio = calcularFatorRio(mx, mz, tipo);
+            if(fatorRio > 0.4 && altura <= NIVEL_MAR) return s.fundoRioBloco;
         }
+        return s.subtopo;
     }
 
     // === VAZIOS(cavernas, ravinas, arcos) ===
     public boolean[] calcularVazios(int x, int z, int altura) {
-        boolean[] vazios = new boolean[altura];
+        boolean[] vazios = new boolean[Math.max(altura, 1)];
 
-        boolean podeArco  = altura > NIVEL_MAR + 20;
+        boolean podeArco = altura > NIVEL_MAR + 20;
         double  pilarArco = podeArco ? ctx.celular.ruido(x * 0.015, z * 0.015) : 0;
         boolean arcoViavel = podeArco
             && pilarArco > 0.35 && pilarArco < 0.55
@@ -265,8 +219,8 @@ public final class MotorGeracao {
         int yMin = Math.max(1, Math.min(altura - 40, 10));
 
         for(int y = yMin; y < altura; y++) {
-            boolean ravina  = (y >= altura - 40) && temRavina(x, y, z, altura);
-            boolean arco    = !ravina && arcoViavel && (y >= altura - 25) && temArco(x, y, z, altura);
+            boolean ravina = (y >= altura - 40) && temRavina(x, y, z, altura);
+            boolean arco = !ravina && arcoViavel && (y >= altura - 25) && temArco(x, y, z, altura);
             boolean caverna = !ravina && !arco && (y >= 10 && y <= 140) && temCaverna(x, y, z, altura);
             vazios[y] = ravina || arco || caverna;
         }
@@ -275,10 +229,8 @@ public final class MotorGeracao {
 
     public boolean temCaverna(int x, int y, int z, int sup) {
         if(y < 10 || y > 140 || y > sup - 8) return false;
-        // cavernas profundas e medias usam XY, cortes verticais primarios(tuneis)
         if(y <= 40) return OpenSimplex2.ruido3XYFractal(ctx.sementeCavernasProfundas, x * 0.015, y * 0.025, z * 0.015, 2, 0.5, 2.0) > 0.65;
-        if(y <= 90) return OpenSimplex2.ruido3XYFractal(ctx.sementeCavernas, x * 0.02,  y * 0.03,  z * 0.02,  3, 0.5, 2.0) > 0.62;
-        // cavernas rasas usam XZ, camaras abertas proximas a superiicie
+        if(y <= 90) return OpenSimplex2.ruido3XYFractal(ctx.sementeCavernas,          x * 0.02,  y * 0.03,  z * 0.02,  3, 0.5, 2.0) > 0.62;
         double limiar = 0.68 + (y - 90) * 0.002;
         return OpenSimplex2.ruido3XZFractal(ctx.sementeRuido3d, x * 0.025, y * 0.035, z * 0.025, 2, 0.5, 2.0) > limiar;
     }
@@ -308,12 +260,55 @@ public final class MotorGeracao {
         return Math.abs(OpenSimplex2.ruido2(ctx.sementeRuido, x * 0.017 + y * 0.013, z * 0.019)) < 0.3;
     }
 
-    // === DECORAÇÃO ===
-    public void addArvores(Chunk chunk, int chunkX, int chunkZ, int[][] alturas, int[][] biomaIds) {
+    // === FASE 3: DECORAÇÕES ===
+    public void addDecoracoes(Chunk chunk, int chunkX, int chunkZ, int[][] alturas, DadosBioma[][] biomas) {
+        for(int x = 0; x < 16; x++) {
+            for(int z = 0; z < 16; z++) {
+                DadosBioma d = biomas[x][z];
+                if(d.decoracoes == null) continue;
+
+                int altura = alturas[x][z];
+                int mx = chunkX + x, mz = chunkZ + z;
+                DadosBioma.Decoracoes dec = d.decoracoes;
+
+                // cacto
+                if(dec.temCacto() && altura > NIVEL_MAR) {
+                    double chance = OpenSimplex2.ruido2(ctx.semente, mx * 0.1, mz * 0.1);
+                    if(chance > dec.cactoChance) {
+                        int alt = (int)((OpenSimplex2.ruido2(ctx.semente, mx * 0.3, mz * 0.3) * 0.5 + 0.5)
+                                * (dec.cactoAltMax - 2)) + 2;
+                        for(int cy = 0; cy < alt; cy++)
+                            ChunkUtil.defBloco(x, altura + cy, z, "cacto", chunk);
+                    }
+                }
+                // gelo na superficie da agua(biomas gelados aquaticos)
+                if(dec.geloSuperficie && altura <= NIVEL_MAR) {
+                    ChunkUtil.defBloco(x, NIVEL_MAR, z, "gelo", chunk);
+                }
+                // iceberg
+                if(dec.temIceberg() && altura <= NIVEL_MAR) {
+                    double iv = ctx.celular.ruido(mx * 0.009, mz * 0.009);
+                    if(iv > dec.icebergLimiar) {
+                        int topo = (int)((iv - dec.icebergLimiar) / (1.0 - dec.icebergLimiar) * dec.icebergAltMax) + 2;
+                        for(int y = NIVEL_MAR + 1; y < NIVEL_MAR + 1 + topo; y++) {
+                            double dist = Math.abs(OpenSimplex2.ruido2(ctx.sementeRuido, mx * 0.04 + y, mz * 0.04));
+                            ChunkUtil.defBloco(x, y, z, dist < 0.25 ? dec.icebergBlocoNucleo : dec.icebergBlocoTopo, chunk);
+                        }
+                    } else if(iv > dec.icebergLimiar - 0.10f) {
+                        int borda = (int)((iv - (dec.icebergLimiar - 0.10f)) / 0.10f * 4) + 1;
+                        for(int y = NIVEL_MAR + 1; y < NIVEL_MAR + 1 + borda; y++)
+                            ChunkUtil.defBloco(x, y, z, dec.icebergBlocoTopo, chunk);
+                    }
+                }
+            }
+        }
+    }
+
+    public void addArvores(Chunk chunk, int chunkX, int chunkZ, int[][] alturas, DadosBioma[][] biomas) {
         for(int x = 2; x < 14; x++) {
             for(int z = 2; z < 14; z++) {
-                DadosBioma d = TabelaBiomas.TABELA[biomaIds[x][z]];
-                if(d.tipoArvore == null) continue;
+                DadosBioma d = biomas[x][z];
+                if(d.arvores == null) continue;
                 if(alturas[x][z] <= NIVEL_MAR) continue;
 
                 int topo = -1;
@@ -324,11 +319,11 @@ public final class MotorGeracao {
                 if(ChunkUtil.obterBloco(x, topo, z, chunk) != 1) continue;
 
                 int mx = chunkX + x, mz = chunkZ + z;
-                if(OpenSimplex2.ruido2(ctx.semente, mx * 0.1, mz * 0.1) <= d.limiteArvore) continue;
+                if(OpenSimplex2.ruido2(ctx.semente, mx * 0.1, mz * 0.1) <= d.arvores.limite) continue;
 
                 int alturaTronco = 4 + (int)((OpenSimplex2.ruido2(ctx.semente, mx * 0.25, mz * 0.25) * 0.5 + 0.5) * 3);
 
-                if("conica".equals(d.tipoArvore)) {
+                if("conica".equals(d.arvores.tipo)) {
                     Arvores.gerarArvoreConica(chunk, x, topo + 1, z, alturaTronco);
                 } else if(OpenSimplex2.ruido2(ctx.semente, mx * 0.2, mz * 0.2) > 0.5) {
                     Arvores.gerarArvoreNormal(chunk, x, topo + 1, z, alturaTronco);
@@ -339,11 +334,11 @@ public final class MotorGeracao {
         }
     }
 
-    public void addVegetacao(Chunk chunk, int chunkX, int chunkZ, int[][] alturas, int[][] biomaIds) {
+    public void addVegetacao(Chunk chunk, int chunkX, int chunkZ, int[][] alturas, DadosBioma[][] biomas) {
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
-                DadosBioma d = TabelaBiomas.TABELA[biomaIds[x][z]];
-                if(d.vegetacao == null) continue;
+                DadosBioma d = biomas[x][z];
+                if(d.plantas == null) continue;
 
                 int altura = alturas[x][z];
                 if(altura <= NIVEL_MAR) continue;
@@ -354,31 +349,27 @@ public final class MotorGeracao {
                 double tipoRuido = OpenSimplex2.ruido2(ctx.semente, mx * 0.35, mz * 0.35);
                 double florRuido = OpenSimplex2.ruido2(ctx.semente, mx * 0.55, mz * 0.55);
 
-                if(densRuido > d.limiteVegetacao)
-                    ChunkUtil.defBloco(x, altura, z, d.vegetacao[0], chunk);
+                if(densRuido > d.plantas.limite)
+                    ChunkUtil.defBloco(x, altura, z, d.plantas.lista[0], chunk);
 
-                if(d.vegetacao.length > 1 && florRuido > d.limiteFlor) {
-                    int idx = 1 + (int)(tipoRuido * (d.vegetacao.length - 1));
-                    ChunkUtil.defBloco(x, altura, z, d.vegetacao[Math.min(idx, d.vegetacao.length - 1)], chunk);
+                if(d.plantas.lista.length > 1 && florRuido > d.plantas.limiteFlor) {
+                    int idc = 1 + (int)(tipoRuido * (d.plantas.lista.length - 1));
+                    ChunkUtil.defBloco(x, altura, z, d.plantas.lista[Math.min(idc, d.plantas.lista.length - 1)], chunk);
                 }
             }
         }
     }
 
-    // === UTILITARIOS ===
+    // === UTILS ===
     public String obterBioma(int x, int z) {
         double elev = ctx.dominio.obterElevacaoContinental(x, z);
         double tipo = identificarTipo(elev);
-        int alt = calcularAltura(x, z, elev, tipo);
-        return TabelaBiomas.nome(determinarBioma(x, z, alt, elev, tipo));
+        int alt  = calcularAltura(x, z, elev, tipo);
+        return determinarBioma(x, z, alt, elev, tipo).nome;
     }
 
-    public int[] localizarBioma(String nomeBioma, int origemX, int origemZ) {
-        int alvo = -1;
-        for(int i = 0; i < TabelaBiomas.NOMES.length; i++) {
-            if(TabelaBiomas.NOMES[i].equalsIgnoreCase(nomeBioma)) { alvo = i; break; }
-        }
-        if(alvo < 0) return null;
+    public int[] localizarBioma(String chave, int origemX, int origemZ) {
+        if(!registro.existe(chave)) return null;
 
         int passo = 64, raioMax = 100_000;
         for(int raio = passo; raio <= raioMax; raio += passo) {
@@ -388,8 +379,9 @@ public final class MotorGeracao {
                     int x = origemX + dx, z = origemZ + dz;
                     double elev = ctx.dominio.obterElevacaoContinental(x, z);
                     double tipo = identificarTipo(elev);
-                    int alt = calcularAltura(x, z, elev, tipo);
-                    if(determinarBioma(x, z, alt, elev, tipo) == alvo) return new int[]{ x, z };
+                    int alt  = calcularAltura(x, z, elev, tipo);
+                    if(determinarBioma(x, z, alt, elev, tipo).chave.equals(chave))
+                        return new int[]{ x, z };
                 }
             }
         }

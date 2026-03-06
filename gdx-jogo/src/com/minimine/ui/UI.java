@@ -469,13 +469,13 @@ public class UI implements InputProcessor {
 					   "No chão: %b\nNa água: %b\nAgachado: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\n" +
 					   "Controles:\nDireita: %b, Esquerda: %b\nFrente: %b, Trás: %b\nCima: %b\nBaixo: %b\nAção: %b\n\n" +
 					   "Mundo:\nNome: %s\nBioma atual: %s\nRaio Chunks: %d\nChunks ativos: %d\n" +
-					   "Chunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nTick: %.3f\nVelocidade do tempo: %.5f",
+					   "Chunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nVelocidade do tempo: %.5f",
 					   jg.posicao.x, jg.posicao.y, jg.posicao.z,
 					   (jg.modo == 0 ? "espectador" : jg.modo == 1 ? "criativo" : "sobrevivencia"),
 					   jg.inv.slotSelecionado, jg.item, jg.noChao, jg.naAgua, jg.agachado, jg.velo, jg.altura,
 					   jg.direita, jg.esquerda, jg.frente, jg.tras, jg.cima, jg.baixo, jg.acao,
 					   mundo.nome, jg.bioma, mundo.RAIO_CHUNKS, mundo.chunks.size(),
-					   mundo.chunksMod.size(), mundo.semente, DiaNoiteUtil.tempo, mundo.tick, DiaNoiteUtil.tempo_velo),
+					   mundo.chunksMod.size(), mundo.semente, DiaNoiteUtil.tempo, DiaNoiteUtil.tempo_velo),
 				   50, Gdx.graphics.getHeight() - 100);
         fonte.draw(sb, String.format(
 					   "FPS: %d\nThreads ativas: %d\nMemória livre: %.1f MB\nMemória total: %.1f MB\n" +
