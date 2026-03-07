@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.ArrayList;
 import com.minimine.entidades.Jogador;
 import java.util.Map;
-import com.minimine.entidades.Foca;
 import com.minimine.entidades.Entidade;
 import java.util.Iterator;
+import com.minimine.entidades.DadosCriatura;
+import com.minimine.entidades.Criatura;
 
 public class GerenciadorEntidades {
 	public static final Random aleatorio = new Random();
@@ -15,7 +16,7 @@ public class GerenciadorEntidades {
     public static final float INTERVALO = 5f; // segundos
     public static final int MAX_ENTIDADES = 20;
     public static final float DIST_MIN_NASCER = 10f;
-	
+
 	public static void att(float delta, Mundo mundo, Jogador jg) {
 		// remove entidades se saiu da area visivel
 		Iterator<Entidade> it = mundo.entidades.iterator();
@@ -42,14 +43,14 @@ public class GerenciadorEntidades {
 				float empuxo = -mundo.GRAVIDADE * 0.92f; // ~27.6, quase neutraliza os -30
 				e.velocidade.y += (mundo.GRAVIDADE + empuxo) * delta;
 				// amortece velocidade vertical na água pra dar sensação de resistencia do fluido
-				e.velocidade.y *= (float)Math.pow(0.85, e instanceof Foca ? 1.5 : 1);
+				e.velocidade.y *= (float)Math.pow(0.85, 1);
 			} else {
 				e.velocidade.y += mundo.GRAVIDADE * delta;
 			}
 			if(e.velocidade.y < e.VELO_MAX_QUEDA) e.velocidade.y = e.VELO_MAX_QUEDA;
 		}
 	}
-	
+
 	public static void tentarNascerEntidade(Jogador jogador, Mundo mundo) {
 		// pega um chunk carregado aleatório(estado 2 = malha pronta)
 		List<Long> disponiveis = new ArrayList<>();
@@ -75,15 +76,29 @@ public class GerenciadorEntidades {
 
 			int wy = mundo.obterAlturaChao(mx, mz);
 			if(wy <= 1) continue;
-			
-			Entidade entidade = null;
-			
+
 			String bioma = Mundo.motor.obterBioma(mx, mz);
-			
-			if(bioma.equals("Mar Congelado")) entidade = new Foca(mx, wy, mz);
-			
-			if(entidade != null) mundo.entidades.add(entidade);
+
+			List<DadosCriatura> candidatos = Mundo.registroCriaturas.paraOBioma(bioma);
+			if(candidatos.isEmpty()) return;
+
+			DadosCriatura escolhido = sortearPorRaridade(candidatos);
+			if(escolhido == null) return;
+
+			mundo.entidades.add(new Criatura(escolhido, mx, wy, mz));
 			return;
 		}
 	}
+	public static DadosCriatura sortearPorRaridade(List<DadosCriatura> lista) {
+		float total = 0f;
+		for(DadosCriatura m : lista) total += m.raridade;
+		float sorteio = aleatorio.nextFloat() * total;
+		float acum = 0f;
+		for(DadosCriatura m : lista) {
+			acum += m.raridade;
+			if(sorteio <= acum) return m;
+		}
+		return lista.get(lista.size() - 1);
+	}
 }
+

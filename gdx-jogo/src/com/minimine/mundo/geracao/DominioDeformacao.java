@@ -26,14 +26,14 @@ public class DominioDeformacao {
 
         // === camada 2: distorção de domínio em escala média ===
         // posição grande(3000/5000) evita correlação entre eixos X e Z
-        double tamX = OpenSimplex2.ruido2Fractal(semente2, x * 0.00018,        z * 0.00018,        2, 0.5, 2.0) * 600.0;
-        double tamZ = OpenSimplex2.ruido2Fractal(semente2, x * 0.00018 + 3000, z * 0.00018 + 5000, 2, 0.5, 2.0) * 600.0;
+        double tamX = OpenSimplex2.ruido2Fractal(semente2, x * 0.00018, z * 0.00018, 2, 0.5, 2.0);
+        double tamZ = OpenSimplex2.ruido2Fractal(semente2, x * 0.00018 + 3000, z * 0.00018 + 5000, 2, 0.5, 2.0);
 
         double x1 = x + tamX;
         double z1 = z + tamZ;
 
         // === camada 3: detalhe regional(bordas de costas, golfos) ===
-        double posX2 = OpenSimplex2.ruido2Fractal(semente3, x1 * 0.00028,       z1 * 0.00028,        2, 0.45, 2.0) * 280.0;
+        double posX2 = OpenSimplex2.ruido2Fractal(semente3, x1 * 0.00028, z1 * 0.00028, 2, 0.45, 2.0) * 280.0;
         double posZ2 = OpenSimplex2.ruido2Fractal(semente3, x1 * 0.00028 + 800, z1 * 0.00028 + 1200, 2, 0.45, 2.0) * 280.0;
 
         double regional = OpenSimplex2.ruido2Fractal(semente1, (x1 + posX2) * 0.00038, (z1 + posZ2) * 0.00038, 3, 0.5, 2.0);

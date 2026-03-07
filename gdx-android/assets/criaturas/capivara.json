@@ -1,0 +1,78 @@
+{
+    "nome": "capivara",
+    "raridade": 0.3,
+    "modelo": "modelos/capivara.gltf",
+
+    "hitbox": {
+        "largura": 0.6,
+        "altura": 0.6,
+        "profundidade": 0.6
+    },
+
+    "movimento": {
+        "velo": 7.0,
+        "peso": 65.0,
+        "pulo": 12.0
+    },
+
+    "variaveis": {
+        "sede": {
+            "valor": 0,
+            "min": 0,
+            "max": 100
+        }
+    },
+
+    "comportamento": [
+        {
+            "condicao": ["noChao", "andando"],
+            "exec": {
+                "recompensa": 0.05
+            }
+        },
+        {
+            "condicao": ["sede", ">", 85],
+            "exec": {
+                "procurarBloco": ["agua"],
+                "recompensa": -0.1
+            }
+        },
+        {
+            "condicao": ["bloco", "==", "agua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "-",
+                    "valor": 1
+                }
+            }
+        },
+        {
+            "condicao": ["naAgua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "-",
+                    "valor": 2
+                }
+            }
+        },
+        {
+            "condicao": ["!naAgua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "+",
+                    "valor": 1
+                }
+            }
+        }
+    ],
+
+    "origem": {
+        "biomas": ["floresta", "costa"],
+        "chance": 0.5,
+        "max": 10
+    }
+}
+

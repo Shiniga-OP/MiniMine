@@ -20,7 +20,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.minimine.entidades.Entidade;
-import com.minimine.entidades.Foca;
 
 public class Render {
     public UI ui;

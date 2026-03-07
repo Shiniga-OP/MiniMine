@@ -10,14 +10,14 @@
     "superficie": {
         "topo": "grama",
         "subtopo": "terra",
-        "prof": 4,
+        "prof": 5,
         "interior": "pedra"
     },
 
     "subsolo": {
         "cavernas": {
-            "rasa": { "taxa": 0.10, "escala": 0.025 },
-            "media": { "taxa": 0.10, "escala": 0.020 },
+            "rasa": { "taxa": 0.001, "escala": 0.025 },
+            "media": { "taxa": 0.01, "escala": 0.020 },
             "profunda": { "taxa": 0.07, "escala": 0.015 }
         }
     },

@@ -34,8 +34,8 @@ public final class MotorGeracao {
         final DadosBioma[][] biomas  = BIOMAS_CACHE.get();
 
         // fase 1 + 2: preenche coluna e pinta superficie
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
+        for(int x = 0; x < 16; x++) {
+            for(int z = 0; z < 16; z++) {
                 int mx = chunkX + x, mz = chunkZ + z;
                 double elev = ctx.dominio.obterElevacaoContinental(mx, mz);
                 double tipo = identificarTipo(elev);
@@ -52,8 +52,8 @@ public final class MotorGeracao {
         }
         // fase 3: decoracoes, arvores, vegetacao
         addDecoracoes(chunk, chunkX, chunkZ, alturas, biomas);
-        addArvores   (chunk, chunkX, chunkZ, alturas, biomas);
-        addVegetacao (chunk, chunkX, chunkZ, alturas, biomas);
+        addArvores(chunk, chunkX, chunkZ, alturas, biomas);
+        addVegetacao(chunk, chunkX, chunkZ, alturas, biomas);
         chunk.dadosProntos = true;
     }
 	
@@ -63,10 +63,10 @@ public final class MotorGeracao {
         double suavizacao = OpenSimplex2.ruido2(ctx.sementeRuido, x * 0.0002, z * 0.0002) * 0.5 + 0.5;
 
         if(tipo > 0.45) {
-            double montanhas = ctx.crista.cristaFractal(x * 0.0008, z * 0.0008, 2, 2.2, 0.5);
+            double montanhas = ctx.crista.cristaFractal(x * 0.0003, z * 0.0003, 2, 2.2, 0.5);
             double cordilheiras = ctx.crista.cristaBilateral(x * 0.0004, z * 0.0004, 2, 2.0, 0.5);
             double fator = (tipo - 0.45) / 0.55;
-            altura += montanhas * fator * 0.32;
+            altura += montanhas * fator * 0.02;
             altura += cordilheiras * fator * 0.14;
             altura = altura * (0.75 + suavizacao * 0.25);
             if(fator > 0.6) {
@@ -83,8 +83,8 @@ public final class MotorGeracao {
         double turbulencia = ctx.crista.jordan(x * 0.001, z * 0.001, 2, 2.1, 1.0, 0.5);
         altura += turbulencia * 0.04;
         altura += ctx.erosao.obterErosaoInterpolada(x, z) * 0.1;
-        altura += OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.01, z * 0.01, 2, 0.5, 2.0) * 0.035;
-        altura += OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.03, z * 0.03, 2, 0.5, 2.0) * 0.018;
+        altura += OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.01, z * 0.01, 2, 0.5, 2.0) * 0.15;
+        altura += OpenSimplex2.ruido2Fractal(ctx.sementeRuido, x * 0.03, z * 0.03, 2, 0.5, 2.0) * 0.08;
 
         if(tipo > -0.05 && tipo < 0.42) {
             double rio = calcularFatorRio(x, z, tipo);

@@ -41,7 +41,6 @@ import com.minimine.mundo.blocos.Bloco;
 import com.minimine.graficos.Render;
 import com.minimine.graficos.Animacoes2D;
 import com.minimine.entidades.Jogador;
-import com.minimine.entidades.Foca;
 import java.util.Random;
 import java.nio.charset.StandardCharsets;
 import java.io.UnsupportedEncodingException;
@@ -51,11 +50,13 @@ import com.minimine.entidades.Entidade;
 import com.minimine.mundo.blocos.BlocoModelo;
 import com.minimine.mundo.geracao.MotorGeracao;
 import com.minimine.mundo.geracao.RegistroBiomas;
+import com.minimine.entidades.RegistroCriaturas;
 
 public class Mundo {
     public static String nome = "novo mundo";
 
 	public static List<Entidade> entidades = new ArrayList<>();
+	public static RegistroCriaturas registroCriaturas;
 
 	public static float GRAVIDADE = -30f;
 
@@ -83,6 +84,8 @@ public class Mundo {
         
 		RegistroBiomas re = new RegistroBiomas();
 		re.carregarBiomas(Gdx.files.internal("biomas/"));
+		registroCriaturas = new RegistroCriaturas();
+		registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
 		
 		motor = new MotorGeracao(semente, re);
 

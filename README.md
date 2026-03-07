@@ -2,7 +2,7 @@
 
 refeito com LibGDX.
 
-## Requisitos mínimos:
+## Requisitos mínimos(testados):
 
 ## PC/Notebook:
 * Sistema Operacional: Windows/Linux
@@ -53,28 +53,27 @@ refeito com LibGDX.
 * 2: sobrevivencia. Sofre com gravidade e colide com blocos. Seus recursos acabam.
 
 ## Blocos:
-0. Ar.
-1. Grama.
-2. Terra.
-3. Pedra.
-4. Água.
-5. Areia.
-6. Tronco de madeira.
-7. Bloco de folhas.
-8. Tabua de madeira.
-9. Cacto.
-10. Vidro.
-11. Tocha.
-12. Pedregulho.
-13. Cascalho.
-14. Bloco de gelo.
-15. Bloco de neve.
-16. Bloco de coral rosa.
-17. Bloco de coral azul
-18. Bloco de coral amarelo.
-19. Capim.
-20. Tulipa.
-21. Íris azul.
+* Grama.
+* Terra.
+* Pedra.
+* Água.
+* Areia.
+* Tronco de madeira.
+* Bloco de folhas.
+* Tabua de madeira.
+* Cacto.
+* Vidro.
+* Tocha.
+* Pedregulho.
+* Cascalho.
+* Bloco de gelo.
+* Bloco de neve.
+* Bloco de coral rosa.
+* Bloco de coral azul
+* Bloco de coral amarelo.
+* Capim.
+* Tulipa.
+* Íris azul.
 
 ## Receitas:
 ao clicar no botão de receitas, você pode obter um novo bloco apartir dessa receita.
@@ -91,9 +90,11 @@ essas são as receitas atuais e seus resultados:
 
 Dominio de Deformação.
 Erosão Hidraulica.
+Camada de decoração.
 
 ## Entidades:
-* Foca: Mar Congelado.
+* Foca: Mar Congelado/Tundra.
+* Capivara: Costa/Floresta.
 
 ## Biomas:
 
@@ -113,7 +114,6 @@ Erosão Hidraulica.
 [DadosBioma]: carregado: serrania
 [DadosBioma]: carregado: tundra
 ```
-
 em log mesmo porque eu to com preguiça de ficar listando.
 
 ## Otimizações:

@@ -1,0 +1,95 @@
+{
+    "nome": "foca",
+    "raridade": 0.2,
+    "modelo": "modelos/foca.gltf",
+
+    "hitbox": {
+        "largura": 0.8,
+        "altura": 0.6,
+        "profundidade": 1.2
+    },
+
+    "movimento": {
+        "velo": 5.0,
+        "peso": 65.0,
+        "pulo": 10.0
+    },
+
+    "variaveis": {
+        "sede": {
+            "valor": 0,
+            "min": 0,
+            "max": 100
+        }
+    },
+
+    "animacoes": ["nadando", "naAgua_parada"],
+
+    "comportamento": [
+        {
+            "condicao": ["naAgua", "andando"],
+            "exec": {
+                "tocarAnim": "nadando",
+                "recompensa": 0.05
+            }
+        },
+        {
+            "condicao": ["naAgua", "parado"],
+            "exec": {
+                "tocarAnim": "naAgua_parada",
+                "recompensa": 0.005
+            }
+        },
+        {
+            "condicao": ["noChao", "andando"],
+            "exec": {
+                "tocarAnim": "nadando",
+                "recompensa": -0.05
+            }
+        },
+        {
+            "condicao": ["sede", ">", 85],
+            "exec": {
+                "procurarBloco": ["agua"]
+            }
+        },
+        {
+            "condicao": ["bloco", "==", "agua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "-",
+                    "valor": 1
+                }
+            }
+        },
+        {
+            "condicao": ["naAgua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "-",
+                    "valor": 2
+                }
+            }
+        },
+        {
+            "condicao": ["!naAgua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "+",
+                    "valor": 1
+                },
+                "recompensa": -0.01
+            }
+        }
+    ],
+
+    "origem": {
+        "biomas": ["tundra", "oceano_congelado"],
+        "chance": 0.5,
+        "max": 5
+    }
+}
+
