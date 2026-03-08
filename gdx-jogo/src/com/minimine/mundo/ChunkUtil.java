@@ -72,34 +72,7 @@ public class ChunkUtil {
 		}
 		return bloco != 0;
 	}
-
-	public static int bitsPraMaxId(int maxId) {
-		// lerPacote/gravarPacote usam bit-shift assumindo que blocosPorInt é potencia de 2
-		// isso so é verdade quando bits e {1, 2, 4, 8} -> blocosPorInt e {32, 16, 8, 4}.
-		// valores como 3, 5, 6, 7 resultam em blocosPorInt ímpar e corrompem o indice
-		if(maxId <= 1)  return 1; // 32 blocos/int
-		if(maxId <= 3)  return 2; // 16 blocos/int
-		if(maxId <= 15) return 4; //  8 blocos/int
-		return 8; //  4 blocos/int
-	}
 	
-	// usa bit-shift
-	// blocosPorInt é sempre potencia de 2(32/1=32, 32/2=16, 32/4=8, 32/8=4),
-	// então: x/n == x>>log2(n) e x%n == x&(n-1)
-	public static int lerPacote(int indiceGlobal, int bits, int[] arr, int blocosPorInt, int log2) {
-		int idc = indiceGlobal >> log2;
-		int bitPos = (indiceGlobal & (blocosPorInt - 1)) * bits;
-		int mascara = (1 << bits) - 1;
-		return (arr[idc] >>> bitPos) & mascara;
-	}
-
-	public static void gravarPacote(int indiceGlobal, int valor, int bits, int[] arr, int blocosPorInt, int log2) {
-		int idc = indiceGlobal >> log2;
-		int bitPos = (indiceGlobal & (blocosPorInt - 1)) * bits;
-		int mascara = ((1 << bits) - 1) << bitPos;
-		arr[idc] = (arr[idc] & ~mascara) | ((valor & ((1 << bits) - 1)) << bitPos);
-	}
-
 	public static int obterBloco(int x, int y, int z, Chunk chunk) {
 		int total = x + (z << 4) + (y << 8); 
 
@@ -181,6 +154,33 @@ public class ChunkUtil {
 			// escrever valor direto
 			gravarPacote(total, bloco, chunk.bitsPorBloco, chunk.blocos, chunk.blocosPorInt, LOG2_BLOCOS[chunk.blocosPorInt]);
 		}
+	}
+
+	public static int bitsPraMaxId(int maxId) {
+		// lerPacote/gravarPacote usam bit-shift assumindo que blocosPorInt é potencia de 2
+		// isso so é verdade quando bits e {1, 2, 4, 8} -> blocosPorInt e {32, 16, 8, 4}.
+		// valores como 3, 5, 6, 7 resultam em blocosPorInt ímpar e corrompem o indice
+		if(maxId <= 1)  return 1; // 32 blocos/int
+		if(maxId <= 3)  return 2; // 16 blocos/int
+		if(maxId <= 15) return 4; //  8 blocos/int
+		return 8; //  4 blocos/int
+	}
+	
+	// usa bit-shift
+	// blocosPorInt é sempre potencia de 2(32/1=32, 32/2=16, 32/4=8, 32/8=4),
+	// então: x/n == x>>log2(n) e x%n == x&(n-1)
+	public static int lerPacote(int indiceGlobal, int bits, int[] arr, int blocosPorInt, int log2) {
+		int idc = indiceGlobal >> log2;
+		int bitPos = (indiceGlobal & (blocosPorInt - 1)) * bits;
+		int mascara = (1 << bits) - 1;
+		return (arr[idc] >>> bitPos) & mascara;
+	}
+
+	public static void gravarPacote(int indiceGlobal, int valor, int bits, int[] arr, int blocosPorInt, int log2) {
+		int idc = indiceGlobal >> log2;
+		int bitPos = (indiceGlobal & (blocosPorInt - 1)) * bits;
+		int mascara = ((1 << bits) - 1) << bitPos;
+		arr[idc] = (arr[idc] & ~mascara) | ((valor & ((1 << bits) - 1)) << bitPos);
 	}
 
 	public static void refazerPaleta(int novosBits, Chunk chunk) {

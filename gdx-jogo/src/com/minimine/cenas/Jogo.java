@@ -11,6 +11,8 @@ import com.minimine.Inicio;
 import com.minimine.utils.DiaNoiteUtil;
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.mundo.geracao.MotorGeracao;
+import com.badlogic.gdx.Gdx;
+import com.minimine.mundo.geracao.RegistroBiomas;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
@@ -25,17 +27,13 @@ public class Jogo implements Screen {
 		mundo = new Mundo();
 		jogador = new Jogador();
 		
-		render = new Render(jogador, mundo);
-		
 		mundo.chunksMod.clear();
 		
 		Bloco.iniciar();
 		
 		if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) ArquivosUtil.crMundo(mundo, jogador);
 		
-		render.mundo.iniciar();
-		
-		LuaAPI.iniciar();
+		render = new Render(jogador, mundo);
 		
 		relogio.schedule(
 			new java.util.TimerTask() {
@@ -51,6 +49,7 @@ public class Jogo implements Screen {
 					if(musicas) Musicas.tocarAleatorio();
 				}
 			}, 0, 1000);
+		LuaAPI.iniciar();
 	}
 
     @Override

@@ -142,6 +142,8 @@ public class Render {
         if(mundo.ciclo) CorposCelestes.iniciar();
 
         mb = new ModelBatch(); // carrega o gerenciador de modelos das entidades
+		
+		mundo.iniciar();
     }
 
     public void att(float delta) {

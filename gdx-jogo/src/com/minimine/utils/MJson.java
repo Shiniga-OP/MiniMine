@@ -35,7 +35,7 @@ public final class MJson {
 
     @SuppressWarnings("unchecked")
     public static List<Object> praArray(Object v) {
-        if(v instanceof List) return (List<Object>)v;
+        if(v instanceof List) return (ArrayList<Object>)v;
         throw new RuntimeException("esperado array, encontrado: " + tipo(v));
     }
 
@@ -77,10 +77,18 @@ public final class MJson {
     }
 
     public static int obterInt(Map<String, Object> obj, String chave, int valorPadrao) {
-        Object v = obj.get(chave);
-        if(v == null) return valorPadrao;
-        return praInt(v);
-    }
+		Object v = obj.get(chave);
+		if(v == null) return valorPadrao;
+
+		// Verifica se é realmente um número antes de converter
+		if(v instanceof Number) {
+			return ((Number) v).intValue();
+		}
+
+		// Se não for número, retorna padrão e loga o aviso
+		System.out.println("AVISO: campo '" + chave + "' não é número, é: " + tipo(v));
+		return valorPadrao;
+	}
 
     public static double obterDouble(Map<String, Object> obj, String chave, double valorPadrao) {
         Object v = obj.get(chave);

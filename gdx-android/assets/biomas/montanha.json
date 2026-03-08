@@ -1,38 +1,20 @@
 {
-    "nome": "montanha",
-    "raridade": 0.3,
-
-    "clima": {
-        "temperatura": { "min": 0.3, "max": 0.7 },
-        "umidade": { "min": 0.3, "max": 0.6 }
-    },
-
-    "superficie": {
-        "topo": "grama",
-        "subtopo": "terra",
-        "prof": 4,
-        "interior": "pedra"
-    },
-
-    "subsolo": {
-        "cavernas": {
-            "rasa": { "taxa": 0.09, "escala": 0.025 },
-            "media": { "taxa": 0.09, "escala": 0.020 },
-            "profunda": { "taxa": 0.07, "escala": 0.015 }
-        }
-    },
-
-    "coluna": { "tipo": "padrao" },
-
-    "arvores": null,
-
-    "plantas": {
-        "limite":      0.45,
-        "limite_flor": 0.80,
-        "lista": ["capim", "tulipa", "iris_azul"]
-    },
-
-    "minerios": [],
-    "estruturas": []
+  "nome": "montanha_nevada",
+  "peso": 1.0,
+  "alt_min": 90,
+  "alt_max": 255,
+  
+  "clima": {
+    "calor": 0.2,
+    "umidade": 0.3
+  },
+  "superficie": {
+    "topo": "neve",
+    "subtopo": "pedra",
+    "prof": 1,
+    "prof_subtopo": 2,
+    "interior": "pedra",
+    "fundo_rio_bloco": "pedregulho",
+    "prof_fundo_pedra": 0
+  }
 }
-

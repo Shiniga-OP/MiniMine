@@ -32,7 +32,6 @@ import com.minimine.mundo.geracao.MotorGeracao;
 
 public class LuaAPI {
 	public static Globals globais;
-	public static String att;
 	public static LuaFunction aoAjustar, ajuste, porFrame, frame;
 	public static int v, h;
 	public static float delta;
@@ -77,7 +76,6 @@ public class LuaAPI {
 				@Override
 				public LuaValue call() {
 					ajuste = null;
-					att = "";
 					iniciar();
 					return LuaValue.NIL;
 				}
@@ -92,17 +90,12 @@ public class LuaAPI {
 		String[] str = Gdx.files.absolute(Inicio.externo+"/MiniMine/mods/arquivos.mini").readString().split("\n");
 		for(int i = 0; i < str.length; i++) {
 			if(str == null || str[i].equals("")) continue;
-			script += ArquivosUtil.ler(Inicio.externo+"/MiniMine/mods/"+str[i]);
+			script += ArquivosUtil.ler(Inicio.externo+"/MiniMine/mods/"+str[i]) + '\n';
 		}
 		globais.load(script, "script").call();
-		if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mods/att.lua")) {
-			att = ArquivosUtil.ler(Inicio.externo+"/MiniMine/mods/att.lua");
-			existeAtt = true;
-		}
 	}
 	
 	public static void att(float delta1) {
-		if(existeAtt) globais.load(att, "script").call();
 		delta = delta1;
 		if(frame != null) porFrame.call(frame);
 	}

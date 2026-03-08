@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 /*
  * carrega todos os .json de uma pasta e organiza por chave e bioma
  * usado por GerenciadorEntidades para nascer
@@ -29,7 +28,10 @@ public final class RegistroCriaturas {
         List<DadosCriatura> resultado = new ArrayList<>();
         for(DadosCriatura m : criaturas.values()) {
             for(String b : m.biomасOrigens) {
-                if(b.equalsIgnoreCase(bioma)) { resultado.add(m); break; }
+                if(b.equalsIgnoreCase(bioma)) {
+					resultado.add(m);
+					break;
+				}
             }
         }
         return resultado;
@@ -42,6 +44,6 @@ public final class RegistroCriaturas {
     }
 
     public Collection<DadosCriatura> todos() { return criaturas.values(); }
-    public int total() { return criaturas.size(); }
+    public int total() {return criaturas.size();}
 }
 

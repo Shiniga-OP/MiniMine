@@ -78,16 +78,18 @@ public class Mundo {
     public static ExecutorService exec;
 	
 	public static MotorGeracao motor;
+	public static RegistroBiomas registroBiomas;
 
     public void iniciar() {
         semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
-        
-		RegistroBiomas re = new RegistroBiomas();
-		re.carregarBiomas(Gdx.files.internal("biomas/"));
+       
 		registroCriaturas = new RegistroCriaturas();
 		registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
 		
-		motor = new MotorGeracao(semente, re);
+		registroBiomas = new RegistroBiomas();
+		registroBiomas.carregarBiomas(Gdx.files.internal("biomas/"));
+		
+		motor = new MotorGeracao(semente, registroBiomas);
 
         if(exec == null || exec.isShutdown()) exec = Executors.newFixedThreadPool(8);
     }

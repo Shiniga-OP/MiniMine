@@ -12,7 +12,7 @@
     "movimento": {
         "velo": 5.0,
         "peso": 65.0,
-        "pulo": 10.0
+        "pulo": 8.0
     },
 
     "variaveis": {
@@ -44,13 +44,19 @@
             "condicao": ["noChao", "andando"],
             "exec": {
                 "tocarAnim": "nadando",
-                "recompensa": -0.05
+                
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "+",
+                    "valor": 1
+                }
             }
         },
         {
             "condicao": ["sede", ">", 85],
             "exec": {
-                "procurarBloco": ["agua"]
+                "procurarBloco": ["agua"],
+                "recompensa": -0.5
             }
         },
         {
@@ -72,20 +78,8 @@
                     "valor": 2
                 }
             }
-        },
-        {
-            "condicao": ["!naAgua"],
-            "exec": {
-                "operacao": {
-                    "variavel": "sede",
-                    "operador": "+",
-                    "valor": 1
-                },
-                "recompensa": -0.01
-            }
         }
     ],
-
     "origem": {
         "biomas": ["tundra", "oceano_congelado"],
         "chance": 0.5,

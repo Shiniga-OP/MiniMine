@@ -1,20 +1,20 @@
 {
-  "nome": "oceano",
+  "nome": "rio",
   "peso": 1.0,
-  "alt_min": 0,
-  "alt_max": 61,
+  "alt_min": 58,
+  "alt_max": 63,
   
   "clima": {
     "calor": 0.5,
-    "umidade": 1.0
+    "umidade": 0.9
   },
   "superficie": {
     "topo": "areia",
     "subtopo": "areia",
-    "prof": 0,
-    "prof_subtopo": 1,
+    "prof": 1,
+    "prof_subtopo": 2,
     "interior": "pedra",
     "fundo_rio_bloco": null,
-    "prof_fundo_pedra": 6
+    "prof_fundo_pedra": 0
   }
 }
