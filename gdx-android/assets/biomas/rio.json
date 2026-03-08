@@ -6,7 +6,7 @@
   
   "clima": {
     "calor": 0.5,
-    "umidade": 0.9
+    "umidade": 1.0
   },
   "superficie": {
     "topo": "areia",

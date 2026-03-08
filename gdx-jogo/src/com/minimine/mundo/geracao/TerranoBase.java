@@ -44,17 +44,17 @@ public final class TerranoBase {
 		escalaPersist = 0.1f;
 		espalharPersist = 2000f; octPersist = 3;
 		lacPersist = 2.0f;
-        posBase = 4.0f;
+        posBase = 66.0f; // 62 + 4, altura média do terreno terrestre
 		escalaBase = 70.0f;
 		espalharBase = 600f;
 		octBase = 5;
 		lacBase = 2.0f;
-        posAlt = 4.0f;
+        posAlt = 66.0f;  // 62 + 4
 		escalaAlt = 25.0f;
 		espalharAlt = 600f;
 		octAlt = 5;
 		lacAlt = 2.0f;
-        posSel = -8.0f;
+        posSel = 0.0f;
 		escalaSel = 16.0f;
 		espalharSel = 500f;
 		octSel = 6;
@@ -84,7 +84,7 @@ public final class TerranoBase {
             float alt = ctx.altMapa[i];
             float asel = Math.max(0f, Math.min(1f, ctx.seletorMapa[i]));
             float altura = (alt > base) ? alt : (base * asel + alt * (1f - asel));
-            ctx.superficeMapa[i] = nivelMar + altura;
+            ctx.superficeMapa[i] = altura;
         }
     }
 
@@ -101,7 +101,7 @@ public final class TerranoBase {
         float asel = Math.max(0f, Math.min(1f,
 		avaliar2D(semSeletor, posSel, escalaSel, espalharSel, octSel, perSel, lacSel, mx, mz)));
         float altura = (alt > base) ? alt : (base * asel + alt * (1f - asel));
-        return Math.max(1, Math.min(240, nivelMar + (int) altura));
+        return Math.max(1, Math.min(240, (int)altura));
     }
 
     // === UTILITARIOS DE CALCULO ===

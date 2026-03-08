@@ -7,7 +7,7 @@ import com.minimine.utils.ruidos.OpenSimplex2;
 /*
  * orquestrador de geração de chunk
  * thread-segura: toda a geração opera sobre ContextoGeracao local por thread
- 
+
  * MotorGeracao, TerranoBase e GeradorRios são imutaveis após construção
  * contem apenas parametros e sementes
  * multiplas threads podem chamar
@@ -17,18 +17,21 @@ import com.minimine.utils.ruidos.OpenSimplex2;
  *  fase 1: pré-calculo de ruido arrays
  *     persist -> base -> alt -> aSele -> subaquat -> crista -> calor -> umidade -> preenchimento
  *     todos os arrays populados antes de qualquer loop de blocos
- 
+
  *   fase 2:
- *     for(z) for(x) for(y): pedra | canal de rio (ar/água) | água de oceano
- 
+ *     for(z) for(x) for(y): pedra | escava canal de rio
+
  *   fase 3:
  *     passagem separada, por coluna: bioma por calor/umidade/altura, topo/subtopo/interior
  *     popula ctx.biomaMapa[] para uso futuro por GeradorDecoracoes
- 
+
+ *   fase 4:
+ *     preenche água em blocos vazios abaixo do nível do mar
+
  * parametros de bioma
- *   aquecer: pos=0, scale=1, espalhar=1000, oct=3, persist=0.5, lac=2.0
- *   umidade: pos=0, scale=1, espalhar=1000, oct=3, persist=0.5, lac=2.0
- *   preenchimento_depth: pos=0, scale=1.2, espalhar=150, oct=3, persist=0.7, lac=2.0
+ *   aquecer: pos=0, escala=1, espalhar=1000, oct=3, persist=0.5, lac=2.0
+ *   umidade: pos=0, escala=1, espalhar=1000, oct=3, persist=0.5, lac=2.0
+ *   preenchimento_profundidade: pos=0, escala=1.2, espalhar=150, oct=3, persist=0.7, lac=2.0
  */
 public final class MotorGeracao {
     public static final int NIVEL_MAR = 62;
@@ -65,9 +68,9 @@ public final class MotorGeracao {
         espalharUmidade = 1000f;
 		octUmidade = 3;
 		perUmidade = 0.5f;
-        espalharPreen = 150f; 
+        espalharPreen = 150f;
 		octPreen = 3;
-		perPreen  = 0.7f;
+		perPreen = 0.7f;
 		escalaPreen = 1.2f;
     }
 
@@ -90,11 +93,9 @@ public final class MotorGeracao {
             ctx.calorMapa[i] = Math.max(0f, Math.min(1f, ctx.calorMapa[i] * 0.5f + 0.5f));
             ctx.umidadeMapa[i] = Math.max(0f, Math.min(1f, ctx.umidadeMapa[i] * 0.5f + 0.5f));
         }
+
         // === FASE 2: gerar terreno ===
-		/*
-		 * preenche pedra, água e escava canais de rio
-		 * loop: for(z) for(x) for(y): pedra | rio | água | ar
-		*/
+        // preenche pedra e escava canais de rio
         int pedraSuperficieMaxY = 0;
 
         for(int z = 0; z < 16; z++) {
@@ -103,29 +104,22 @@ public final class MotorGeracao {
                 if(superficieY > pedraSuperficieMaxY) pedraSuperficieMaxY = superficieY;
 
                 for(int y = 0; y < Mundo.Y_CHUNK; y++) {
-                    if(y <= superficieY && !rios.eCanal(x, y, z, y, ctx)) {
+                    if(y <= superficieY && !rios.eCanal(x, y, z, y, superficieY, ctx)) {
                         ChunkUtil.defBloco(x, y, z, "pedra", chunk);
-                    } else if(y <= NIVEL_MAR) {
-                        ChunkUtil.defBloco(x, y, z, "agua", chunk);
                     }
                 }
             }
-        }  
-        // === FASE 3: gerar biomas===
-		/*
-		 * aplica topo/subtopo/interior de bioma
-		 * lassagem separada
-		*/
+        }
+        // === FASE 3: gerar biomas ===
+        // aplica topo/subtopo/interior de bioma
+        // topoColuna desce até o primeiro bloco sólido real da coluna
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
                 int idc2d = z * 16 + x;
 
-                // Y de superfície real desta coluna
-                int topoColuna = 0;
-                for(int y = pedraSuperficieMaxY; y >= 0; y--) {
-                    if(ChunkUtil.obterBloco(x, y, z, chunk) != 0) { topoColuna = y; break; }
-                }
-                // bioma: calor diminuido pela altitude
+                int topoColuna = terreno.obterAltura(x, z, ctx);
+                while(topoColuna > 0 && ChunkUtil.obterBloco(x, topoColuna, z, chunk) == 0) topoColuna--;
+
                 float calor = ctx.calorMapa[idc2d];
                 float umidade = ctx.umidadeMapa[idc2d];
                 calor = Math.max(0f, Math.min(1f, calor - (float)((topoColuna - NIVEL_MAR) * 0.004)));
@@ -139,7 +133,10 @@ public final class MotorGeracao {
 
                 int profAtual = 0;
                 for(int y = topoColuna; y >= 1; y--) {
-                    if(ChunkUtil.obterBloco(x, y, z, chunk) == 0) { profAtual = 0; continue; }
+                    if(ChunkUtil.obterBloco(x, y, z, chunk) == 0) {
+						if(profAtual > 0) break;
+						continue;
+					}
                     if(profAtual < s.profTopo) {
                         ChunkUtil.defBloco(x, y, z, s.topo, chunk);
                     } else if(profAtual < profpreenchimento) {
@@ -152,6 +149,17 @@ public final class MotorGeracao {
                 }
             }
         }
+        // === FASE 4: preencher água ===
+        // preenche blocos vazios abaixo do nível do mar com água
+        for(int z = 0; z < 16; z++) {
+            for(int x = 0; x < 16; x++) {
+                for(int y = NIVEL_MAR; y >= 0; y--) {
+                    if(ChunkUtil.obterBloco(x, y, z, chunk) == 0) {
+                        ChunkUtil.defBloco(x, y, z, "agua", chunk);
+                    }
+                }
+            }
+        }
         chunk.dadosProntos = true;
     }
 
@@ -161,8 +169,8 @@ public final class MotorGeracao {
         double freq = 1.0 / espalhar;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
-                saida[z * 16 + x] = (float) OpenSimplex2.ruido2Fractal(
-				sem, (origemX + x) * freq, (origemZ + z) * freq, oct, persist, lac);
+                saida[z * 16 + x] = (float)OpenSimplex2.ruido2Fractal(
+					sem, (origemX + x) * freq, (origemZ + z) * freq, oct, persist, lac);
 			}
 		}
     }
@@ -172,7 +180,7 @@ public final class MotorGeracao {
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
                 saida[(z << 4) + x] = escalaPreen * (float)OpenSimplex2.ruido2Fractal(
-				sempreenchimento, (origemX + x) * freq, (origemZ + z) * freq, octPreen, perPreen, 2.0f);
+					sempreenchimento, (origemX + x) * freq, (origemZ + z) * freq, octPreen, perPreen, 2.0f);
 			}
 		}
     }
@@ -184,7 +192,7 @@ public final class MotorGeracao {
 		(float)OpenSimplex2.ruido2Fractal(semCalor, mx / (double) espalharCalor, mz / (double) espalharCalor,
 		octCalor, perCalor, 2.0f) * 0.5f + 0.5f - (float)((alt - NIVEL_MAR) * 0.004)));
         float umi = Math.max(0f, Math.min(1f,
-		(float)OpenSimplex2.ruido2Fractal(semUmidade, mx / (double) espalharUmidade, mz / (double) espalharUmidade,
+		(float)OpenSimplex2.ruido2Fractal(semUmidade, mx / (double)espalharUmidade, mz / (double)espalharUmidade,
 		octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
         return registro.selecionar(cal, umi, alt).nome;
     }
@@ -199,11 +207,11 @@ public final class MotorGeracao {
                     int mx = origemX + dx, mz = origemZ + dz;
                     int alt = terreno.calcularAlturaPonto(mx, mz);
                     float cal = Math.max(0f, Math.min(1f,
-					(float)OpenSimplex2.ruido2Fractal(semCalor, mx / (double) espalharCalor, mz / (double) espalharCalor,
-					octCalor, perCalor, 2.0f) * 0.5f + 0.5f - (float)((alt - NIVEL_MAR) * 0.004)));
+													  (float)OpenSimplex2.ruido2Fractal(semCalor, mx / (double)espalharCalor, mz / (double)espalharCalor,
+																						octCalor, perCalor, 2.0f) * 0.5f + 0.5f - (float)((alt - NIVEL_MAR) * 0.004)));
                     float umi = Math.max(0f, Math.min(1f,
-					(float)OpenSimplex2.ruido2Fractal(semUmidade, mx / (double) espalharUmidade, mz / (double) espalharUmidade,
-					octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
+													  (float)OpenSimplex2.ruido2Fractal(semUmidade, mx / (double)espalharUmidade, mz / (double)espalharUmidade,
+																						octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
                     if(registro.selecionar(cal, umi, alt).chave.equals(chave)) return new int[]{mx, mz};
                 }
             }

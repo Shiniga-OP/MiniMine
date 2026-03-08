@@ -72,18 +72,19 @@ public final class GeradorRios {
         }
     }
     // retorna true se o bloco é canal de rio
-    public boolean eCanal(int x, int yLocal, int z, int yAbs, ContextoGeracao ctx) {
-        float abSubaquat = ctx.subaquatMapa[z * 16 + x];
-        if(abSubaquat > LARGURA) return false;
+    public boolean eCanal(int x, int yLocal, int z, int yAbs, int superficieY, ContextoGeracao ctx) {
+		float abSubaquat = ctx.subaquatMapa[z * 16 + x];
+		if(abSubaquat > LARGURA) return false;
+		if(yAbs < superficieY - 4) return false; // só escava perto da superfície
 
-        float altitude = yAbs - nivelMar;
-        float horizontalMod = (altitude + 17.0f) / 2.5f;
-        float verticalMod = LARGURA - abSubaquat;
-        float crista = ctx.cristaMapa[yLocal * 256 + z * 16 + x];
-        float ncrista = crista * Math.max(altitude, 0.0f) / 7.0f;
+		float altitude = yAbs - nivelMar;
+		float horizontalMod = (altitude + 17.0f) / 2.5f;
+		float verticalMod = LARGURA - abSubaquat;
+		float crista = ctx.cristaMapa[yLocal * 256 + z * 16 + x];
+		float ncrista = crista * Math.max(altitude, 0.0f) / 7.0f;
 
-        return ncrista + verticalMod * horizontalMod >= 0.6f;
-    }
+		return ncrista + verticalMod * horizontalMod >= 0.6f;
+	}
 
     // zona de rio para ponto arbitrario, uso esporadico, fora do loop de chunk
     public boolean eZonaRio(int mx, int mz) {

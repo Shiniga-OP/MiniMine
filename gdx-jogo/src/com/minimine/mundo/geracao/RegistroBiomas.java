@@ -30,7 +30,7 @@ public final class RegistroBiomas {
             if(altura < b.altMin || altura > b.altMax) continue;
             float dc = calor - b.clima.calor;
             float du = umidade - b.clima.umidade;
-            float dist = dc * dc + du * du;
+            float dist = (dc * dc + du * du) / b.peso;
             if(dist < menorDist) {
                 menorDist = dist;
                 melhor = b;
