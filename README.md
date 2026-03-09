@@ -143,6 +143,7 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Travas de segurança para otimização de loops em caso de imutalidado do pacote.
 * Compilação de arquivos JSON em tempo de execução.
 * Cache de fluxo.
+* Cache de vértices nas nuvens
 
 ## Ruídos utilitários:
 * OpenSimplex2.java

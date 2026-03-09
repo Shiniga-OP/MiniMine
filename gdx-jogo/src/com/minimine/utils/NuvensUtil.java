@@ -19,6 +19,13 @@ public class NuvensUtil {
     public static final float RAIO_VISIVEL = 200f;
 	public static float ALTURA_NUVENS = 150;
     public static final float VELO = 0.2f;
+
+    public static final int VERT_NUVEM = 8;
+    public static final int TOTAL_VERTICES = NUM_NUVENS * VERT_NUVEM;
+    public static final int TOTAL_INDICES = NUM_NUVENS * 36;
+
+    public static float[] verticesCache = new float[TOTAL_VERTICES * 3];
+    public static short[] indicesCache = new short[TOTAL_INDICES];
 	
     public static Vector3 centro= new Vector3();
     
@@ -40,19 +47,6 @@ public class NuvensUtil {
 	
 	public static VertexAttribute atribus = new VertexAttribute(VertexAttributes.Usage.Position, 3, "a_pos");
 
-    public static void iniciar(Vector3 pos) {
-        nuvensPos = new float[NUM_NUVENS * 4];
-        shader = new ShaderProgram(vert, frag);
-
-        if(!shader.isCompiled()) Gdx.app.log("Shader", "[ERRO]: " + shader.getLog());
-		
-		for(int i = 0; i < NUM_NUVENS; i++) {
-			gerarNuvem(i, pos);
-		}
-		attMesh();
-		centro.set(pos);
-    }
-
     public static void gerarNuvem(int idc, Vector3 centro) {
         int base = idc * 4;
         // gera ao redor do centro(360 graus)
@@ -65,89 +59,98 @@ public class NuvensUtil {
         nuvensPos[base + 3] = 6f + (float)Math.random() * 10f; // tamanho
     }
 
-    public static void attMesh() {
-        int VERT_NUVEM = 8;
-        int TOTAL_VERTICES = NUM_NUVENS * VERT_NUVEM;
-        int TOTAL_INDICES = NUM_NUVENS * 36;
-
-        float[] vertices = new float[TOTAL_VERTICES * 3];
-        short[] indices = new short[TOTAL_INDICES];
-
-        int vertIdc = 0;
-        int indicesIdc = 0;
-        short vertPos = 0;
+    public static void iniciar(Vector3 pos) {
+        nuvensPos = new float[NUM_NUVENS * 4];
+        shader = new ShaderProgram(vert, frag);
 
         for(int i = 0; i < NUM_NUVENS; i++) {
-			int base = i * 4;
-			float x = nuvensPos[base];
-			float y = nuvensPos[base + 1];
-			float z = nuvensPos[base + 2];
-			float tam = nuvensPos[base + 3];
+            gerarNuvem(i, pos);
+        }
 
-			// cria cubo pra nuvem
-			vertices[vertIdc++] = x; vertices[vertIdc++] = y; vertices[vertIdc++] = z; // 0
-			vertices[vertIdc++] = x + tam; vertices[vertIdc++] = y; vertices[vertIdc++] = z; // 1
-			vertices[vertIdc++] = x + tam; vertices[vertIdc++] = y; vertices[vertIdc++] = z + tam; // 2
-			vertices[vertIdc++] = x; vertices[vertIdc++] = y; vertices[vertIdc++] = z + tam; // 3
-			vertices[vertIdc++] = x; vertices[vertIdc++] = y + tam * 0.3f; vertices[vertIdc++] = z; // 4
-			vertices[vertIdc++] = x + tam; vertices[vertIdc++] = y + tam * 0.3f; vertices[vertIdc++] = z; // 5
-			vertices[vertIdc++] = x + tam; vertices[vertIdc++] = y + tam * 0.3f; vertices[vertIdc++] = z + tam; // 6
-			vertices[vertIdc++] = x; vertices[vertIdc++] = y + tam * 0.3f; vertices[vertIdc++] = z + tam; // 7
-			// indices:
-			short baseIdc = vertPos;
-
-			// baixo
-			indices[indicesIdc++] = (short)(baseIdc + 2); indices[indicesIdc++] = (short)(baseIdc + 3); indices[indicesIdc++] = (short)(baseIdc + 0);
-			indices[indicesIdc++] = (short)(baseIdc + 0); indices[indicesIdc++] = (short)(baseIdc + 1); indices[indicesIdc++] = (short)(baseIdc + 2);
-			// topo
-			indices[indicesIdc++] = (short)(baseIdc + 4); indices[indicesIdc++] = (short)(baseIdc + 7); indices[indicesIdc++] = (short)(baseIdc + 6);
-			indices[indicesIdc++] = (short)(baseIdc + 6); indices[indicesIdc++] = (short)(baseIdc + 5); indices[indicesIdc++] = (short)(baseIdc + 4);
-			// lados:
-			// frente(-Z)
-			indices[indicesIdc++] = (short)(baseIdc + 0); indices[indicesIdc++] = (short)(baseIdc + 4); indices[indicesIdc++] = (short)(baseIdc + 5);
-			indices[indicesIdc++] = (short)(baseIdc + 5); indices[indicesIdc++] = (short)(baseIdc + 1); indices[indicesIdc++] = (short)(baseIdc + 0);
-			// direita(+X)
-			indices[indicesIdc++] = (short)(baseIdc + 1); indices[indicesIdc++] = (short)(baseIdc + 5); indices[indicesIdc++] = (short)(baseIdc + 6);
-			indices[indicesIdc++] = (short)(baseIdc + 6); indices[indicesIdc++] = (short)(baseIdc + 2); indices[indicesIdc++] = (short)(baseIdc + 1);
-			// tras(+Z)
-			indices[indicesIdc++] = (short)(baseIdc + 2); indices[indicesIdc++] = (short)(baseIdc + 6); indices[indicesIdc++] = (short)(baseIdc + 7);
-			indices[indicesIdc++] = (short)(baseIdc + 7); indices[indicesIdc++] = (short)(baseIdc + 3); indices[indicesIdc++] = (short)(baseIdc + 2);
-			// esquerda(-X)
-			indices[indicesIdc++] = (short)(baseIdc + 3); indices[indicesIdc++] = (short)(baseIdc + 7); indices[indicesIdc++] = (short)(baseIdc + 4);
-			indices[indicesIdc++] = (short)(baseIdc + 4); indices[indicesIdc++] = (short)(baseIdc + 0); indices[indicesIdc++] = (short)(baseIdc + 3);
-			vertPos += 8;
-		}
-        if(malha != null) malha.dispose();
-        
+        // aloca a malha
         malha = new Mesh(true, TOTAL_VERTICES, TOTAL_INDICES, atribus);
-        malha.setVertices(vertices);
-        malha.setIndices(indices);
+        
+        // gera os indices so uma vez(eles nunca mudam, são sempre cubos)
+        preencherIndicesFixos();
+        
+        attMesh(); 
+        centro.set(pos);
+    }
+
+    private static void preencherIndicesFixos() {
+        int indicesIdc = 0;
+        short vertPos = 0;
+        for(int i = 0; i < NUM_NUVENS; i++) {
+            short baseIdc = vertPos;
+            // baixo
+            indicesCache[indicesIdc++] = (short)(baseIdc + 2); indicesCache[indicesIdc++] = (short)(baseIdc + 3); indicesCache[indicesIdc++] = (short)(baseIdc + 0);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 0); indicesCache[indicesIdc++] = (short)(baseIdc + 1); indicesCache[indicesIdc++] = (short)(baseIdc + 2);
+            // topo
+            indicesCache[indicesIdc++] = (short)(baseIdc + 4); indicesCache[indicesIdc++] = (short)(baseIdc + 7); indicesCache[indicesIdc++] = (short)(baseIdc + 6);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 6); indicesCache[indicesIdc++] = (short)(baseIdc + 5); indicesCache[indicesIdc++] = (short)(baseIdc + 4);
+            // lados(frente, direita, tras, esquerda)
+            indicesCache[indicesIdc++] = (short)(baseIdc + 0); indicesCache[indicesIdc++] = (short)(baseIdc + 4); indicesCache[indicesIdc++] = (short)(baseIdc + 5);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 5); indicesCache[indicesIdc++] = (short)(baseIdc + 1); indicesCache[indicesIdc++] = (short)(baseIdc + 0);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 1); indicesCache[indicesIdc++] = (short)(baseIdc + 5); indicesCache[indicesIdc++] = (short)(baseIdc + 6);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 6); indicesCache[indicesIdc++] = (short)(baseIdc + 2); indicesCache[indicesIdc++] = (short)(baseIdc + 1);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 2); indicesCache[indicesIdc++] = (short)(baseIdc + 6); indicesCache[indicesIdc++] = (short)(baseIdc + 7);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 7); indicesCache[indicesIdc++] = (short)(baseIdc + 3); indicesCache[indicesIdc++] = (short)(baseIdc + 2);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 3); indicesCache[indicesIdc++] = (short)(baseIdc + 7); indicesCache[indicesIdc++] = (short)(baseIdc + 4);
+            indicesCache[indicesIdc++] = (short)(baseIdc + 4); indicesCache[indicesIdc++] = (short)(baseIdc + 0); indicesCache[indicesIdc++] = (short)(baseIdc + 3);
+            vertPos += 8;
+        }
+        malha.setIndices(indicesCache);
+    }
+
+    public static void attMesh() {
+        int vertIdc = 0;
+        for(int i = 0; i < NUM_NUVENS; i++) {
+            int base = i * 4;
+            float x = nuvensPos[base], y = nuvensPos[base + 1], z = nuvensPos[base + 2], tam = nuvensPos[base + 3];
+
+            verticesCache[vertIdc++] = x;
+            verticesCache[vertIdc++] = y;
+            verticesCache[vertIdc++] = z;
+            verticesCache[vertIdc++] = x + tam;
+            verticesCache[vertIdc++] = y;
+            verticesCache[vertIdc++] = z;
+            verticesCache[vertIdc++] = x + tam;
+            verticesCache[vertIdc++] = y;
+            verticesCache[vertIdc++] = z + tam;
+            verticesCache[vertIdc++] = x;
+            verticesCache[vertIdc++] = y;
+            verticesCache[vertIdc++] = z + tam;
+            verticesCache[vertIdc++] = x;
+            verticesCache[vertIdc++] = y + tam * 0.3f;
+            verticesCache[vertIdc++] = z;
+            verticesCache[vertIdc++] = x + tam;
+            verticesCache[vertIdc++] = y + tam * 0.3f;
+            verticesCache[vertIdc++] = z;
+            verticesCache[vertIdc++] = x + tam;
+            verticesCache[vertIdc++] = y + tam * 0.3f;
+            verticesCache[vertIdc++] = z + tam;
+            verticesCache[vertIdc++] = x;
+            verticesCache[vertIdc++] = y + tam * 0.3f;
+            verticesCache[vertIdc++] = z + tam;
+        }
+        // so atualiza os vertices na malha existente
+        malha.setVertices(verticesCache);
     }
 
     public static void att(float delta, Vector3 pos) {
-        tempo = DiaNoiteUtil.tempo_velo;
-        
         boolean precisaAtt = false;
-        // movimento
         for(int i = 0; i < NUM_NUVENS; i++) {
             int base = i * 4;
-
-            // movimento continuo em direção fixa(pra OESTE -X)
             nuvensPos[base] -= VELO * delta * 60f;
-            // verifica se saiu do raio visivel em relação do jogador
-            float distanciaX = nuvensPos[base] - pos.x;
-            float distanciaZ = nuvensPos[base + 2] - pos.z;
-            float distancia = (float)Math.sqrt(distanciaX * distanciaX + distanciaZ * distanciaZ);
-
-            if(distancia > RAIO_VISIVEL) {
-                // nuvem espalhada ao eedor do jogador
+            
+            float dx = nuvensPos[base] - pos.x;
+            float dz = nuvensPos[base + 2] - pos.z;
+            if((float)Math.sqrt(dx*dx + dz*dz) > RAIO_VISIVEL) {
                 attNuvemEspalhada(i, pos);
                 precisaAtt = true;
             }
         }
-        centro.set(pos);
-        // atualiza a mesh a cada frame
-        if(precisaAtt || true) attMesh();
+        attMesh();
     }
 
     public static void attNuvemEspalhada(int idc, Vector3 posJogador) {

@@ -34,6 +34,7 @@ public class Inicio extends Game {
 	@Override
 	public void create() {
 		Gdx.app.setApplicationLogger(log);
+		
         Gdx.graphics.setVSync(false);
 		Gdx.graphics.setForegroundFPS(0); // fps ilimitado
 		

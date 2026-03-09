@@ -11,9 +11,6 @@ public class Iniciador {
         config.addIcon("minimine.png", com.badlogic.gdx.Files.FileType.Internal);
         config.width = 1280;
         config.height = 720;
-        config.vSyncEnabled = false; // desativa VSync
-        config.foregroundFPS = 0; // 0 = ilimitado
-        config.backgroundFPS = 0;
 
         Debugador debug = new Debugador() {
             @Override public boolean ehArm64() { return false; }
