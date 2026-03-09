@@ -107,10 +107,10 @@ public final class TerranoBase {
     // === UTILITARIOS DE CALCULO ===
     public void calcular2D(long sem, float pos, float escala, float espalhar, int oct, float lac,
 	float persist, int origemX, int origemZ, float[] saida) {
-        double freq = 1.0 / espalhar;
+        float freq = 1.0f / espalhar;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
-                saida[z * 16 + x] = pos + escala * (float)OpenSimplex2.ruido2Fractal(
+                saida[z * 16 + x] = pos + escala * OpenSimplex2.ruido2Fractal(
 					sem, (origemX + x) * freq, (origemZ + z) * freq, oct, persist, lac);
 			}
 		}
@@ -118,13 +118,13 @@ public final class TerranoBase {
 
     public void calcular2DComPersist(long sem, float pos, float escala, float espalhar, int oct, float lac,
 	int origemX, int origemZ, float[] saida, float[] persistMapa) {
-        double freq = 1.0 / espalhar;
+        float freq = 1.0f / espalhar;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
                 int idc = z * 16 + x;
                 float persist = persistMapa[idc];
-                double nx = (origemX + x) * freq, nz = (origemZ + z) * freq;
-                double total = 0, amplitude = 1, frequencia = 1, maximo = 0;
+                float nx = (origemX + x) * freq, nz = (origemZ + z) * freq;
+                float total = 0, amplitude = 1, frequencia = 1, maximo = 0;
                 long s = sem;
                 for(int i = 0; i < oct; i++) {
                     total += OpenSimplex2.ruido2(s, nx * frequencia, nz * frequencia) * amplitude;
@@ -133,18 +133,18 @@ public final class TerranoBase {
                     amplitude *= persist;
                     frequencia *= lac;
                 }
-                saida[idc] = pos + escala * (float)(maximo > 0 ? total / maximo : 0);
+                saida[idc] = pos + escala * (maximo > 0 ? total / maximo : 0);
             }
         }
     }
 
     public float avaliar2D(long sem, float pos, float escala, float espalhar, int oct, float persist, float lac, int mx, int mz) {
-        return pos + escala * (float)OpenSimplex2.ruido2Fractal(sem, mx / (double)espalhar, mz / (double)espalhar, oct, persist, lac);
+        return pos + escala * OpenSimplex2.ruido2Fractal(sem, mx / espalhar, mz / espalhar, oct, persist, lac);
     }
 
     public float avaliar2DPersist(long sem, float pos, float escala, float espalhar, int oct, float lac, int mx, int mz, float persist) {
-        double freq = 1.0 / espalhar;
-        double total = 0, amplitude = 1, frequencia = 1, maximo = 0;
+        float freq = 1.0f / espalhar;
+        float total = 0, amplitude = 1, frequencia = 1, maximo = 0;
         long s = sem;
         for(int i = 0; i < oct; i++) {
             total += OpenSimplex2.ruido2(s, mx * freq * frequencia, mz * freq * frequencia) * amplitude;
@@ -153,7 +153,7 @@ public final class TerranoBase {
             amplitude *= persist;
             frequencia *= lac;
         }
-        return pos + escala * (float)(maximo > 0 ? total / maximo : 0);
+        return pos + escala * (maximo > 0 ? total / maximo : 0);
     }
 }
 

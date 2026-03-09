@@ -46,6 +46,9 @@ public class Texturas {
 			atlas.put("capim", new TextureRegion(blocos, 80, 32, 16, 16));
 			atlas.put("tulipa", new TextureRegion(blocos, 96, 32, 16, 16));
 			atlas.put("iris_azul", new TextureRegion(blocos, 112, 32, 16, 16));
+			atlas.put("arenito", new TextureRegion(blocos, 0, 48, 16, 16));
+			atlas.put("pilar_arenito_lado", new TextureRegion(blocos, 16, 48, 16, 16));
+			atlas.put("pilar_arenito_topo", new TextureRegion(blocos, 32, 48, 16, 16));
 			// animações:
 			atlas.put("agua_a1", new TextureRegion(agua, 0, 0, 16, 16));
 			atlas.put("agua_a2", new TextureRegion(agua, 0, 16, 16, 16));

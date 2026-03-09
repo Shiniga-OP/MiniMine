@@ -69,13 +69,13 @@ public final class MapaRuido {
     */
     public void calcular2D(int origemX, int origemZ, int larguraX, int larguraZ) {
         alocar2D(larguraX, larguraZ);
-        double freqBase = 1.0 / espalhamento;
+        float freqBase = 1.0f / espalhamento;
         for(int z = 0; z < larguraZ; z++) {
             for(int x = 0; x < larguraX; x++) {
-                double nx = (origemX + x) * freqBase;
-                double nz = (origemZ + z) * freqBase;
+                float nx = (origemX + x) * freqBase;
+                float nz = (origemZ + z) * freqBase;
                 resultado[z * larguraX + x] = pos + escala *
-				(float)OpenSimplex2.ruido2Fractal(semente, nx, nz, oitavas, persistencia, lacunaridade);
+				OpenSimplex2.ruido2Fractal(semente, nx, nz, oitavas, persistencia, lacunaridade);
             }
         }
     }
@@ -87,17 +87,17 @@ public final class MapaRuido {
     public void calcular2DComPersist(int origemX, int origemZ,
 	int larguraX, int larguraZ, float[] persistMapa) {
         alocar2D(larguraX, larguraZ);
-        double freqBase = 1.0 / espalhamento;
+        float freqBase = 1.0f / espalhamento;
 
         for(int z = 0; z < larguraZ; z++) {
             for(int x = 0; x < larguraX; x++) {
                 int idc = z * larguraX + x;
-                double nx = (origemX + x) * freqBase;
-                double nz = (origemZ + z) * freqBase;
+                float nx = (origemX + x) * freqBase;
+                float nz = (origemZ + z) * freqBase;
                 float persist = (persistMapa != null) ? persistMapa[idc] : persistencia;
 
                 // oitavas com avanço LCG identico ao ruido2Fractal do OpenSimplex2
-                double total = 0.0, amplitude = 1.0, frequencia = 1.0, maximo = 0.0;
+                float total = 0.0f, amplitude = 1.0f, frequencia = 1.0f, maximo = 0.0f;
                 long sem = semente;
                 for(int i = 0; i < oitavas; i++) {
                     total += OpenSimplex2.ruido2(sem, nx * frequencia, nz * frequencia) * amplitude;
@@ -106,7 +106,7 @@ public final class MapaRuido {
                     amplitude *= persist;
                     frequencia *= lacunaridade;
                 }
-                resultado[idc] = pos + escala * (float)(maximo > 0 ? total / maximo : 0);
+                resultado[idc] = pos + escala * (maximo > 0 ? total / maximo : 0);
             }
         }
     }
@@ -120,16 +120,16 @@ public final class MapaRuido {
     public void calcular3D(int origemX, int origemY, int origemZ,
 	int larguraX, int alturaY, int larguraZ) {
         alocar3D(larguraX, alturaY, larguraZ);
-        double freqBase = 1.0 / espalhamento;
+        float freqBase = 1.0f / espalhamento;
         int fatiaXZ = larguraX * larguraZ;
         for(int y = 0; y < alturaY; y++) {
             for(int z = 0; z < larguraZ; z++) {
                 for(int x = 0; x < larguraX; x++) {
-                    double nx = (origemX + x) * freqBase;
-                    double ny = (origemY + y) * freqBase;
-                    double nz = (origemZ + z) * freqBase;
+                    float nx = (origemX + x) * freqBase;
+                    float ny = (origemY + y) * freqBase;
+                    float nz = (origemZ + z) * freqBase;
                     resultado[y * fatiaXZ + z * larguraX + x] = pos + escala *
-					(float)OpenSimplex2.ruido3XZFractal(semente, nx, ny, nz,
+					OpenSimplex2.ruido3XZFractal(semente, nx, ny, nz,
 					oitavas, persistencia, lacunaridade);
                 }
             }
@@ -148,15 +148,15 @@ public final class MapaRuido {
     // === AVALIAÇÃO PONTUAL ===
     // avalia o ruido em um unico ponto 2D sem popular resultado[]
     public float avaliar2D(int mx, int mz) {
-        double freqBase = 1.0 / espalhamento;
-        return pos + escala * (float)OpenSimplex2.ruido2Fractal(
+        float freqBase = 1.0f / espalhamento;
+        return pos + escala * OpenSimplex2.ruido2Fractal(
 		semente, mx * freqBase, mz * freqBase, oitavas, persistencia, lacunaridade);
     }
 
     // avalia o ruido em um único ponto 3D sem popular resultado[]
     public float avaliar3D(int mx, int my, int mz) {
-        double freqBase = 1.0 / espalhamento;
-        return pos + escala * (float)OpenSimplex2.ruido3XZFractal(
+        float freqBase = 1.0f / espalhamento;
+        return pos + escala * OpenSimplex2.ruido3XZFractal(
 		semente, mx * freqBase, my * freqBase, mz * freqBase,
 		oitavas, persistencia, lacunaridade);
     }

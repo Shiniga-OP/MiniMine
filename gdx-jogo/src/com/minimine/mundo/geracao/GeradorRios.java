@@ -48,20 +48,20 @@ public final class GeradorRios {
      *   ruido_crista->ruidoMap3D(node_min.X, node_min.Y-1, node_min.Z)
      */
     public void calcularChunk(int chunkX, int chunkY, int chunkZ, int alturaChunk, ContextoGeracao ctx) {
-        double freqU = 1.0 / espalharSubaquat;
+        float freqU = 1.0f / espalharSubaquat;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
-                float u = (float)OpenSimplex2.ruido2Fractal(semSubaquat,
+                float u = OpenSimplex2.ruido2Fractal(semSubaquat,
 				(chunkX + x) * freqU, (chunkZ + z) * freqU, octSubaquat, perSubaquat, lacSubaquat);
                 ctx.subaquatMapa[z * 16 + x] = Math.abs(u) * 2.0f;
             }
         }
-        double freqR = 1.0 / espalharCrista;
+        float freqR = 1.0f / espalharCrista;
         int fatiaXZ = 16 * 16; 
         for(int y = 0; y < alturaChunk; y++) {
             for(int z = 0; z < 16; z++) {
                 for(int x = 0; x < 16; x++) {
-                    ctx.cristaMapa[y * fatiaXZ + z * 16 + x] = (float)OpenSimplex2.ruido3XZFractal(
+                    ctx.cristaMapa[y * fatiaXZ + z * 16 + x] = OpenSimplex2.ruido3XZFractal(
 						semCrista,
 						(chunkX + x) * freqR,
 						(chunkY + y) * freqR,
@@ -88,8 +88,8 @@ public final class GeradorRios {
 
     // zona de rio para ponto arbitrario, uso esporadico, fora do loop de chunk
     public boolean eZonaRio(int mx, int mz) {
-        float u = (float)OpenSimplex2.ruido2Fractal(semSubaquat,
-		mx / (double)espalharSubaquat, mz / (double)espalharSubaquat, octSubaquat, perSubaquat, lacSubaquat);
+        float u = OpenSimplex2.ruido2Fractal(semSubaquat,
+		mx / espalharSubaquat, mz / espalharSubaquat, octSubaquat, perSubaquat, lacSubaquat);
         return Math.abs(u) * 2.0f <= LARGURA;
     }
 }

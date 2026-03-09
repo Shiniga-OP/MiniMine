@@ -1,5 +1,4 @@
 package com.minimine.mundo;
-
 // java
 import java.util.Map;
 import java.util.List;
@@ -32,9 +31,6 @@ import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-// ruidos
-import com.minimine.utils.ruidos.Simplex3D;
-import com.minimine.utils.ruidos.Simplex2D;
 // blocos
 import com.minimine.mundo.blocos.Bloco;
 // graficos
@@ -74,21 +70,24 @@ public class Mundo {
 	public static int RAIO_CHUNKS = 5;
 
     public static boolean carregado = false, ciclo = true, nuvens = true;
-    
+
     public static ExecutorService exec;
-	
+
 	public static MotorGeracao motor;
 	public static RegistroBiomas registroBiomas;
 
+	public static float contaFluxo = 0f;
+    public static final float INTERVALO_FLUXO = 0.5f; // segundos entre cada tick de água
+
     public void iniciar() {
         semente = semente == 0 ? (System.currentTimeMillis() * MathUtils.random(2, 10)) : semente;
-       
+
 		registroCriaturas = new RegistroCriaturas();
 		registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
-		
+
 		registroBiomas = new RegistroBiomas();
 		registroBiomas.carregarBiomas(Gdx.files.internal("biomas/"));
-		
+
 		motor = new MotorGeracao(semente, registroBiomas);
 
         if(exec == null || exec.isShutdown()) exec = Executors.newFixedThreadPool(8);
@@ -107,6 +106,18 @@ public class Mundo {
 		if(carregado) {
 			GerenciadorEntidades.att(delta, this, jg);
 			if(ciclo) CorposCelestes.att(jg.camera.combined, jg.posicao);
+
+			// tick de fluxo de água com atraso
+			contaFluxo += delta;
+			if(contaFluxo >= INTERVALO_FLUXO) {
+				contaFluxo -= INTERVALO_FLUXO;
+
+				for(Chunk chunk : chunks.values()) {
+					if(chunk.fluxoSujo && chunk.dadosProntos) {
+						FluxoAgua.attFluxo(chunk);
+					}
+				}
+			}
 		}
     }
 
@@ -143,10 +154,7 @@ public class Mundo {
 
         if(chunk == null) return 0;
 
-        int localX = x & 0xF;
-        int localZ = z & 0xF;
-
-        return ChunkUtil.obterBloco(localX, y, localZ, chunk);
+        return ChunkUtil.obterBloco(x & 0xF, y, z & 0xF, chunk);
     }
 
     public static void defBlocoMundo(int x, int y, int z, CharSequence bloco) {
@@ -182,7 +190,29 @@ public class Mundo {
 		if(eraEmissor) ChunkLuz.zerarLuz(chunk);
 
         ChunkUtil.defBloco(localX, y, localZ, bloco, chunk);
+		// reinicia os metadados sempre que o bloco muda, o novo bloco começa sem estado
+		ChunkUtil.defMeta(localX, y, localZ, (byte)0, chunk);
 
+		boolean novoEhAgua = bloco != null && bloco.equals("agua");
+		boolean antigoEraAgua = FluxoAgua.eAgua(blocoAntigoId);
+		if(novoEhAgua) {
+			// água colocada pelo jogador: define meta como fonte e inicia propagação progressiva
+			ChunkUtil.defMeta(localX, y, localZ, (byte)FluxoAgua.NIVEL_FONTE, chunk);
+			chunk.fluxoSujo = true;
+			chunk.att = true;
+		} else if(antigoEraAgua ||
+		FluxoAgua.eAgua(Mundo.obterBlocoMundo(x + 1, y, z)) ||
+		FluxoAgua.eAgua(Mundo.obterBlocoMundo(x - 1, y, z)) ||
+		FluxoAgua.eAgua(Mundo.obterBlocoMundo(x, y, z + 1)) ||
+		FluxoAgua.eAgua(Mundo.obterBlocoMundo(x, y, z - 1)) ||
+		FluxoAgua.eAgua(Mundo.obterBlocoMundo(x, y + 1, z)) ||
+		FluxoAgua.eAgua(Mundo.obterBlocoMundo(x, y - 1, z))) {
+			// fonte removida ou bloco adjacente a água mudou: recalcula tudo imediatamente
+			// para convergir ao estado correto(água some, fluxo se ajusta)
+			FluxoAgua.recalcularFluxo(chunk);
+			// marca vizinhas como sujas para recalcularem tambem
+			FluxoAgua.marcarSujo(chunkX, chunkZ);
+		}
 		// se não era emissor, marca chunk e vizinhas normalmente
 		if(!eraEmissor) chunk.luzSuja = true;
         chunk.att = true;
@@ -305,13 +335,9 @@ public class Mundo {
 				}
 				praRemover.add(chave);
 			} else if(chunk.att && !chunk.fazendo && estados.getOrDefault(chave, 0) >= 1) {
-				// Só atualiza se os dados já estão prontos — evita gerar malha de chunk ainda em geração
-				if(chunk.luzSuja) {
-					ChunkLuz.attLuz(chunk);
-				}
-				if(vizinhosProntos(chunk.x, chunk.z)) {
-					gerarMalha(chave);
-				}
+				// so atualiza se os dados ja estão prontos, evita gerar malha de chunk ainda em geração
+				if(chunk.luzSuja) ChunkLuz.attLuz(chunk);
+				if(vizinhosProntos(chunk.x, chunk.z)) gerarMalha(chave);
 			}
 		}
 		if(!praLiberar.isEmpty() || !praRemover.isEmpty()) {
@@ -324,7 +350,7 @@ public class Mundo {
 								c.malha = null;
 							}
 						}
-						for(long k : praRemover) chunks.remove(k);
+						for(long c : praRemover) chunks.remove(c);
 					}
 				});
 		}
@@ -372,7 +398,7 @@ public class Mundo {
 
 	public static void gerarDados(final long chave) {
 		final Chunk chunk = chunks.get(chave);
-		
+
 		exec.submit(new Runnable() {
 				@Override
 				public void run() {
@@ -398,7 +424,7 @@ public class Mundo {
 				@Override
 				public void run() {
 					ChunkLuz.calcularLuz(chunk);
-					
+
 					final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
 					final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
 					final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
@@ -430,7 +456,7 @@ public class Mundo {
 									// verifica se ta consistente
 									if(chunk.malha.getNumIndices() != totalIndices) {
 										Gdx.app.error("Mundo", "INCONSISTÊNCIA CRÍTICA: mesh tem " + 
-													  chunk.malha.getNumIndices() + " índices, mas deveria ter " + totalIndices);
+										chunk.malha.getNumIndices() + " índices, mas deveria ter " + totalIndices);
 									}
 									// atualiza os contadores
 									chunk.contaSolida = idcSolidos.tam;
@@ -532,6 +558,42 @@ public class Mundo {
 		}
 	}
 
+	public static byte obterMetaMundo(int x, int y, int z) {
+		if(y < 0 || y >= Y_CHUNK) return 0;
+		Chunk chunk = chunks.get(Chave.calcularChave(x >> 4, z >> 4));
+		if(chunk == null) return 0;
+		return ChunkUtil.obterMeta(x & 0xF, y, z & 0xF, chunk);
+	}
+
+	public static void defMetaMundo(int x, int y, int z, byte valor) {
+		if(y < 0 || y >= Y_CHUNK) return;
+		final int chunkX = x >> 4;
+		final int chunkZ = z >> 4;
+		Chunk chunk = chunks.get(Chave.calcularChave(chunkX, chunkZ));
+		if(chunk == null) return;
+		int localX = x & 0xF;
+		int localZ = z & 0xF;
+		ChunkUtil.defMeta(localX, y, localZ, valor, chunk);
+		chunk.att = true;
+		// se o bloco é borda, marca vizinha tambem pra reconstruir malha
+		if(localX == 0) {
+			Chunk adj = chunks.get(Chave.calcularChave(chunkX - 1, chunkZ));
+			if(adj != null) adj.att = true;
+		}
+		if(localX == TAM_CHUNK - 1) {
+			Chunk adj = chunks.get(Chave.calcularChave(chunkX + 1, chunkZ));
+			if(adj != null) adj.att = true;
+		}
+		if(localZ == 0) {
+			Chunk adj = chunks.get(Chave.calcularChave(chunkX, chunkZ - 1));
+			if(adj != null) adj.att = true;
+		}
+		if(localZ == TAM_CHUNK - 1) {
+			Chunk adj = chunks.get(Chave.calcularChave(chunkX, chunkZ + 1));
+			if(adj != null) adj.att = true;
+		}
+	}
+
 	public static String decodificarNome(String nome){
 	    try {
 	    	return URLDecoder.decode(nome, StandardCharsets.UTF_8.name());
@@ -541,4 +603,3 @@ public class Mundo {
 	    } 
     }
 }
-

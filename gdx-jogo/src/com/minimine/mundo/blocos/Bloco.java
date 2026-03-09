@@ -68,7 +68,9 @@ public class Bloco {
 		Bloco.blocos.add(new Bloco("capim", "capim", true, false, false, 0, true));
 		Bloco.blocos.add(new Bloco("tulipa", "tulipa", true, false, false, 3, true));
 		Bloco.blocos.add(new Bloco("iris_azul", "iris_azul", true, false, false, 1, true));
-
+		Bloco.blocos.add(new Bloco("arenito", "arenito"));
+		Bloco.blocos.add(new Bloco("pilar_arenito", "pilar_arenito_topo", "pilar_arenito_lado"));
+		
 		Bloco.addSom("grama", "grama_1", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("terra", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("areia", "terra_1", "terra_2", "terra_3");

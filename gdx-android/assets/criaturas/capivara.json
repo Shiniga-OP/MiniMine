@@ -70,7 +70,7 @@
     ],
 
     "origem": {
-        "biomas": ["floresta", "costa"],
+        "biomas": ["rio", "costa"],
         "chance": 0.5,
         "max": 10
     }

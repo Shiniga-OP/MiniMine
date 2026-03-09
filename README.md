@@ -46,6 +46,8 @@ refeito com LibGDX.
 * Auto atualização quando ligado a internet.
 * MJson para análise e conversão de JSON string para objetos Java em Java 7.
 * Biomas escritos em JSON.
+* Estados de blocos.
+* Água fluindo.
 
 ## Modos de jogo:
 * 0: espectador. Não sofre gravidade ou colisão com blocos. Seus recursos não acabam
@@ -74,6 +76,8 @@ refeito com LibGDX.
 * Capim.
 * Tulipa.
 * Íris azul.
+* Arenito
+* Pilar de arenito
 
 ## Receitas:
 ao clicar no botão de receitas, você pode obter um novo bloco apartir dessa receita.
@@ -88,31 +92,24 @@ essas são as receitas atuais e seus resultados:
 
 ## Geração feita:
 
-Dominio de Deformação.
-Erosão Hidraulica.
-Camada de decoração.
+* Mapa de ruído.
+* Umidade/temperatura/peso.
+* Camada de terreno base.
+* Canais para geração de rios.
 
 ## Entidades:
-* Foca: Mar Congelado/Tundra.
-* Capivara: Costa/Floresta.
+* Foca: nascimento desativado temporariamente.
+* Capivara: Costa/Rio.
 
 ## Biomas:
 
 ```
 [DadosBioma]: carregado: costa
-[DadosBioma]: carregado: deserto
-[DadosBioma]: carregado: dunas
 [DadosBioma]: carregado: floresta
-[DadosBioma]: carregado: floresta_costeira
 [DadosBioma]: carregado: montanha
 [DadosBioma]: carregado: oceano
-[DadosBioma]: carregado: oceano_abissal
-[DadosBioma]: carregado: oceano_congelado
-[DadosBioma]: carregado: oceano_quente
-[DadosBioma]: carregado: picos_gelados
 [DadosBioma]: carregado: planicie
-[DadosBioma]: carregado: serrania
-[DadosBioma]: carregado: tundra
+[DadosBioma]: carregado: rio
 ```
 em log mesmo porque eu to com preguiça de ficar listando.
 
@@ -144,12 +141,10 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Tabela de Log2 pra pacotes de chunks.
 * Cache de alturas para geração de biomas.
 * Travas de segurança para otimização de loops em caso de imutalidado do pacote.
+* Compilação de arquivos JSON em tempo de execução.
+* Cache de fluxo.
 
 ## Ruídos utilitários:
-* Simplex2D.java
-* Simplex3D.java
-* CristaRuido2D.java
-* CelularRuido2D.java
 * OpenSimplex2.java
 
 ## compatibilidade:

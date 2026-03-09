@@ -3,6 +3,7 @@ package com.minimine.mundo.geracao;
 import com.minimine.mundo.Chunk;
 import com.minimine.mundo.ChunkUtil;
 import com.minimine.mundo.Mundo;
+import com.minimine.mundo.FluxoAgua;
 import com.minimine.utils.ruidos.OpenSimplex2;
 /*
  * orquestrador de geração de chunk
@@ -93,7 +94,6 @@ public final class MotorGeracao {
             ctx.calorMapa[i] = Math.max(0f, Math.min(1f, ctx.calorMapa[i] * 0.5f + 0.5f));
             ctx.umidadeMapa[i] = Math.max(0f, Math.min(1f, ctx.umidadeMapa[i] * 0.5f + 0.5f));
         }
-
         // === FASE 2: gerar terreno ===
         // preenche pedra e escava canais de rio
         int pedraSuperficieMaxY = 0;
@@ -150,12 +150,14 @@ public final class MotorGeracao {
             }
         }
         // === FASE 4: preencher água ===
-        // preenche blocos vazios abaixo do nível do mar com água
+        // preenche blocos vazios abaixo do nível do mar com água estática
+        // meta=0 (fonte) mas fluxoSujo permanece false — oceanos não propagam
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
                 for(int y = NIVEL_MAR; y >= 0; y--) {
                     if(ChunkUtil.obterBloco(x, y, z, chunk) == 0) {
                         ChunkUtil.defBloco(x, y, z, "agua", chunk);
+                        ChunkUtil.defMeta(x, y, z, (byte)FluxoAgua.NIVEL_FONTE, chunk);
                     }
                 }
             }
@@ -166,21 +168,21 @@ public final class MotorGeracao {
     // === UTILITARIOS ===
     public void calcular2D(long sem, float espalhar, int oct, float persist, float lac,
 	int origemX, int origemZ, float[] saida) {
-        double freq = 1.0 / espalhar;
+        float freq = 1.0f / espalhar;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
-                saida[z * 16 + x] = (float)OpenSimplex2.ruido2Fractal(
-					sem, (origemX + x) * freq, (origemZ + z) * freq, oct, persist, lac);
+                saida[z * 16 + x] = OpenSimplex2.ruido2Fractal(
+				sem, (origemX + x) * freq, (origemZ + z) * freq, oct, persist, lac);
 			}
 		}
     }
 
     public void calcular2Dpreenchimento(int origemX, int origemZ, float[] saida) {
-        double freq = 1.0 / espalharPreen;
+        float freq = 1.0f / espalharPreen;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
-                saida[(z << 4) + x] = escalaPreen * (float)OpenSimplex2.ruido2Fractal(
-					sempreenchimento, (origemX + x) * freq, (origemZ + z) * freq, octPreen, perPreen, 2.0f);
+                saida[(z << 4) + x] = escalaPreen * OpenSimplex2.ruido2Fractal(
+				sempreenchimento, (origemX + x) * freq, (origemZ + z) * freq, octPreen, perPreen, 2.0f);
 			}
 		}
     }
@@ -189,10 +191,10 @@ public final class MotorGeracao {
     public String obterBioma(int mx, int mz) {
         int alt = terreno.calcularAlturaPonto(mx, mz);
         float cal = Math.max(0f, Math.min(1f,
-		(float)OpenSimplex2.ruido2Fractal(semCalor, mx / (double) espalharCalor, mz / (double) espalharCalor,
-		octCalor, perCalor, 2.0f) * 0.5f + 0.5f - (float)((alt - NIVEL_MAR) * 0.004)));
+		OpenSimplex2.ruido2Fractal(semCalor, mx / espalharCalor, mz / espalharCalor,
+		octCalor, perCalor, 2.0f) * 0.5f + 0.5f - ((alt - NIVEL_MAR) * 0.004f)));
         float umi = Math.max(0f, Math.min(1f,
-		(float)OpenSimplex2.ruido2Fractal(semUmidade, mx / (double)espalharUmidade, mz / (double)espalharUmidade,
+		OpenSimplex2.ruido2Fractal(semUmidade, mx / espalharUmidade, mz / espalharUmidade,
 		octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
         return registro.selecionar(cal, umi, alt).nome;
     }
@@ -207,11 +209,11 @@ public final class MotorGeracao {
                     int mx = origemX + dx, mz = origemZ + dz;
                     int alt = terreno.calcularAlturaPonto(mx, mz);
                     float cal = Math.max(0f, Math.min(1f,
-													  (float)OpenSimplex2.ruido2Fractal(semCalor, mx / (double)espalharCalor, mz / (double)espalharCalor,
-																						octCalor, perCalor, 2.0f) * 0.5f + 0.5f - (float)((alt - NIVEL_MAR) * 0.004)));
+					OpenSimplex2.ruido2Fractal(semCalor, mx / espalharCalor, mz / espalharCalor,
+					octCalor, perCalor, 2.0f) * 0.5f + 0.5f - ((alt - NIVEL_MAR) * 0.004f)));
                     float umi = Math.max(0f, Math.min(1f,
-													  (float)OpenSimplex2.ruido2Fractal(semUmidade, mx / (double)espalharUmidade, mz / (double)espalharUmidade,
-																						octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
+					OpenSimplex2.ruido2Fractal(semUmidade, mx / espalharUmidade, mz / espalharUmidade,
+					octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
                     if(registro.selecionar(cal, umi, alt).chave.equals(chave)) return new int[]{mx, mz};
                 }
             }
@@ -219,4 +221,5 @@ public final class MotorGeracao {
         return new int[]{0, 0};
     }
 }
+
 
