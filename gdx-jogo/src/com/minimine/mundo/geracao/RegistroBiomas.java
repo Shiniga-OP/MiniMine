@@ -1,5 +1,6 @@
 package com.minimine.mundo.geracao;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,10 +12,16 @@ public final class RegistroBiomas {
     public final Map<String, DadosBioma> biomas = new LinkedHashMap<String, DadosBioma>();
     public DadosBioma padrao;
 
-    public void carregarBiomas(FileHandle pasta) {
-        FileHandle[] arquivos = pasta.list(".json");
-        if(arquivos == null || arquivos.length == 0)
-            throw new RuntimeException("nenhum bioma encontrado em: " + pasta.path());
+    public void carregarBiomas(final String pasta, final String... nomes) {
+
+        if(pasta == null || nomes == null || nomes.length == 0)
+            throw new RuntimeException("nenhum bioma encontrado em: " + pasta);
+
+        FileHandle[] arquivos = new FileHandle[nomes.length];
+
+	for (int i = 0; i < arquivos.length; i++) {
+		arquivos[i] = Gdx.files.internal(pasta + nomes[i]);
+	}
         for(FileHandle a : arquivos) {
             String chave = a.nameWithoutExtension();
             DadosBioma bioma = DadosBioma.compilar(chave, a.readString("UTF-8"));

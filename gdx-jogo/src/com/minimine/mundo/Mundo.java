@@ -20,6 +20,7 @@ import com.minimine.graficos.Render;
 import com.minimine.graficos.Animacoes2D;
 // libgdx
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.graphics.GL20;
 // blocos
@@ -103,19 +104,34 @@ public class Mundo {
 	java.nio.ByteBuffer.allocateDirect(12).order(java.nio.ByteOrder.nativeOrder()).asIntBuffer();
 
     public void iniciar() {
-        semente = semente == 0 ? (System.currentTimeMillis() ^ MathUtils.random(2, 10)) : semente;
+	    semente = semente == 0 ? (System.currentTimeMillis() ^ MathUtils.random(2, 10)) : semente;
 
-        registroCriaturas = new RegistroCriaturas();
-        registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
+	    registroCriaturas = new RegistroCriaturas();
+	    registroCriaturas.carregar("criaturas/", 
+		    "capivara.json", 
+		    "foca.json"
+	    );
 
-        registroBiomas = new RegistroBiomas();
-        registroBiomas.carregarBiomas(Gdx.files.internal("biomas/"));
+	    registroBiomas = new RegistroBiomas();
+	    registroBiomas.carregarBiomas("biomas/",
+		"colinas_deserto.json",
+		"costa.json",
+		"deserto.json",
+		"floresta.json",
+		"montanha.json",
+		"oceano.json",
+		"planicies.json",
+		"rio.json",
+		"selva.json",
+		"taiga.json",
+		"tundra.json"
+	    );
 
-		ReceitaRegistro.iniciar();
+	    ReceitaRegistro.iniciar();
 
-        motor = new MotorGeracao(semente, registroBiomas);
+	    motor = new MotorGeracao(semente, registroBiomas);
 
-        TarefasUtil.iniciar();
+	    TarefasUtil.iniciar();
     }
 
     // chamado em render
