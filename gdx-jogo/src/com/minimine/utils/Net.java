@@ -41,6 +41,7 @@ public class Net {
     public BufferedReader clienteEntrada;
     public boolean conectado = false;
     public volatile String IP = null;
+	public static String ultimoIP = null;
 
     public Net(String modoAtual) {
         Gdx.app.log(NOME, "Iniciando como: " + modoAtual);
@@ -203,6 +204,7 @@ public class Net {
     }
 
     public void conectarServidorTcp() {
+		if(IP == null) IP = ultimoIP;
         try {
             SocketHints hints = new SocketHints();
             hints.connectTimeout = 5000;

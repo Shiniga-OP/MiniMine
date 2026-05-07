@@ -147,7 +147,7 @@ public class Menu implements Screen, InputProcessor {
     }
 
     public void criarPainelMenu() {
-        painelMenu = new Painel(visualJanela, -300, -250, 600, 500, escalaPixel);
+        painelMenu = new Painel(visualJanela, -300, -300, 600, 580, escalaPixel);
         painelMenu.defEspaco(20, 30);
         painelMenu.corFundo = new Color(0.1f, 0.15f, 0.2f, 1f);
 
@@ -171,7 +171,15 @@ public class Menu implements Screen, InputProcessor {
             }
         };
         Botao botaoJogar = new Botao("Um Jogador", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoJogar);
-        painelMenu.addAncorado(botaoJogar, Ancora.CENTRO, 0, 50);
+        painelMenu.addAncorado(botaoJogar, Ancora.CENTRO, 0, 100);
+
+        Acao acaoMulti = new Acao() {
+            public void exec() {
+                Inicio.defTela(Cenas.multiMenu);
+            }
+        };
+        Botao botaoMulti = new Botao("Multijogador", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoMulti);
+        painelMenu.addAncorado(botaoMulti, Ancora.CENTRO, 0, 0);
 
         Acao acaoConfig = new Acao() {
             public void exec() {
@@ -179,7 +187,7 @@ public class Menu implements Screen, InputProcessor {
             }
         };
         Botao botaoConfig = new Botao("Configuracoes", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConfig);
-        painelMenu.addAncorado(botaoConfig, Ancora.CENTRO, 0, -50);
+        painelMenu.addAncorado(botaoConfig, Ancora.CENTRO, 0, -100);
 
         Acao acaoSair = new Acao() {
             public void exec() {

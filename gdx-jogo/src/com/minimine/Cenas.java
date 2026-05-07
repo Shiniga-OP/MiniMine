@@ -6,9 +6,10 @@ import com.minimine.cenas.Jogo;
 import com.minimine.cenas.MundoMenu;
 import com.minimine.cenas.Intro;
 import com.minimine.cenas.Config;
+import com.minimine.cenas.MultiMenu;
 
 public class Cenas {
-	public static Screen menu, jogo, selecao, intro, configuracoes;
+	public static final Screen menu, jogo, selecao, intro, configuracoes, multiMenu;
 	
 	static {
 		intro = new Intro();
@@ -16,6 +17,7 @@ public class Cenas {
 		jogo = new Jogo();
 		selecao = new MundoMenu();
 		configuracoes = new Config();
+		multiMenu = new MultiMenu();
 	}
 	
 	public static void mudarCena(Screen cena) {

@@ -41,6 +41,7 @@ import java.io.DataInputStream;
 
 public class Jogador extends Entidade {
 	public int modo = 2;
+	public int pessoa = 0;
 	public PerspectiveCamera camera;
 	public float forcaMov = 0;
 
@@ -89,9 +90,11 @@ public class Jogador extends Entidade {
 		} catch(Exception e) {
 			Gdx.app.error("[Jogador]", "Erro no GLTF: " + e.getMessage());
 		}
-		bracoDir.rotation.set(rotBracoDir);
-		bracoDir.rotation.mul(new Quaternion(Vector3.X, 100f));
-		instancia.calculateTransforms();
+		if(pessoa == 0) {
+			bracoDir.rotation.set(rotBracoDir);
+			bracoDir.rotation.mul(new Quaternion(Vector3.X, 100f));
+			instancia.calculateTransforms();
+		}
 	}
 
 	@Override
@@ -278,7 +281,17 @@ public class Jogador extends Entidade {
 			forcaMov = Math.max(0f, forcaMov - delta * 5f);
 			if(forcaMov == 0) tempoAnimacao = 0;
 		}
-		camera.position.set(posicao.x, posicao.y + altura * 0.9f, posicao.z);
+		if(pessoa == 0) {
+			// primeira pessoa: camera no olho do jogador
+			camera.position.set(posicao.x, posicao.y + altura * 0.9f, posicao.z);
+		} else if(pessoa == 1) {
+			// terceira pessoa traseira: recua ao longo da direção completa da camera
+			camera.position.set(
+				posicao.x - camera.direction.x * DIST_TERCEIRA_PESSOA,
+				posicao.y + altura * 0.9f - camera.direction.y * DIST_TERCEIRA_PESSOA,
+				posicao.z - camera.direction.z * DIST_TERCEIRA_PESSOA
+			);
+		}
 		camera.update();
 
 		instancia.userData = dadosLuz;
@@ -290,30 +303,42 @@ public class Jogador extends Entidade {
 			itemCache = item;
 			modeloItem = Modelos.modeloItem(item);
 		}
-		instancia.transform.set(camera.view);
 
-		if(Math.abs(instancia.transform.det()) > 1e-6f) {
-			instancia.transform.inv();
+		if(pessoa == 0) {
+			// primeira pessoa: renderiza braço no espaço da camera(sem profundidade)
+			instancia.transform.set(camera.view);
+
+			if(Math.abs(instancia.transform.det()) > 1e-6f) {
+				instancia.transform.inv();
+			} else {
+				camera.update();
+				return;
+			}
+			final float balancoX = MathUtils.sin(tempoAnimacao * 0.5f) * 0.05f;
+			final float balancoY = Math.abs(MathUtils.cos(tempoAnimacao)) * 0.05f;
+
+			instancia.transform.translate(0.5f + balancoX, -2.15f + balancoY, -1f);
+			instancia.transform.rotate(Vector3.Y, 15);
+
+			instancia.calculateTransforms();
+
+			mb.flush();
+			Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
+
+			mb.render(instancia);
+			if(modeloItem != null) {
+				modeloItem.transform.set(instancia.transform).mul(itemPos.globalTransform);
+				modeloItem.calculateTransforms();
+				mb.render(modeloItem);
+			}
 		} else {
-			camera.update();
-			return;
-		}
-		final float balancoX = MathUtils.sin(tempoAnimacao * 0.5f) * 0.05f;
-		final float balancoY = Math.abs(MathUtils.cos(tempoAnimacao)) * 0.05f;
-
-		instancia.transform.translate(0.5f + balancoX, -2.15f + balancoY, -1f);
-		instancia.transform.rotate(Vector3.Y, 15);
-
-		instancia.calculateTransforms();
-
-		mb.flush();
-		Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
-
-		mb.render(instancia);
-		if(modeloItem != null) {
-			modeloItem.transform.set(instancia.transform).mul(itemPos.globalTransform);
-			modeloItem.calculateTransforms();
-			mb.render(modeloItem);
+			// terceira pessoa: renderiza modelo completo no mundo
+			final float yaw = MathUtils.atan2(camera.direction.x, camera.direction.z) * MathUtils.radiansToDegrees;
+			instancia.transform.idt();
+			instancia.transform.translate(posicao.x, posicao.y, posicao.z);
+			instancia.transform.rotate(Vector3.Y, yaw);
+			instancia.calculateTransforms();
+			mb.render(instancia);
 		}
 	}
 
@@ -326,9 +351,30 @@ public class Jogador extends Entidade {
 		pernaEsq = instancia.getNode("perna_esq", true);
 		itemPos = instancia.getNode("item", true);
 
-		instancia.nodes.clear();
-		instancia.nodes.add(bracoDir);
-		instancia.nodes.add(itemPos);
+		if(pessoa == 0) {
+			// primeira pessoa: so mostra braço direito e item
+			instancia.nodes.clear();
+			instancia.nodes.add(bracoDir);
+			instancia.nodes.add(itemPos);
+		}
+	}
+
+	public static final float DIST_TERCEIRA_PESSOA = 4f;
+
+	public void trocarPessoa() {
+		pessoa = (pessoa + 1) % 3;
+		try {
+			instancia = new ModelInstance(Modelos.obterModelo("modelos/jogador.gltf"));
+			pegarNos();
+			salvarRotacoes();
+		} catch(Exception e) {
+			Gdx.app.error("[Jogador]", "Erro ao trocar visão: " + e.getMessage());
+		}
+		if(pessoa == 0) {
+			bracoDir.rotation.set(rotBracoDir);
+			bracoDir.rotation.mul(new Quaternion(Vector3.X, 100f));
+			instancia.calculateTransforms();
+		}
 	}
 
 	public void salvarRotacoes() {
@@ -337,7 +383,7 @@ public class Jogador extends Entidade {
 		if(bracoDir != null) rotBracoDir.set(bracoDir.rotation);
 		if(bracoEsq != null) rotBracoEsq.set(bracoEsq.rotation);
 		if(pernaDir != null) rotPernaDir.set(pernaDir.rotation);
-	if(pernaEsq != null) rotPernaEsq.set(pernaEsq.rotation);
+		if(pernaEsq != null) rotPernaEsq.set(pernaEsq.rotation);
 	}
 
 	@Override
@@ -349,6 +395,7 @@ public class Jogador extends Entidade {
 		dos.writeInt(inv != null ? inv.slotSelecionado : 0);
 	}
 
+	@Override
 	public void carregar(DataInputStream dis) throws IOException {
 		super.carregar(dis);
         modo = dis.readInt();
@@ -358,4 +405,3 @@ public class Jogador extends Entidade {
         inv.slotSelecionado = dis.readInt();
     }
 }
-

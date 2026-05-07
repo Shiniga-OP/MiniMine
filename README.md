@@ -53,6 +53,8 @@ refeito com LibGDX.
 * Cavernas em tuneis.
 * Dano de queda.
 * Itens flutuantes.
+* Menu multi jogador.
+* Pontos de vista (primeira pessoa, segunda pessoa).
 
 ## Modos de jogo:
 * 0: espectador. Não sofre gravidade ou colisão com blocos. Seus recursos não acabam
@@ -107,7 +109,6 @@ refeito com LibGDX.
 * Capivara: Costa/Rio.
 
 ## Biomas:
-
 ```
 [DadosBioma]: carregado: colinas_deserto
 [DadosBioma]: carregado: costa

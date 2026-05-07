@@ -18,6 +18,7 @@ import com.minimine.graficos.teste.GraficosTeste;
 import com.minimine.mundo.chunks.ChunkProcesso;
 import com.minimine.mundo.chunks.ChunkLuz;
 import com.minimine.mundo.chunks.ChunkMalha;
+import com.minimine.utils.Net;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
@@ -26,6 +27,7 @@ public class Jogo implements Screen {
 	public static Renderizador render;
 	public static boolean musicas = true, graficosTeste = false;
 	public static java.util.Timer relogio;
+	public static Net net;
 	
     @Override
 	public void show() {
@@ -37,6 +39,8 @@ public class Jogo implements Screen {
 		mundo.chunksMod.clear();
 		
 		Bloco.iniciar();
+		
+		if(MultiMenu.modoRede != null) net = new Net(MultiMenu.modoRede);
 		
 		if(graficosTeste) {
 			ChunkProcesso.luz = new ChunkLuz();
@@ -74,6 +78,10 @@ public class Jogo implements Screen {
 		relogio.cancel();
 		render.liberar();
 		Bloco.liberar();
+		if(net != null) {
+			net.liberar();
+			net = null;
+		}
     }
 	
 	@Override
