@@ -14,17 +14,14 @@ import java.util.Map;
 public final class RegistroCriaturas {
 	public final Map<String, DadosCriatura> criaturas = new LinkedHashMap<>();
 
-	public void carregar(final String pasta, final String... nomes) {
-		if(pasta == null || nomes == null || nomes.length == 0) {
-			throw new RuntimeException("nenhum mob encontrado" + pasta);
-		}
-		final FileHandle[] arquivos = new FileHandle[nomes.length];
+	public void carregar(final String caminho, final String... nomes) {
+		final FileHandle pasta = Gdx.files.internal(caminho);
+		if(pasta == null || nomes.length == 0) 
+			throw new RuntimeException("nenhum mob encontrado em: " + pasta.path());
 
-		for (int i = 0; i < arquivos.length; i++) {
-			arquivos[i] = Gdx.files.internal(pasta + nomes[i]);
-		}
-
-		for(FileHandle a : arquivos) {
+		FileHandle a;
+		for (String nome : nomes) {
+			a = pasta.child(nome);
 			final DadosCriatura dados = DadosCriatura.compilar(a.readString("UTF-8"));
 			criaturas.put(dados.nome, dados);
 		}

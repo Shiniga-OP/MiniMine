@@ -12,22 +12,20 @@ public final class RegistroBiomas {
     public final Map<String, DadosBioma> biomas = new LinkedHashMap<String, DadosBioma>();
     public DadosBioma padrao;
 
-    public void carregarBiomas(final String pasta, final String... nomes) {
+    public void carregarBiomas(final String caminho, final String... nomes) {
+	final FileHandle pasta = Gdx.files.internal(caminho);
 
-        if(pasta == null || nomes == null || nomes.length == 0)
-            throw new RuntimeException("nenhum bioma encontrado em: " + pasta);
+	if(pasta == null || nomes.length == 0)
+		throw new RuntimeException("nenhum bioma encontrado em: " + pasta.path());
 
-        FileHandle[] arquivos = new FileHandle[nomes.length];
-
-	for (int i = 0; i < arquivos.length; i++) {
-		arquivos[i] = Gdx.files.internal(pasta + nomes[i]);
+	FileHandle a;
+	for (String nome : nomes) {
+		a = pasta.child(nome);
+		String chave = a.nameWithoutExtension();
+		DadosBioma bioma = DadosBioma.compilar(chave, a.readString("UTF-8"));
+		biomas.put(chave, bioma);
+		if(padrao == null) padrao = bioma;
 	}
-        for(FileHandle a : arquivos) {
-            String chave = a.nameWithoutExtension();
-            DadosBioma bioma = DadosBioma.compilar(chave, a.readString("UTF-8"));
-            biomas.put(chave, bioma);
-            if(padrao == null) padrao = bioma;
-        }
     }
 
     public DadosBioma selecionar(float calor, float umidade, int altura) {
