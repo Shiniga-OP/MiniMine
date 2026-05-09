@@ -1,9 +1,13 @@
-package com.micro;
+package com.micro.util;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
+import com.micro.componentes.Componente;
+import com.micro.componentes.CaixaDialogo;
+import com.micro.componentes.CampoTexto;
+import com.micro.janelas.Painel;
 
 public class GerenciadorUI {
 	// sistema de camadas , TreeMap ordena automaticamente por chave(numero da camada)
@@ -65,7 +69,7 @@ public class GerenciadorUI {
 		}
 		// verifica se o componente tem filhos
 		if(componente instanceof Painel) {
-			Painel painel = (Painel) componente;
+			Painel painel = (Painel)componente;
 			for(Componente filho : painel.filhos) {
 				registrarCamposTexto(filho);
 			}

@@ -24,17 +24,17 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.micro.Acao;
-import com.micro.Painel;
-import com.micro.Botao;
-import com.micro.Rotulo;
-import com.micro.Ancora;
-import com.micro.ItemBotao;
-import com.micro.ItemLinha;
-import com.micro.PainelRolavel;
-import com.micro.CaixaDialogo;
-import com.micro.PainelFatiado;
-import com.micro.GerenciadorUI;
+import com.micro.util.Acao;
+import com.micro.janelas.Painel;
+import com.micro.componentes.Botao;
+import com.micro.componentes.Rotulo;
+import com.micro.util.Ancora;
+import com.micro.componentes.ItemBotao;
+import com.micro.componentes.ItemLinha;
+import com.micro.janelas.PainelRolavel;
+import com.micro.componentes.CaixaDialogo;
+import com.micro.janelas.PainelFatiado;
+import com.micro.util.GerenciadorUI;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -67,9 +67,9 @@ public class MultiMenu implements Screen, InputProcessor {
     // busca de servidor
     public Net buscaNet = null;
     public float tempoBusca = 0f;
-    public static final float TIMEOUT_BUSCA = 6f;
+    public static final float INTERVALO_BUSCA = 6f;
 
-    // qual sub-tela está visível: "inicio", "mundos", "buscando"
+    // qual sub-tela ta visivel: "inicio", "mundos", "buscando"
     public String tela = "inicio";
 
     @Override
@@ -107,17 +107,13 @@ public class MultiMenu implements Screen, InputProcessor {
             visualJanela = new PainelFatiado(textura);
             visualBotao = new PainelFatiado(textura);
 
-            criarInterface();
+            criarPainelInicio();
         } catch(Exception e) {
             Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
         }
         Gdx.input.setInputProcessor(this);
     }
-
-    public void criarInterface() {
-        criarPainelInicio();
-    }
-
+	
     public void criarPainelInicio() {
         tela = "inicio";
         painelPrincipal = new Painel(visualJanela, -300, -250, 600, 500, escalaPixel);
@@ -282,13 +278,13 @@ public class MultiMenu implements Screen, InputProcessor {
 
     public void carregarMundos() {
         nomesMundos.clear();
-        File pasta = new File(Inicio.externo + "/MiniMine/mundos");
+        File pasta = ArquivosUtil.obter(Inicio.externo + "/MiniMine/mundos");
         if(pasta.exists() && pasta.isDirectory()) {
             File[] arquivos = pasta.listFiles();
             if(arquivos != null) {
-                for(File f : arquivos) {
-                    if(f.isFile() && f.getName().endsWith(".mini")) {
-                        nomesMundos.add(f.getName().replace(".mini", ""));
+                for(File a : arquivos) {
+                    if(a.isFile() && a.getName().endsWith(".mini")) {
+                        nomesMundos.add(a.getName().replace(".mini", ""));
                     }
                 }
             }
@@ -300,7 +296,7 @@ public class MultiMenu implements Screen, InputProcessor {
         if(recarregarInterface) {
             recarregarInterface = false;
             gerenciadorUI.limpar();
-            criarInterface();
+            criarPainelInicio();
         }
 
         if(tela.equals("buscando") && buscaNet != null) {
@@ -311,13 +307,12 @@ public class MultiMenu implements Screen, InputProcessor {
                 buscaNet.liberar();
                 buscaNet = null;
                 Inicio.defTela(Cenas.jogo);
-            } else if(tempoBusca >= TIMEOUT_BUSCA) {
+            } else if(tempoBusca >= INTERVALO_BUSCA) {
                 buscaNet.liberar();
                 buscaNet = null;
                 rotuloStatus.texto = "Nenhum servidor encontrado.";
             }
         }
-
         Gdx.gl.glClearColor(0.2f, 0.2f, 0.3f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -375,4 +370,3 @@ public class MultiMenu implements Screen, InputProcessor {
     @Override public boolean mouseMoved(int x, int y) { return false; }
     @Override public boolean scrolled(float a, float b) { return false; }
 }
-

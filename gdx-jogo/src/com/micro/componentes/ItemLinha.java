@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
@@ -9,14 +9,14 @@ import java.util.List;
  * linha composta para uso dentro de PainelRolavel
  * agrupa sub-componentes lado a lado
  * e delega toque/soltura para cada um deles
- 
+
  * uso:
  *   ItemLinha linha = new ItemLinha(x, y, largura, altura, pixelBranco);
  *   linha.addFilho(rotulo);
  *   linha.addFilho(botaoEditar);
  *   linha.addFilho(botaoExcluir);
  *   painelRolavel.add(linha);
- */
+*/
 public class ItemLinha extends Componente {
     public List<Componente> filhos;
     public Texture pixelBranco;

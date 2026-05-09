@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.micro.util.GerenciadorUI;
+import com.micro.janelas.PainelFatiado;
 
 public class CampoTexto extends Componente {
     public PainelFatiado visual;
@@ -88,7 +90,7 @@ public class CampoTexto extends Componente {
 
     public boolean processarCaractere(char caractere) {
         if(!emFoco) return false;
-		
+
         if(caractere >= 32 && caractere <= 126 && texto.length() < limiteCaracteres) {
             String antigoTexto = texto;
             texto += caractere;
@@ -138,7 +140,7 @@ public class CampoTexto extends Componente {
                 textoExibir = textoExibir.substring(textoExibir.length() - tam);
                 medidor.setText(fonte, textoExibir);
             }
-            
+
             float posX = desenharX + margemInterna;
             // centraliza verticalmente usando a altura da fonte com a nova escala
             float posY = desenharY + (altura / 2) + (medidor.height / 2);
@@ -166,7 +168,7 @@ public class CampoTexto extends Componente {
         }
         fonte.getData().setScale(1.0f);
     }
-	
+
 	@Override
 	public void liberar() {
 		super.liberar();

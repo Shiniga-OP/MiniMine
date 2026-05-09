@@ -1,9 +1,10 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.micro.util.Acao;
 
 public class ItemBotao extends Componente {
     public Rotulo rotulo;
@@ -14,8 +15,8 @@ public class ItemBotao extends Componente {
     public Color corPressionado = new Color(0.4f, 0.5f, 0.6f, 1f);
 
     public ItemBotao(float x, float y, float largura, float altura,
-	String texto, BitmapFont fonte, float escala,
-	Texture pixelBranco, Acao acao) {
+					 String texto, BitmapFont fonte, float escala,
+					 Texture pixelBranco, Acao acao) {
         super(x, y, largura, altura);
         this.pixelBranco = pixelBranco;
         this.acao = acao;

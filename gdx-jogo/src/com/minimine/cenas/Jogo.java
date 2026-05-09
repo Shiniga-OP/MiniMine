@@ -19,10 +19,12 @@ import com.minimine.mundo.chunks.ChunkProcesso;
 import com.minimine.mundo.chunks.ChunkLuz;
 import com.minimine.mundo.chunks.ChunkMalha;
 import com.minimine.utils.Net;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
-	public static Jogador jogador;
+	public static List<Jogador> jogadores;
 	public static int modo = 2;
 	public static Renderizador render;
 	public static boolean musicas = true, graficosTeste = false;
@@ -33,8 +35,10 @@ public class Jogo implements Screen {
 	public void show() {
 		relogio = new java.util.Timer();
 		mundo = new Mundo();
-		jogador = new Jogador();
+		Jogador jogador = new Jogador();
+		jogadores = new ArrayList<>();
 		jogador.modo = modo;
+		jogadores.add(jogador);
 		
 		mundo.chunksMod.clear();
 		
@@ -45,11 +49,11 @@ public class Jogo implements Screen {
 		if(graficosTeste) {
 			ChunkProcesso.luz = new ChunkLuz();
 			ChunkProcesso.malha = new ChunkMalha();
-			render = new GraficosTeste(jogador, mundo);
+			render = new GraficosTeste(jogadores, mundo);
 		} else {
 			ChunkProcesso.luz = new ChunkLuz();
 			ChunkProcesso.malha = new ChunkMalha();
-			render = new Render(jogador, mundo);
+			render = new Render(jogadores, mundo);
 		}
 		if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) ArquivosUtil.crMundo(mundo, jogador);
 		
@@ -74,7 +78,7 @@ public class Jogo implements Screen {
     @Override
     public void dispose() {
 		mundo.carregado = false;
-		ArquivosUtil.svMundo(mundo, jogador);
+		ArquivosUtil.svMundo(mundo, jogadores);
 		relogio.cancel();
 		render.liberar();
 		Bloco.liberar();
@@ -86,19 +90,19 @@ public class Jogo implements Screen {
 	
 	@Override
 	public void resize(int v, int h) {
-		ArquivosUtil.svMundo(mundo, jogador);
+		ArquivosUtil.svMundo(mundo, jogadores);
 		render.ui.ajustar(v, h);
 		LuaAPI.ajustar(v, h);
 	}
 
 	@Override
 	public void hide() {
-		ArquivosUtil.svMundo(mundo, jogador);
+		ArquivosUtil.svMundo(mundo, jogadores);
 		dispose();
 	}
 	@Override
 	public void pause() {
-		ArquivosUtil.svMundo(mundo, jogador);
+		ArquivosUtil.svMundo(mundo, jogadores);
 	}
 	@Override public void resume() {}
 }

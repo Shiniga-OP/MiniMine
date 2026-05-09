@@ -30,18 +30,19 @@ import com.minimine.utils.DiaNoiteUtil;
 import com.minimine.mundo.blocos.InterfaceBloco;
 import com.minimine.inventario.PaginaItens;
 
-import com.micro.GerenciadorUI;
-import com.micro.CaixaDialogo;
-import com.micro.CampoTexto;
-import com.micro.Rotulo;
-import com.micro.PainelFatiado;
-import com.micro.Acao;
+import com.micro.util.GerenciadorUI;
+import com.micro.componentes.CaixaDialogo;
+import com.micro.componentes.CampoTexto;
+import com.micro.componentes.Rotulo;
+import com.micro.janelas.PainelFatiado;
+import com.micro.util.Acao;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.profiling.GLProfiler;
 import com.minimine.cenas.Jogo;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.minimine.inventario.ItemRegistro;
 import com.minimine.inventario.Item;
+import com.micro.util.Ancora;
 
 public class UI implements InputProcessor {
     // camera 3D e renderização
@@ -165,8 +166,8 @@ public class UI implements InputProcessor {
                 Gdx.input.setCursorCatched(true);
             }
         };
-        dialogoChat.addBotao("Enviar",   visualBase, com.micro.Ancora.CENTRO_DIREITO,  -10, acaoEnviar);
-        dialogoChat.addBotao("Cancelar", visualBase, com.micro.Ancora.CENTRO_ESQUERDO,  10, acaoCancelar);
+        dialogoChat.addBotao("Enviar",   visualBase, Ancora.CENTRO_DIREITO,  -10, acaoEnviar);
+        dialogoChat.addBotao("Cancelar", visualBase, Ancora.CENTRO_ESQUERDO,  10, acaoCancelar);
 
         gerenciador.addDialogo(dialogoChat);
     }

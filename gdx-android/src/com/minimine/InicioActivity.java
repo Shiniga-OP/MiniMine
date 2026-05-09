@@ -7,7 +7,7 @@ import android.app.Activity;
 import java.io.File;
 import android.content.pm.ActivityInfo;
 
-public class MainActivity extends AndroidApplication {
+public class InicioActivity extends AndroidApplication {
 	public static Activity ISSO;
 	
     @Override

@@ -29,6 +29,7 @@ import com.minimine.graficos.Renderizador;
 import com.minimine.graficos.Animacoes2D;
 import com.minimine.graficos.Texturas;
 import com.minimine.graficos.GerenciadorParticulas;
+import java.util.List;
 
 public class GraficosTeste extends Renderizador {
     public static ShaderProgram shader;
@@ -109,8 +110,8 @@ public class GraficosTeste extends Renderizador {
     "   gl_FragColor = vec4(mix(texCor.rgb * iluminacaoFinal, corNevoa, fator), texCor.a);\n" +
     "}";
 
-    public GraficosTeste(Jogador jogador, Mundo mundo) {
-        super(jogador, mundo);
+    public GraficosTeste(List<Jogador> jogadores, Mundo mundo) {
+        super(jogadores, mundo);
 	}
 
 	@Override

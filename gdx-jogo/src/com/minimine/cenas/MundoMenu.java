@@ -23,18 +23,18 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.micro.Acao;
-import com.micro.Painel;
-import com.micro.Botao;
-import com.micro.Rotulo;
-import com.micro.Ancora;
-import com.micro.ItemBotao;
-import com.micro.ItemLinha;
-import com.micro.CampoTexto;
-import com.micro.PainelRolavel;
-import com.micro.CaixaDialogo;
-import com.micro.PainelFatiado;
-import com.micro.GerenciadorUI;
+import com.micro.util.Acao;
+import com.micro.janelas.Painel;
+import com.micro.componentes.Botao;
+import com.micro.componentes.Rotulo;
+import com.micro.util.Ancora;
+import com.micro.componentes.ItemBotao;
+import com.micro.componentes.ItemLinha;
+import com.micro.componentes.CampoTexto;
+import com.micro.janelas.PainelRolavel;
+import com.micro.componentes.CaixaDialogo;
+import com.micro.janelas.PainelFatiado;
+import com.micro.util.GerenciadorUI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
@@ -66,9 +66,10 @@ public class MundoMenu implements Screen, InputProcessor {
 
     // nome pendente de exclusão, preenchido quando o dialogo de confirmação abre
     public String mundoPendenteExcluir = null;
-
+	
     @Override
     public void show() {
+		Mundo.plano = false;
         ArquivosUtil.debug = true;
 
         pincel = new SpriteBatch();
@@ -117,7 +118,7 @@ public class MundoMenu implements Screen, InputProcessor {
 
     public void carregarMundos() {
         nomesMundos.clear();
-        File pastaMundos = new File(Inicio.externo + "/MiniMine/mundos");
+        File pastaMundos = ArquivosUtil.obter(Inicio.externo + "/MiniMine/mundos");
         if(pastaMundos.exists() && pastaMundos.isDirectory()) {
             File[] arquivos = pastaMundos.listFiles();
             if(arquivos != null) {
@@ -261,9 +262,7 @@ public class MundoMenu implements Screen, InputProcessor {
     public void criarDialogos() {
         // dialogo de criação de mundo
         dialogoCriar = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel, pincelFormas);
-        dialogoCriar.largura = 500;
-        dialogoCriar.altura = 380;
-		dialogoCriar.painelBotoes.largura = 500;
+        dialogoCriar.definirTamanho(500, 440);
 
         campoNome = new CampoTexto(visualBotao, fonteTexto, 50, 240, 400, 50, escalaPixel);
         campoNome.padrao = "Nome do Mundo";
@@ -284,26 +283,35 @@ public class MundoMenu implements Screen, InputProcessor {
         Acao acaoEspectador = new Acao() {
             public void exec() { entrarNoMundo(0); }
         };
-        Acao acaoCancelar = new Acao() {
+        // 3 botões de modo de jogo em linha única
+        float largBotaoModo = 148f;
+        float altBotaoModo  = 50f;
+        float yLinhaModo = 60f;
+		float yLinhaMundo = 5f;
+        dialogoCriar.addBotaoManual("Sobrevivencia", visualBotao,
+		10f, yLinhaModo, largBotaoModo, altBotaoModo, acaoSobrevivencia);
+        dialogoCriar.addBotaoManual("Criativo", visualBotao,
+		10f + largBotaoModo + 7f, yLinhaModo, largBotaoModo, altBotaoModo, acaoCriativo);
+        dialogoCriar.addBotaoManual("Espectador", visualBotao,
+		10f + (largBotaoModo + 7f) * 2, yLinhaModo, largBotaoModo, altBotaoModo, acaoEspectador);
+		
+		final Botao[] modoMundo = {null};
+		
+		Acao acaoMundo = new Acao() {
             public void exec() {
-                campoNome.texto = "";
-                campoSemente.texto = "";
-                dialogoCriar.fechar(false);
-                Gdx.input.setOnscreenKeyboardVisible(false);
-            }
+				Mundo.plano = !Mundo.plano;
+				if(Mundo.plano) modoMundo[0].rotulo.texto = "Mundo Plano";
+				else modoMundo[0].rotulo.texto = "Mundo Normal";
+			}
         };
-
-        dialogoCriar.addBotao("Sobrevivencia", visualBotao, Ancora.INFERIOR_ESQUERDO, 10, acaoSobrevivencia);
-        dialogoCriar.addBotao("Criativo", visualBotao, Ancora.INFERIOR_CENTRO, 0, acaoCriativo);
-        dialogoCriar.addBotao("Espectador", visualBotao, Ancora.INFERIOR_DIREITO, -10, acaoEspectador);
-        dialogoCriar.addBotao("Cancelar", visualBotao, Ancora.SUPERIOR_DIREITO, -10, acaoCancelar);
-
+		modoMundo[0] = dialogoCriar.addBotaoManual("Mundo Normal", visualBotao,
+		10f + (largBotaoModo + 7f) * 2, yLinhaMundo, largBotaoModo, altBotaoModo, acaoMundo);
+		
         gerenciadorUI.addDialogo(dialogoCriar);
 
         // dialogo de confirmação de exclusão
         dialogoConfirmarExcluir = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel, pincelFormas);
-        dialogoConfirmarExcluir.largura = 460;
-        dialogoConfirmarExcluir.altura = 220;
+        dialogoConfirmarExcluir.definirTamanho(460, 220);
 
         Acao acaoConfirmarExcluir = new Acao() {
             public void exec() {
@@ -329,7 +337,15 @@ public class MundoMenu implements Screen, InputProcessor {
     public void abrirDialogoCriar() {
         campoNome.texto = "";
         campoSemente.texto = "";
-        dialogoCriar.mostrar("Novo Mundo", "", null);
+        dialogoCriar.mostrar("Novo Mundo", "", new CaixaDialogo.Fechar() {
+				public void aoFechar(boolean confirmou) {
+					if(!confirmou) {
+						campoNome.texto = "";
+						campoSemente.texto = "";
+						Gdx.input.setOnscreenKeyboardVisible(false);
+					}
+				}
+			});
     }
 
     public void abrirDialogoEditar(String nomeMundo, String nomeArquivo) {
@@ -344,13 +360,13 @@ public class MundoMenu implements Screen, InputProcessor {
         mundoPendenteExcluir = nomeArquivo;
         dialogoConfirmarExcluir.mostrar(
             "Excluir \"" + nomeMundo + "\"?",
-            "Isso nao pode ser desfeito.",
+            "Isso não pode ser desfeito.",
             null
         );
     }
 
     public void excluirMundo(String nomeArquivo) {
-        File arquivo = new File(Inicio.externo + "/MiniMine/mundos/" + nomeArquivo + ".mini");
+        File arquivo = ArquivosUtil.obter(Inicio.externo + "/MiniMine/mundos/" + nomeArquivo + ".mini");
         if(arquivo.exists()) {
             arquivo.delete();
         }
@@ -465,4 +481,3 @@ public class MundoMenu implements Screen, InputProcessor {
         return false;
     }
 }
-

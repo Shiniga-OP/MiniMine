@@ -26,6 +26,7 @@ import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.minimine.graficos.shaders.ShaderBranco;
 import com.minimine.utils.Mat;
+import java.util.List;
 
 public class Render extends Renderizador {
     public static ShaderProgram shader;
@@ -106,8 +107,8 @@ public class Render extends Renderizador {
     "   gl_FragColor = vec4(mix(texCor.rgb * iluminacaoFinal, corNevoa, fator), texCor.a);\n" +
     "}";
 
-    public Render(Jogador jogador, Mundo mundo) {
-        super(jogador, mundo);
+    public Render(List<Jogador> jogadores, Mundo mundo) {
+        super(jogadores, mundo);
 	}
 	
 	@Override
@@ -151,21 +152,42 @@ public class Render extends Renderizador {
 
 			if(mundo.ciclo) diaNoite.att(ui.jg.camera, delta);
 
-			mundo.att(delta, ui.jg);
-
-			if(mundo.carregado) {
-				if(!ui.jg.nasceu) {
-					int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
-					if(yTeste > 1) {
-						ui.jg.posicao.y = yTeste;
-						ui.jg.nasceu = true;
-						long chave = com.minimine.mundo.Chave.calcularChave(0, 0);
-						Chunk chunk = mundo.obterChunk(chave);
-						mundo.chunksMod.put(chave, chunk);
-						Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
-					} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
+			if(jogadores.size() != 1) {
+				for(Jogador jg : jogadores) {
+					mundo.att(delta, jg);
+					
+					if(mundo.carregado) {
+						if(!jg.nasceu) {
+							final int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
+							if(yTeste > 1) {
+								jg.posicao.y = yTeste;
+								jg.nasceu = true;
+								long chave = com.minimine.mundo.Chave.calcularChave(0, 0);
+								Chunk chunk = mundo.obterChunk(chave);
+								mundo.chunksMod.put(chave, chunk);
+								Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
+							} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
+						}
+						jg.att(delta);
+					}
 				}
-				ui.jg.att(delta);
+			} else {
+				mundo.att(delta, ui.jg);
+				
+				if(mundo.carregado) {
+					if(!ui.jg.nasceu) {
+						final int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
+						if(yTeste > 1) {
+							ui.jg.posicao.y = yTeste;
+							ui.jg.nasceu = true;
+							long chave = com.minimine.mundo.Chave.calcularChave(0, 0);
+							Chunk chunk = mundo.obterChunk(chave);
+							mundo.chunksMod.put(chave, chunk);
+							Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
+						} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
+					}
+					ui.jg.att(delta);
+				}
 			}
 			shader.begin();
 
@@ -240,12 +262,17 @@ public class Render extends Renderizador {
 
 			if(mundo.nuvens) NuvensUtil.att(delta, ui.jg.camera);
 
-			// 4. jogador(primeira pessoa)
+			// 4. jogadores
+			mb.begin(ui.jg.camera);
 			if(ui.gui) {
-				mb.begin(ui.jg.camera);
 				ui.jg.render(mb);
-				mb.end();
 			}
+			if(jogadores.size() != 1) {
+				for(int i = 1; i < jogadores.size(); i++) {
+					jogadores.get(i).render(mb);
+				}
+			}
+			mb.end();
 			// renderiza o debug:
 			if(ui.debug) {
 				debugCaixas.setColor(1, 0, 0, 1); // vermelho pro jogador

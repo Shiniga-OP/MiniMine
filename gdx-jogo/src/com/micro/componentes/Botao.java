@@ -1,8 +1,10 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.micro.janelas.PainelFatiado;
+import com.micro.util.Acao;
 
 public class Botao extends Componente {
     public PainelFatiado visual;
@@ -62,7 +64,7 @@ public class Botao extends Componente {
         // renderiza o texto centralizado no botão
         rotulo.desenhar(pincel, delta, desenharX, desenharY);
     }
-	
+
 	@Override
 	public void liberar() {
 		super.liberar();

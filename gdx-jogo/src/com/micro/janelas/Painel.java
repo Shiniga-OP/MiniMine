@@ -1,10 +1,11 @@
-package com.micro;
+package com.micro.janelas;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-
-/**
- * painel é um container que pode ter visual(PainelFatiado) ou ser transparente
+import com.micro.componentes.Componente;
+import com.micro.util.Ancora;
+/*
+ * painel é uma estante que pode ter visual(PainelFatiado) ou ser transparente
  * e suporta ancoragem de filhos
  */
 public class Painel extends Componente {
@@ -19,7 +20,7 @@ public class Painel extends Componente {
     public float espacoSuperior = 0;
     public float espacoInferior = 0;
 
-    // rastreia qual filho capturou o toque (para propagar arraste)
+    // rastreia qual filho capturou o toque(para propagar arraste)
     protected Componente filhoCapturado = null;
 
     // cria painel com fundo visual

@@ -1,12 +1,13 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import java.util.ArrayList;
+import java.util.List;
 
 public abstract class Componente {
     public float x, y, largura, altura;
     public int ordemZ = 0;
-    protected ArrayList<Componente> filhos = new ArrayList<>();
+    public List<Componente> filhos = new ArrayList<>();
 
     public Componente(float x, float y, float largura, float altura) {
         this.x = x;

@@ -56,6 +56,10 @@ refeito com LibGDX.
 * Menu multi jogador.
 * Pontos de vista (primeira pessoa, segunda pessoa).
 
+## Modos de mundo:
+* Mundo Normal: biomas, estruturas, e formações naturais.
+* Mundo Plano: 3 blocos de altura, sem biomas, estruturas ou formações naturais.
+
 ## Modos de jogo:
 * 0: espectador. Não sofre gravidade ou colisão com blocos. Seus recursos não acabam
 * 1: criativo. Não sofre com gravidade mas colide com blocos. Seus recursos não acabam

@@ -310,6 +310,18 @@ public final class MotorGeracao {
             }
         }
     }
+	
+	public static void gerarPlano(Chunk chunk) {
+		final int TERRA = Bloco.texIds.get("terra").tipo;
+		final int GRAMA = Bloco.texIds.get("grama").tipo;
+		for(int x = 0; x < 16; x++) {
+			for(int z = 0; z < 16; z++) {
+				ChunkProcesso.util.defBloco(x, 0, z, PEDRA, chunk);
+				ChunkProcesso.util.defBloco(x, 1, z, TERRA, chunk);
+				ChunkProcesso.util.defBloco(x, 2, z, GRAMA, chunk);
+			}
+		}
+	}
 
     // gerador congruente linear
     public static final long lcg(final long s) {

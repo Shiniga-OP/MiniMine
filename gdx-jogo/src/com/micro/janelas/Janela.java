@@ -1,6 +1,7 @@
-package com.micro;
+package com.micro.janelas;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.micro.componentes.Componente;
 
 public class Janela extends Componente {
     public PainelFatiado visual;

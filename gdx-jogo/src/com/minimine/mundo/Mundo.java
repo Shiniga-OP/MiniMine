@@ -47,6 +47,7 @@ import java.io.DataInputStream;
 
 public class Mundo {
     public static String nome = "novo mundo";
+	public static boolean plano = false;
 
     public static final List<Entidade> entidades = new ArrayList<>();
     public static RegistroCriaturas registroCriaturas;
@@ -470,7 +471,8 @@ public class Mundo {
 				@Override
 				public void run() {
 					try {
-						motor.gerarChunk(chunk);
+						if(plano) motor.gerarPlano(chunk);
+						else motor.gerarChunk(chunk);
 						chunk.dadosProntos = true;
 						estados.put(chave, 1);
 					} catch(final Exception e) {
@@ -718,6 +720,7 @@ public class Mundo {
 			dos.writeInt(metaTam);
 			for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
         }
+		dos.writeBoolean(plano);
         dos.flush();
     }
 	
@@ -752,6 +755,7 @@ public class Mundo {
             chunk.att = true;
 			chunk.dadosProntos = true;
 			estados.put(chave, 2);
+			plano = dis.readBoolean();
         }
     }
 }

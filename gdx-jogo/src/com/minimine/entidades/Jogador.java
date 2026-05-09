@@ -49,6 +49,8 @@ public class Jogador extends Entidade {
 	public CharSequence itemCache = "ar";
 	public int ALCANCE = 7;
 	public Inventario inv;
+	
+	public float tam = 1.30f;
 
 	public ModelInstance instancia;
 
@@ -87,6 +89,7 @@ public class Jogador extends Entidade {
 			instancia = new ModelInstance(Modelos.obterModelo("modelos/jogador.gltf"));
 			pegarNos();
 			salvarRotacoes();
+			instancia.calculateTransforms();
 		} catch(Exception e) {
 			Gdx.app.error("[Jogador]", "Erro no GLTF: " + e.getMessage());
 		}
@@ -303,7 +306,6 @@ public class Jogador extends Entidade {
 			itemCache = item;
 			modeloItem = Modelos.modeloItem(item);
 		}
-
 		if(pessoa == 0) {
 			// primeira pessoa: renderiza braço no espaço da camera(sem profundidade)
 			instancia.transform.set(camera.view);
@@ -317,28 +319,31 @@ public class Jogador extends Entidade {
 			final float balancoX = MathUtils.sin(tempoAnimacao * 0.5f) * 0.05f;
 			final float balancoY = Math.abs(MathUtils.cos(tempoAnimacao)) * 0.05f;
 
-			instancia.transform.translate(0.5f + balancoX, -2.15f + balancoY, -1f);
+			instancia.transform.translate(0.5f + balancoX, -2.15f + balancoY, -0.5f);
 			instancia.transform.rotate(Vector3.Y, 15);
+			
+			instancia.transform.scale(tam, tam, tam);
 
 			instancia.calculateTransforms();
 
 			mb.flush();
 			Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
-
-			mb.render(instancia);
-			if(modeloItem != null) {
-				modeloItem.transform.set(instancia.transform).mul(itemPos.globalTransform);
-				modeloItem.calculateTransforms();
-				mb.render(modeloItem);
-			}
 		} else {
 			// terceira pessoa: renderiza modelo completo no mundo
 			final float yaw = MathUtils.atan2(camera.direction.x, camera.direction.z) * MathUtils.radiansToDegrees;
 			instancia.transform.idt();
 			instancia.transform.translate(posicao.x, posicao.y, posicao.z);
 			instancia.transform.rotate(Vector3.Y, yaw);
+			
+			instancia.transform.scale(tam, tam, tam);
+			
 			instancia.calculateTransforms();
-			mb.render(instancia);
+		}
+		mb.render(instancia);
+		if(modeloItem != null) {
+			modeloItem.transform.set(instancia.transform).mul(itemPos.globalTransform);
+			modeloItem.calculateTransforms();
+			mb.render(modeloItem);
 		}
 	}
 

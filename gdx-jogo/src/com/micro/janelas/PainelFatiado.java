@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.janelas;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -11,7 +11,7 @@ public class PainelFatiado {
     public PainelFatiado(Texture textura) {
         fatias = TextureRegion.split(textura, tamBase, tamBase);
     }
-	
+
 	public PainelFatiado(Texture textura, int tamanhoBase) {
         fatias = TextureRegion.split(textura, tamBase, tamBase);
 		tamBase = tamanhoBase;

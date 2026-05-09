@@ -9,6 +9,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.minimine.mundo.chunks.Chunk;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import java.util.List;
 
 public class Renderizador {
 	public static Mundo mundo;
@@ -18,9 +19,11 @@ public class Renderizador {
 	public static GerenciadorParticulas gp;
     public static ModelBatch mb; // gerenciador de modelos 3D de entidades
 	public static int PASSO = 20;
+	public static List<Jogador> jogadores;
 	
-	public Renderizador(Jogador jogador, Mundo mundo) {
-        this.ui = new UI(jogador);
+	public Renderizador(List<Jogador> jogadores, Mundo mundo) {
+        this.ui = new UI(jogadores.get(0));
+		this.jogadores = jogadores;
         this.mundo = mundo;
 		this.diaNoite = new DiaNoiteUtil();
 	}

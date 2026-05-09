@@ -18,15 +18,15 @@ import com.minimine.mundo.Mundo;
 import com.minimine.ui.UI;
 import com.minimine.Cenas;
 import com.minimine.Inicio;
-import com.micro.GerenciadorUI;
-import com.micro.Painel;
-import com.micro.PainelFatiado;
-import com.micro.PainelRolavel;
-import com.micro.ItemConfig;
-import com.micro.Botao;
-import com.micro.Rotulo;
-import com.micro.Ancora;
-import com.micro.Acao;
+import com.micro.util.GerenciadorUI;
+import com.micro.janelas.Painel;
+import com.micro.janelas.PainelFatiado;
+import com.micro.janelas.PainelRolavel;
+import com.micro.componentes.ItemConfig;
+import com.micro.componentes.Botao;
+import com.micro.componentes.Rotulo;
+import com.micro.util.Ancora;
+import com.micro.util.Acao;
 
 public class Config implements Screen, InputProcessor {
     public SpriteBatch pincel;

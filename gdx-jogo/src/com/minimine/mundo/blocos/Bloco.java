@@ -8,6 +8,7 @@ import com.minimine.graficos.TipoRender;
 import com.minimine.inventario.ItemRegistro;
 import com.minimine.graficos.Texturas;
 import com.badlogic.gdx.audio.Sound;
+import com.micro.janelas.PainelFatiado;
 
 public class Bloco {
 	public static List<Bloco> blocos = new ArrayList<>();
@@ -98,7 +99,7 @@ public class Bloco {
 	 * chamado dentro do construtor de UI, apos visualBase e fonte estarem prontos
 	 * cria as instâncias de InterfaceBloco e as injeta nos blocos correspondentes
 	 */
-	public static void iniciarInterfaces(final com.micro.PainelFatiado base, final com.badlogic.gdx.graphics.g2d.BitmapFont fonte) {
+	public static void iniciarInterfaces(final PainelFatiado base, final com.badlogic.gdx.graphics.g2d.BitmapFont fonte) {
 		// bloco_estrutura
 		BlocoEstrutura.iniciar(texIds.get("bloco_estrutura"), base, fonte);
 		BlocoEstrutura.iniciarEventos(texIds.get("bloco_estrutura"));

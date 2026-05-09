@@ -23,14 +23,14 @@ import com.minimine.utils.Net;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.mundo.Mundo;
 
-import com.micro.Acao;
-import com.micro.Botao;
-import com.micro.Painel;
-import com.micro.Rotulo;
-import com.micro.Ancora;
-import com.micro.CaixaDialogo;
-import com.micro.PainelFatiado;
-import com.micro.GerenciadorUI;
+import com.micro.util.Acao;
+import com.micro.componentes.Botao;
+import com.micro.janelas.Painel;
+import com.micro.componentes.Rotulo;
+import com.micro.util.Ancora;
+import com.micro.componentes.CaixaDialogo;
+import com.micro.janelas.PainelFatiado;
+import com.micro.util.GerenciadorUI;
 import com.minimine.audio.Musicas;
 import com.minimine.graficos.Render;
 
@@ -156,7 +156,7 @@ public class Menu implements Screen, InputProcessor {
         titulo.altura = 80;
         painelMenu.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
 
-        // versao no canto inferior esquerdo do painel
+        // versão no canto inferior esquerdo do painel
         Rotulo rotuloVersao = new Rotulo(ArquivosUtil.versao, fonte, escalaPixel * 0.5f);
         rotuloVersao.largura = 120;
         rotuloVersao.altura = 30;

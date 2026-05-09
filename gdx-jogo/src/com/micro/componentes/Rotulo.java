@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;

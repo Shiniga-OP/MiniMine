@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -6,6 +6,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import java.util.ArrayList;
 import java.util.List;
+import com.micro.janelas.PainelFatiado;
+import com.micro.janelas.Painel;
+import com.micro.util.Acao;
+import com.micro.util.Ancora;
 
 public class CaixaDialogo extends Componente {
     public PainelFatiado visual;
@@ -21,6 +25,8 @@ public class CaixaDialogo extends Componente {
     public RotuloMultilinha rotulomsg;
     public Painel painelBotoes;
     public List<Componente> componentes = new ArrayList<Componente>();
+
+    public Botao botaoFechar;
 
     public boolean arrastando = false;
     public float toqueInicialX;
@@ -47,16 +53,21 @@ public class CaixaDialogo extends Componente {
         painelTitulo.corFundo = new Color(0.3f, 0.5f, 0.8f, 1f);
 
         rotuloTitulo = new Rotulo("", fonte, escala);
-        rotuloTitulo.largura = largura;
+        rotuloTitulo.largura = largura - 50; // deixa espaço pro X
         rotuloTitulo.altura = 50;
         painelTitulo.add(rotuloTitulo);
 
-        // painel de botões na base(60 de altura)
-        painelBotoes = new Painel(0, 0, largura, 60);
+        // botão X no canto direito da barra de título
+        Acao acaoFechar = new Acao() {
+            public void exec() { fechar(false); }
+        };
+        botaoFechar = new Botao("X", visual, fonte, largura - 46, 4, 42, 42, escala * 0.7f, acaoFechar);
+
+        // painel de botões na base
+        painelBotoes = new Painel(0, 0, largura, altura);
         painelBotoes.defEspaco(10);
 
         // calcula quanto sobra pra mensagem
-        // se houver componentes extras(entrada de texto), reduzimos ainda mais a altura
         float espacoOcupado = 50 + 60 + 20; // titulo + botoes + margens
 
         // reduz a escala pra 0.6f pra garantir que o texto não fique gigante
@@ -65,8 +76,8 @@ public class CaixaDialogo extends Componente {
         rotulomsg.largura = largura - 40;
 
         // posiciona o texto logo abaixo do titulo
-        rotulomsg.y = 70; // sobe a base do texto pra não bater nos botões
-        rotulomsg.altura = altura - espacoOcupado; 
+        rotulomsg.y = 70;
+        rotulomsg.altura = altura - espacoOcupado;
     }
 
     public void mostrar(String titulo, String msg, Fechar aoFechar) {
@@ -79,13 +90,11 @@ public class CaixaDialogo extends Componente {
         rotulomsg.texto = msg;
 
         // calcula o topo do componente mais alto para posicionar o rotulomsg acima
-        // não mexe nas posições dos componentes, o chamador é responsavel pela tela
         float topoMaximo = 0;
         for(Componente c : componentes) {
             float topo = c.y + c.altura;
             if(topo > topoMaximo) topoMaximo = topo;
         }
-
         if(topoMaximo > 0) {
             rotulomsg.y = topoMaximo + 10;
             rotulomsg.altura = altura - rotulomsg.y - 10;
@@ -115,9 +124,18 @@ public class CaixaDialogo extends Componente {
         painelBotoes.addAncorado(botaoCancelar, Ancora.CENTRO_ESQUERDO, 10, 0);
     }
 
-    public void addBotao(String texto, PainelFatiado visualBotao, Ancora ancoragem, float margemX, Acao acao) {
+    // botão posicionado por ancora(uso geral)
+    public Botao addBotao(String texto, PainelFatiado visualBotao, Ancora ancoragem, float margemX, Acao acao) {
         Botao botao = new Botao(texto, visualBotao, fonte, 0, 0, 120, 40, escala, acao);
         painelBotoes.addAncorado(botao, ancoragem, margemX, 0);
+		return botao;
+    }
+
+    // botão posicionado manualmente dentro do painelBotoes(x/y explicitos)
+    public Botao addBotaoManual(String texto, PainelFatiado visualBotao, float x, float y, float larg, float alt, Acao acao) {
+        Botao botao = new Botao(texto, visualBotao, fonte, x, y, larg, alt, escala, acao);
+        painelBotoes.add(botao);
+		return botao;
     }
 
     public void add(Componente componente) {
@@ -131,6 +149,25 @@ public class CaixaDialogo extends Componente {
         }
     }
 
+    // define largura/altura e recalcula todas as posições internas
+    public void definirTamanho(float larg, float alt) {
+        this.largura = larg;
+        this.altura = alt;
+
+        painelTitulo.largura = larg;
+        painelTitulo.y = alt + 10; // flutua 10px acima do painel
+
+        rotuloTitulo.largura = larg - 50;
+        rotuloTitulo.altura = 50;
+
+        botaoFechar.x = larg - 46;
+        botaoFechar.y = 4;
+
+        painelBotoes.largura = larg;
+
+        rotulomsg.largura = larg - 40;
+    }
+
     public void centralizar(float larguraTela, float alturaTela) {
         this.x = (larguraTela - this.largura) / 2;
         this.y = (alturaTela - this.altura) / 2;
@@ -139,13 +176,19 @@ public class CaixaDialogo extends Componente {
     public boolean aoTocar(float toqueX, float toqueY, boolean pressionado) {
 		if(!ativa) return false;
 
-		// calculamos a posição real da barra de título no mundo
+		// calculamos a posição real da barra de titulo no mundo
 		float tituloXGlobal = x;
 		float tituloYGlobal = y + altura - 50;
 
 		boolean noTitulo = toqueX >= tituloXGlobal && toqueX <= tituloXGlobal + largura &&
 			toqueY >= tituloYGlobal && toqueY <= tituloYGlobal + 50;
 
+		// toque no X tem prioridade sobre o arraste
+		float tituloLocalX = toqueX - tituloXGlobal;
+		float tituloLocalY = toqueY - tituloYGlobal;
+		if(noTitulo && botaoFechar.aoTocar(tituloLocalX, tituloLocalY, pressionado)) {
+			return true;
+		}
 		if(pressionado && noTitulo) {
 			arrastando = true;
 			toqueInicialX = toqueX - x;
@@ -168,7 +211,7 @@ public class CaixaDialogo extends Componente {
     }
 
     public void aoArrastar(float toqueX, float toqueY) {
-		if(ativa && arrastando) { 
+		if(ativa && arrastando) {
 			this.x = toqueX - toqueInicialX;
 			this.y = toqueY - toqueInicialY;
 		}
@@ -191,6 +234,9 @@ public class CaixaDialogo extends Componente {
 
         visual.desenhar(pincel, desenharX, desenharY, largura, altura, escala);
         painelTitulo.desenhar(pincel, delta, desenharX, desenharY);
+        // o X é desenhado no espaço do titulo(Y relativo ao topo do dialogo)
+        float tituloY = desenharY + altura - 50;
+        botaoFechar.desenhar(pincel, delta, desenharX, tituloY);
         rotulomsg.desenhar(pincel, delta, desenharX, desenharY);
 
         // desenha componentes filhos

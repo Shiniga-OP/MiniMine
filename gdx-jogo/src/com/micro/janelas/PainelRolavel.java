@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.janelas;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector3;
+import com.micro.componentes.Componente;
 
 /*
  * PainelRolavel, container com rolagem vertical quando o conteudo excede a altura visivel

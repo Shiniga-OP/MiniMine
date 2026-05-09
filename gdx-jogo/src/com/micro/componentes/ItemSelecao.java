@@ -1,9 +1,10 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.micro.util.Acao;
 
 // item de lista com indicador de selecao
 public class ItemSelecao extends Componente {
@@ -17,8 +18,8 @@ public class ItemSelecao extends Componente {
     public Color corPressionado = new Color(0.35f, 0.35f, 0.4f, 1f);
 
     public ItemSelecao(float x, float y, float largura, float altura,
-	String texto, BitmapFont fonte, float escala,
-	Texture pixelBranco, boolean selecionado, Acao acao) {
+					   String texto, BitmapFont fonte, float escala,
+					   Texture pixelBranco, boolean selecionado, Acao acao) {
         super(x, y, largura, altura);
         this.pixelBranco = pixelBranco;
         this.selecionado = selecionado;

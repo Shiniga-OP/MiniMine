@@ -11,12 +11,12 @@ import com.minimine.utils.ArquivosUtil;
 import com.minimine.cenas.Jogo;
 import com.minimine.Cenas;
 
-import com.micro.GerenciadorUI;
-import com.micro.Painel;
-import com.micro.PainelFatiado;
-import com.micro.Botao;
-import com.micro.Ancora;
-import com.micro.Acao;
+import com.micro.util.GerenciadorUI;
+import com.micro.janelas.Painel;
+import com.micro.janelas.PainelFatiado;
+import com.micro.componentes.Botao;
+import com.micro.util.Ancora;
+import com.micro.util.Acao;
 
 public class MenuPause {
     public static GerenciadorUI gerenciador;
@@ -62,7 +62,7 @@ public class MenuPause {
 			new Acao() {
 				@Override
 				public void exec() {
-					ArquivosUtil.svMundo(Jogo.mundo, Jogo.render.ui.jg);
+					ArquivosUtil.svMundo(Jogo.mundo, Jogo.jogadores);
 					fecharMenu();
 					UI.abrirDialogo("Jogo salvo!", null);
 				}
@@ -75,7 +75,7 @@ public class MenuPause {
 			new Acao() {
 				@Override
 				public void exec() {
-					ArquivosUtil.svMundo(Jogo.mundo, Jogo.render.ui.jg);
+					ArquivosUtil.svMundo(Jogo.mundo, Jogo.jogadores);
 					fecharMenu();
 					Inicio.defTela(Cenas.menu);
 				}

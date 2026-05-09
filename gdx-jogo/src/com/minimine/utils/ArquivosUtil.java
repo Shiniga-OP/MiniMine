@@ -60,7 +60,7 @@ public final class ArquivosUtil {
     public static final String ID_BLOCO_NULO = "bloco_nulo";
 
     // salva o mundo compactado(.mini), e faz escrita atomica para evitar arquivos truncados
-    public static void svMundo(Mundo mundo, Jogador jogador) {
+    public static void svMundo(Mundo mundo, List<Jogador> jogadores) {
         File pasta = new File(Inicio.externo + "/MiniMine/mundos");
         if(!pasta.exists()) pasta.mkdirs();
 
@@ -85,15 +85,19 @@ public final class ArquivosUtil {
                 dos.flush();
                 zos.closeEntry();
                 // jogador.bin
-                zos.putNextEntry(new ZipEntry("jogador.bin"));
-                jogador.salvar(dos);
-                dos.flush();
-                zos.closeEntry();
+				for(int i = 0; i < jogadores.size(); i++) {
+					zos.putNextEntry(new ZipEntry(i == 0 ? "jogador.bin" : "jogador_"+i+".bin"));
+					jogadores.get(i).salvar(dos);
+					dos.flush();
+					zos.closeEntry();
+				}
                 // inventario.bin
-                zos.putNextEntry(new ZipEntry("inventario.bin"));
-                gravarInventario(dos, jogador);
-                dos.flush();
-                zos.closeEntry();
+				for(int i = 0; i < jogadores.size(); i++) {
+					zos.putNextEntry(new ZipEntry(i == 0 ? "inventario.bin" : "inventario_"+i+".bin"));
+					gravarInventario(dos, jogadores.get(i));
+					dos.flush();
+					zos.closeEntry();
+				}
                 // ciclo.bin
                 zos.putNextEntry(new ZipEntry("ciclo.bin"));
                 gravarCiclo(dos);
@@ -472,6 +476,10 @@ public final class ArquivosUtil {
     }
 
     // utilitarios:
+	public static File obter(String caminho) {
+		return new File(caminho.replace("/", File.separator));
+	}
+	
     public static void criar(String caminho) {   
         caminho = caminho.replace("/", File.separator);
 		int ultimoPasso = caminho.lastIndexOf(File.separator);    
@@ -485,7 +493,7 @@ public final class ArquivosUtil {
 		} catch(Exception e) {    
 			Gdx.app.log("ArquivosUtil", "[ERRO]: criando "+e.getMessage()+File.separator+caminho+File.separator);    
 		}    
-	}    
+	}
 
 	public static String ler(String caminho) {    
         caminho = caminho.replace("/", File.separator);

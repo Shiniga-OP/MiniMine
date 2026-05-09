@@ -1,4 +1,4 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -71,13 +71,13 @@ public class RotuloMultilinha extends Componente {
             medidor.setText(fonte, linhas.get(i));
             // centraliza apenas horizontalmente
             float posX = desenharX + (largura / 2) - (medidor.width / 2);
-            
+
             fonte.draw(pincel, linhas.get(i), posX, posY);
             posY -= alturaLinha * 1.3f; // eSspaçamento entre linhas um pouco maior
         }
         fonte.getData().setScale(1.0f);
     }
-	
+
 	@Override
 	public void liberar() {
 		super.liberar();

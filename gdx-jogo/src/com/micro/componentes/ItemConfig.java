@@ -1,26 +1,28 @@
-package com.micro;
+package com.micro.componentes;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.micro.janelas.PainelFatiado;
+import com.micro.util.Acao;
 /*
  * linha de configuração para uso dentro de PainelRolavel
- 
+
  * modo NUMERICO: exibe [titulo][ valor ][ - ][ + ]
  *   - usa acaoMenos e acaoMais para alterar o valor
  *   - o rotulo de valor é atualizado externamente via rotuloValor.texto
- 
+
  * Modo ALTERNAR: exibe [titulo][  estado ][ alterar ]
  *   - usa acaoToggle para alternar o valor
  *   - o rotulo de valor é atualizado externamente via rotuloValor.texto
- 
+
  * uso:
  *   // numerico
  *   ItemConfig item = ItemConfig.numerico(x, y, largura, altura,
  *       "Raio Chunks:", "4", fonte, escala, pixelBranco, visualBotao,
  *       acaoMenos, acaoMais);
- 
+
  *   // alternar
  *   ItemConfig item = ItemConfig.alternar(x, y, largura, altura,
  *       "Musicas:", "Ligado", fonte, escala, pixelBranco, visualBotao,
@@ -66,11 +68,11 @@ public class ItemConfig extends Componente {
 
         float xMenos = larguraLabel + larguraValor + 15;
         item.botaoA = new ItemBotao(xMenos, margemV, larguraBotao, alturaInterna,
-		"-", fonte, escala, pixelBranco, acaoMenos);
+									"-", fonte, escala, pixelBranco, acaoMenos);
 
         float xMais = xMenos + larguraBotao + 5;
         item.botaoB = new ItemBotao(xMais, margemV, larguraBotao, alturaInterna,
-		"+", fonte, escala, pixelBranco, acaoMais);
+									"+", fonte, escala, pixelBranco, acaoMais);
 
         return item;
     }
@@ -104,7 +106,7 @@ public class ItemConfig extends Componente {
 
         float xAlterar = larguraLabel + larguraValor + 15;
         item.botaoA = new ItemBotao(xAlterar, margemV, larguraBotao, alturaInterna,
-		"Alterar", fonte, escala * 0.8f, pixelBranco, acaoToggle);
+									"Alterar", fonte, escala * 0.8f, pixelBranco, acaoToggle);
         item.botaoB = null;
 
         return item;
