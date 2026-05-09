@@ -316,6 +316,11 @@ public class Inventario {
 		}
     }
 
+    public final void moverFlutuante(final int telaX, final int telaY) {
+        if(itemFlutuante == null) return;
+        posFlutuante.set(telaX, telaY);
+    }
+
     public final void aoArrastar(final int telaX, final int telaY) {
 		if(itemFlutuante == null) return;
 		posFlutuante.set(telaX, telaY);
@@ -439,4 +444,3 @@ public class Inventario {
         }
     }
 }
-

@@ -893,7 +893,7 @@ public class UI implements InputProcessor {
     public boolean mouseMoved(int x, int y1) {
         if(modoTexto || MenuPause.menuAberto) return true;
         final int y = telaH - y1;
-        jg.inv.aoArrastar(x, y);
+        jg.inv.moverFlutuante(x, y);
         if(!jg.inv.aberto) {
             jg.yaw -= Gdx.input.getDeltaX() * sensi;
             jg.tom -= Gdx.input.getDeltaY() * sensi;
@@ -933,4 +933,3 @@ public class UI implements InputProcessor {
         public void desenhar(SpriteBatch sb) { sprite.draw(sb); }
     }
 }
-
