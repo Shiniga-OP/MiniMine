@@ -111,6 +111,7 @@ refeito com LibGDX.
 ## Entidades:
 * Foca: Tundra.
 * Capivara: Costa/Rio.
+* Galinha: Floresta/Planicie.
 
 ## Biomas:
 ```

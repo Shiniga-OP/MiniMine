@@ -1,0 +1,124 @@
+{
+    "nome": "galinha",
+    "raridade": 0.3,
+    "modelo": "modelos/galinha.gltf",
+
+    "hitbox": {
+        "largura": 0.6,
+        "altura": 0.6,
+        "profundidade": 0.6
+    },
+
+    "movimento": {
+        "velo": 6.0,
+        "peso": 5.0,
+        "pulo": 13.0
+    },
+    
+    "animacoes": ["andando", "degustando"],
+
+    "variaveis": {
+        "sede": {
+            "valor": 0,
+            "min": 0,
+            "max": 100
+        },
+        "fome": {
+            "valor": 100,
+            "min": 0,
+            "max": 100
+        },
+        "vontade_ciscar": {
+            "valor": 100,
+            "min": 0,
+            "max": 100
+        }
+    },
+    "comportamento": [
+        {
+            "condicao": ["noChao", "andando"],
+            "exec": {
+                "recompensa": 0.02,
+                "tocarAnim": "andando",
+                "operacao": {
+                    "variavel": "fome",
+                    "operador": "-",
+                    "valor": 1
+                },
+                "operacao": {
+                    "variavel": "vontade_ciscar",
+                    "operador": "+",
+                    "valor": 1
+                }
+            }
+        },
+        {
+            "condicao": ["vontade_ciscar", ">", 90],
+            "exec": {
+                "recompensa": 0.05,
+                "tocarAnim": "degustando",
+                "operacao": {
+                    "variavel": "vontade_ciscar",
+                    "operador": "-",
+                    "valor": 1
+                }
+            }
+        },
+        {
+            "condicao": ["fome", "<", 1],
+            "exec": {
+                "recompensa": -0.05,
+                "tocarAnim": "degustando",
+                "operacao": {
+                   "variavel": "fome",
+                   "operador": "=",
+                   "valor": 100
+               }
+            }
+        },
+        {
+            "condicao": ["sede", ">", 85],
+            "exec": {
+                "procurarBloco": ["agua"],
+                "recompensa": -0.1
+            }
+        },
+        {
+            "condicao": ["bloco", "==", "agua"],
+            "exec": {
+                "recompensa": -0.01,
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "-",
+                    "valor": 1
+                }
+            }
+        },
+        {
+            "condicao": ["naAgua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "-",
+                    "valor": 2
+                }
+            }
+        },
+        {
+            "condicao": ["!naAgua"],
+            "exec": {
+                "operacao": {
+                    "variavel": "sede",
+                    "operador": "+",
+                    "valor": 1
+                }
+            }
+        }
+    ],
+    "origem": {
+        "biomas": ["floresta", "planicie"],
+        "chance": 0.8,
+        "max": 10
+    }
+}
+
