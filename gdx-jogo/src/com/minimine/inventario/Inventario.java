@@ -215,18 +215,26 @@ public class Inventario {
 
         // === slot de resultado ===
         if(rectResultado.contains(telaX, telaY)) {
-            if(resultadoReceita == null) return;
-            if(itemFlutuante == null) {
-                itemFlutuante = resultadoReceita;
-                itemFlutuanteVeioDaGrade = false;
-                slotOrigemFlutuante = -1;
-                slotGradeOrigem = -1;
-                // consome ingredientes
-                for(int i = 0; i < 9; i++) gradeReceita[i] = null;
-                resultadoReceita = null;
-            }
-            return;
-        }
+			if(resultadoReceita == null) return;
+			if(itemFlutuante == null) {
+				itemFlutuante = resultadoReceita;
+				itemFlutuanteVeioDaGrade = false;
+				slotOrigemFlutuante = -1;
+				slotGradeOrigem = -1;
+				// consome 1 de cada ingrediente usado
+				for(int i = 0; i < 9; i++) {
+					if(gradeReceita[i] != null) {
+						gradeReceita[i].quantidade--;
+						if(gradeReceita[i].quantidade <= 0) {
+							gradeReceita[i] = null;
+						}
+					}
+				}
+				attReceita(); // atualiza: se ainda tiver ingredientes, mostra o resultado de novo
+				resultadoReceita = null;
+			}
+			return;
+		}
         // === slots da grade de receita ===
         for(int i = 0; i < 9; i++) {
             if(rectsGrade[i].contains(telaX, telaY)) {
