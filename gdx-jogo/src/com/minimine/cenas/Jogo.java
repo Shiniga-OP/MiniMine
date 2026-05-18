@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 
 public class Jogo implements Screen {
     public static Mundo mundo;
@@ -99,10 +101,10 @@ public class Jogo implements Screen {
                 float yaw = Float.parseFloat(p[5]);
                 float tom = Float.parseFloat(p[6]);
                 Jogador jgRede = jogadoresRede.get(id);
-				jgRede.pessoa = 1;
                 if(jgRede == null) {
                     jgRede = new Jogador();
                     jgRede.modo = modo;
+                    jgRede.pessoa = 1;
                     jogadoresRede.put(id, jgRede);
                     jogadores.add(jgRede);
                     Gdx.app.log("[Jogo]", "jogador remoto " + id + " adicionado");
@@ -111,6 +113,14 @@ public class Jogo implements Screen {
                 jgRede.camera.direction.set(0, 0, -1);
                 jgRede.camera.rotate(com.badlogic.gdx.math.Vector3.Y, yaw);
             } catch(NumberFormatException e) {}
+        } else if(msg.startsWith("MUNDO:")) {
+            try {
+                byte[] dados = android.util.Base64.decode(msg.substring(6), android.util.Base64.NO_WRAP);
+                DataInputStream dis = new DataInputStream(new ByteArrayInputStream(dados));
+                Mundo.carregar(dis);
+            } catch(Exception e) {
+                Gdx.app.error("[Jogo]", "Erro ao carregar mundo da rede: " + e.getMessage());
+            }
         } else if(msg.startsWith("BLOCO:")) {
             String[] p = msg.split(":");
             if(p.length < 5) return;
@@ -145,9 +155,12 @@ public class Jogo implements Screen {
             if(tempoPosicao >= INTERVALO_POS) {
                 tempoPosicao = 0f;
                 Jogador jg = jogadores.get(0);
+                float yaw = com.badlogic.gdx.math.MathUtils.atan2(
+                    jg.camera.direction.x, jg.camera.direction.z
+                ) * com.badlogic.gdx.math.MathUtils.radiansToDegrees;
                 net.enviarPosicao(
                     jg.posicao.x, jg.posicao.y, jg.posicao.z,
-                    jg.camera.direction.x, jg.camera.direction.y
+                    yaw, 0
                 );
             }
         }
@@ -185,3 +198,4 @@ public class Jogo implements Screen {
     }
     @Override public void resume() {}
 }
+

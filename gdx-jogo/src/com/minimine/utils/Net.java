@@ -21,6 +21,11 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import com.badlogic.gdx.Application;
 import com.minimine.Instalador;
+import com.minimine.mundo.Mundo;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 
 public class Net {
     public static final String NOME = "[MiniMine]: ";
@@ -93,6 +98,21 @@ public class Net {
 								}
 								cliente.dados.println("ID:" + id);
 								broadcast("ENTROU:" + id, cliente);
+								final Cliente clienteFinal = cliente;
+								new Thread(new Runnable() {
+										public void run() {
+											try {
+												ByteArrayOutputStream baos = new ByteArrayOutputStream();
+												DataOutputStream dos = new DataOutputStream(baos);
+												Mundo.salvar(dos);
+												dos.flush();
+												String b64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP);
+												clienteFinal.dados.println("MUNDO:" + b64);
+											} catch(Exception e) {
+												Gdx.app.error(NOME, "Erro ao enviar mundo para cliente " + clienteFinal.id + ": " + e.getMessage());
+											}
+										}
+									}).start();
 								new Thread(cliente).start();
 							} catch(Exception e) {
 								Gdx.app.error(NOME, "Erro ao aceitar conexão TCP: " + e.getMessage());
@@ -155,7 +175,7 @@ public class Net {
         public Cliente(Socket socket, int id) throws IOException {
             this.socket = socket;
             this.id = id;
-            this.entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()), 1024 * 1024);
             this.dados = new PrintWriter(socket.getOutputStream(), true);
         }
 
@@ -257,7 +277,7 @@ public class Net {
             hints.connectTimeout = 5000;
             clienteSocket = Gdx.net.newClientSocket(Protocol.TCP, IP, TCP_PORTA, hints);
             clienteDados = new PrintWriter(clienteSocket.getOutputStream(), true);
-            clienteEntrada = new BufferedReader(new InputStreamReader(clienteSocket.getInputStream()));
+            clienteEntrada = new BufferedReader(new InputStreamReader(clienteSocket.getInputStream()), 1024 * 1024);
             conectado = true;
             Gdx.app.log(NOME, "Conectado ao servidor TCP em: " + IP);
             new Thread(new Runnable() {
@@ -331,7 +351,7 @@ public class Net {
          * temAtualizacao: true se encontrou versão nova
          * novaVersao: "0.1.2", ou null se sem internet/erro
          * tipo: "OFICIAL", "BETA" ou "ALFA"
-       */
+		 */
         void aoVerificar(boolean temAtualizacao, String novaVersao, String tipo);
     }
 
@@ -344,7 +364,7 @@ public class Net {
      *   [0] oficial -> mudança mais importante
      *   [1] beta -> mudança intermediária
      *   [2] alfa -> mudança mais frequente/menos polida
-    */
+	 */
     public static void verificarAtualizacao(final ResultadoAtualizacao padrao) {
         new Thread(new Runnable() {
 				public void run() {
@@ -426,7 +446,7 @@ public class Net {
      * ao terminar(ou falhar), chama padrao.aoBaixar(caminho) na thread principal
      *   caminho != null -> sucesso
      *   caminho == null -> falha
-    */
+	 */
     public static void baixarAtualizacao(final String destino, final ResultadoDownload padrao) {
         final String urlDownload = (Gdx.app.getType() == Application.ApplicationType.Android)
             ? URL_APK : URL_JAR;
@@ -504,3 +524,4 @@ public class Net {
         }
     }
 }
+
