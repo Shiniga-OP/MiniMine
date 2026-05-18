@@ -19,8 +19,9 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
+task limpar(type: Delete) {
     delete rootProject.buildDir
 }
 
-
+file('local.properties').text = "sdk.dir=${System.getProperty('user.home')}/android-sdk\n"
+file('gradle.properties').text = "org.gradle.configuration-cache=false\norg.gradle.caching=false\nandroid.aapt2FromMavenOverride=${['which', 'aapt2'].execute().text.trim()}\n"

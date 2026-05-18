@@ -76,6 +76,7 @@ public class Jogador extends Entidade {
 		super();
 		vida = 20;
 		vidaMax = 20;
+		camera = com.minimine.ui.UI.criarCamera();
 		this.inv = new Inventario(this);
 		Jogo.relogio.schedule(
 			new java.util.TimerTask() {
@@ -293,6 +294,14 @@ public class Jogador extends Entidade {
 				posicao.x - camera.direction.x * DIST_TERCEIRA_PESSOA,
 				posicao.y + altura * 0.9f - camera.direction.y * DIST_TERCEIRA_PESSOA,
 				posicao.z - camera.direction.z * DIST_TERCEIRA_PESSOA
+			);
+		}
+		if(tempoInvulneravel > 0 && modo == 2) {
+			final float intensidade = tempoInvulneravel * 0.3f;
+			camera.position.set(
+				camera.position.x + (MathUtils.random(-1f, 1f) * intensidade),
+				camera.position.y + (MathUtils.random(-1f, 1f) * intensidade * 0.5f),
+				camera.position.z + (MathUtils.random(-1f, 1f) * intensidade)
 			);
 		}
 		camera.update();

@@ -53,8 +53,8 @@ refeito com LibGDX.
 * Cavernas em tuneis.
 * Dano de queda.
 * Itens flutuantes.
-* Menu multi jogador.
 * Pontos de vista (primeira pessoa, segunda pessoa).
+* Modo Multijogador local (beta).
 
 ## Modos de mundo:
 * Mundo Normal: biomas, estruturas, e formações naturais.

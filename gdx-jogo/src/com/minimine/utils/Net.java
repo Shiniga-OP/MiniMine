@@ -31,22 +31,30 @@ public class Net {
     public static final int[] versao = ArquivosUtil.VERSAO;
 
     public String modoAtual = SERVIDOR_MODO;
-    // estruturas do servidor
     public ServerSocket servidorSocket;
     public Array<Cliente> clientes = new Array<Cliente>();
     public DatagramSocket attSocket;
-    // estruturas do cliente
     public Socket clienteSocket;
     public PrintWriter clienteDados;
     public BufferedReader clienteEntrada;
     public boolean conectado = false;
     public volatile String IP = null;
-	public static String ultimoIP = null;
+    public static String ultimoIP = null;
+
+    public volatile int idLocal = 0;
+    private static int proximoId = 1;
+
+    public interface OuvinteMensagem {
+        void aoReceber(String msg);
+    }
+    public OuvinteMensagem ouvinte = null;
 
     public Net(String modoAtual) {
         Gdx.app.log(NOME, "Iniciando como: " + modoAtual);
+        this.modoAtual = modoAtual;
 
         if(modoAtual.equals(SERVIDOR_MODO)) {
+            idLocal = 0;
             Gdx.app.postRunnable(new Runnable() {
 					public void run() {
 						iniciarTcpServidor();
@@ -78,8 +86,13 @@ public class Net {
 							try {
 								Socket socket = servidorSocket.accept(null);
 								Gdx.app.log(NOME, "Cliente TCP conectado: " + socket.getRemoteAddress());
-								Cliente cliente = new Cliente(socket);
-								clientes.add(cliente);
+								int id = proximoId++;
+								Cliente cliente = new Cliente(socket, id);
+								synchronized(clientes) {
+									clientes.add(cliente);
+								}
+								cliente.dados.println("ID:" + id);
+								broadcast("ENTROU:" + id, cliente);
 								new Thread(cliente).start();
 							} catch(Exception e) {
 								Gdx.app.error(NOME, "Erro ao aceitar conexão TCP: " + e.getMessage());
@@ -119,31 +132,65 @@ public class Net {
         }
     }
 
+    public void broadcast(String msg, Cliente exceto) {
+        synchronized(clientes) {
+            for(int i = 0; i < clientes.size; i++) {
+                Cliente c = clientes.get(i);
+                if(c != exceto) c.dados.println(msg);
+            }
+        }
+    }
+
+    public void broadcastTodos(String msg) {
+        broadcast(msg, null);
+    }
+
     public class Cliente implements Runnable {
         public final Socket socket;
         public final BufferedReader entrada;
         public final PrintWriter dados;
+        public final int id;
         public boolean rodando = true;
 
-        public Cliente(Socket socket) throws IOException {
+        public Cliente(Socket socket, int id) throws IOException {
             this.socket = socket;
+            this.id = id;
             this.entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.dados = new PrintWriter(socket.getOutputStream(), true);
         }
 
         public void run() {
             try {
-                String linhaEntrada;
-                while(rodando && (linhaEntrada = entrada.readLine()) != null) {
-                    Gdx.app.log(NOME + "-Servidor", "Recebido do Cliente: " + linhaEntrada);
-                    String resposta = "Servidor recebeu: " + linhaEntrada + "Olá devolta do servidor";
-                    dados.println(resposta);
-                    Gdx.app.log(NOME + "-Servidor", "Enviando de volta: " + resposta);
+                String linha;
+                while(rodando && (linha = entrada.readLine()) != null) {
+                    final String msg = linha;
+                    broadcast(msg, this);
+                    if(ouvinte != null) {
+                        final OuvinteMensagem ov = ouvinte;
+                        Gdx.app.postRunnable(new Runnable() {
+								public void run() {
+									ov.aoReceber(msg);
+								}
+							});
+                    }
                 }
             } catch(IOException e) {
-                Gdx.app.error(NOME + "-Servidor", "Conexão perdida com o cliente: " + socket.getRemoteAddress());
+                Gdx.app.error(NOME + "-Servidor", "Conexão perdida com cliente " + id + ": " + e.getMessage());
             } finally {
-                clientes.removeValue(this, true);
+                rodando = false;
+                synchronized(clientes) {
+                    clientes.removeValue(this, true);
+                }
+                broadcast("SAIU:" + id, null);
+                if(ouvinte != null) {
+                    final OuvinteMensagem ov = ouvinte;
+                    final int cid = id;
+                    Gdx.app.postRunnable(new Runnable() {
+							public void run() {
+								ov.aoReceber("SAIU:" + cid);
+							}
+						});
+                }
                 try {
                     socket.dispose();
                 } catch(Exception e) {
@@ -204,7 +251,7 @@ public class Net {
     }
 
     public void conectarServidorTcp() {
-		if(IP == null) IP = ultimoIP;
+        if(IP == null) IP = ultimoIP;
         try {
             SocketHints hints = new SocketHints();
             hints.connectTimeout = 5000;
@@ -225,11 +272,8 @@ public class Net {
     }
 
     public void enviarMsg(String msg) {
-        if(conectado) {
-            Gdx.app.log(NOME + "-Cliente", "Enviando mensagem: " + msg);
+        if(conectado && clienteDados != null) {
             clienteDados.println(msg);
-        } else {
-            Gdx.app.error(NOME + "-Cliente", "Não conectado. Não pode enviar mensagem.");
         }
     }
 
@@ -237,7 +281,20 @@ public class Net {
         try {
             String servidorMsg;
             while(conectado && clienteEntrada != null && (servidorMsg = clienteEntrada.readLine()) != null) {
-                Gdx.app.log("Mensagem Recebida", servidorMsg);
+                final String msg = servidorMsg;
+                if(msg.startsWith("ID:")) {
+                    try {
+                        idLocal = Integer.parseInt(msg.substring(3).trim());
+                    } catch(NumberFormatException e) {}
+                }
+                if(ouvinte != null) {
+                    final OuvinteMensagem ov = ouvinte;
+                    Gdx.app.postRunnable(new Runnable() {
+							public void run() {
+								ov.aoReceber(msg);
+							}
+						});
+                }
             }
         } catch(IOException e) {
             Gdx.app.error(NOME + "-Cliente", "Conexão com o servidor perdida: " + e.getMessage());
@@ -247,9 +304,26 @@ public class Net {
         }
     }
 
+    public void enviarPosicao(float x, float y, float z, float yaw, float tom) {
+        String msg = "POS:" + idLocal + ":" + x + ":" + y + ":" + z + ":" + yaw + ":" + tom;
+        if(modoAtual.equals(SERVIDOR_MODO)) {
+            broadcastTodos(msg);
+        } else {
+            enviarMsg(msg);
+        }
+    }
+
+    public void enviarBloco(int x, int y, int z, int id) {
+        String msg = "BLOCO:" + x + ":" + y + ":" + z + ":" + id;
+        if(modoAtual.equals(SERVIDOR_MODO)) {
+            broadcastTodos(msg);
+        } else {
+            enviarMsg(msg);
+        }
+    }
     public static final String URL_VERSAO = "https://focadoestudios.netlify.app/pacotes/minimine/versao.txt";
-    public static final String URL_APK    = "https://focadoestudios.netlify.app/pacotes/minimine/MiniMine.apk";
-    public static final String URL_JAR    = "https://focadoestudios.netlify.app/pacotes/minimine/minimine.jar";
+    public static final String URL_APK = "https://focadoestudios.netlify.app/pacotes/minimine/MiniMine.apk";
+    public static final String URL_JAR = "https://focadoestudios.netlify.app/pacotes/minimine/minimine.jar";
 
     // padrão chamado na thread principal depois da verificação
     public interface ResultadoAtualizacao {
@@ -257,10 +331,10 @@ public class Net {
          * temAtualizacao: true se encontrou versão nova
          * novaVersao: "0.1.2", ou null se sem internet/erro
          * tipo: "OFICIAL", "BETA" ou "ALFA"
-         */
+       */
         void aoVerificar(boolean temAtualizacao, String novaVersao, String tipo);
     }
-	
+
 	public interface ResultadoDownload {
 		void aoBaixar(String caminho);
 	}
@@ -270,7 +344,7 @@ public class Net {
      *   [0] oficial -> mudança mais importante
      *   [1] beta -> mudança intermediária
      *   [2] alfa -> mudança mais frequente/menos polida
-     */
+    */
     public static void verificarAtualizacao(final ResultadoAtualizacao padrao) {
         new Thread(new Runnable() {
 				public void run() {
@@ -352,7 +426,7 @@ public class Net {
      * ao terminar(ou falhar), chama padrao.aoBaixar(caminho) na thread principal
      *   caminho != null -> sucesso
      *   caminho == null -> falha
-     */
+    */
     public static void baixarAtualizacao(final String destino, final ResultadoDownload padrao) {
         final String urlDownload = (Gdx.app.getType() == Application.ApplicationType.Android)
             ? URL_APK : URL_JAR;
@@ -403,8 +477,10 @@ public class Net {
 
     public void liberar() {
         if(servidorSocket != null) {
-            for(Cliente cliente : clientes) {
-                cliente.rodando = false;
+            synchronized(clientes) {
+                for(int i = 0; i < clientes.size; i++) {
+                    clientes.get(i).rodando = false;
+                }
             }
             try {
                 servidorSocket.dispose();
@@ -417,6 +493,7 @@ public class Net {
             attSocket.close();
             attSocket = null;
         }
+        conectado = false;
         if(clienteSocket != null) {
             try {
                 clienteSocket.dispose();
@@ -427,4 +504,3 @@ public class Net {
         }
     }
 }
-

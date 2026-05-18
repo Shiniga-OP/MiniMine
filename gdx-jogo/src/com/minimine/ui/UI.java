@@ -96,12 +96,7 @@ public class UI implements InputProcessor {
     public static boolean gui = true;
 
     public UI(Jogador jogador) {
-        camera = new PerspectiveCamera(pov, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.position.set(10f, 18f, 10f);
-        camera.lookAt(0, 0, 0);
-        camera.near = aprox;
-        camera.far = distancia;
-        camera.update();
+        camera = criarCamera();
 
         sb = new SpriteBatch();
         fonte = InterUtil.carregarFonte("fontes/pixel.ttf");
@@ -640,6 +635,16 @@ public class UI implements InputProcessor {
             MathUtils.cos(tomRad) * MathUtils.cos(yawRad)
         ).nor();
     }
+	
+	public static PerspectiveCamera criarCamera() {
+		PerspectiveCamera camera = new PerspectiveCamera(pov, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.position.set(10f, 18f, 10f);
+        camera.lookAt(0, 0, 0);
+        camera.near = aprox;
+        camera.far = distancia;
+        camera.update();
+		return camera;
+	}
 
     public void ajustar(int v, int h) {
 		telaV = v;
