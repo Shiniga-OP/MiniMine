@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.util.zip.InflaterInputStream;
 
 public class Jogo implements Screen {
     public static Mundo mundo;
@@ -43,8 +44,8 @@ public class Jogo implements Screen {
     public void show() {
         relogio = new java.util.Timer();
         mundo = new Mundo();
-        Jogador jogador = new Jogador();
         jogadores = new ArrayList<Jogador>();
+        Jogador jogador = new Jogador();
         jogador.modo = modo;
         jogadores.add(jogador);
         jogadoresRede.clear();
@@ -71,6 +72,7 @@ public class Jogo implements Screen {
             ChunkProcesso.malha = new ChunkMalha();
             render = new Render(jogadores, mundo);
         }
+
         if(!MultiMenu.modoRede.equals(Net.CLIENTE_MODO)) {
 			if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) {
 				ArquivosUtil.crMundo(mundo, jogador);
@@ -113,18 +115,44 @@ public class Jogo implements Screen {
                 jgRede.camera.direction.set(0, 0, -1);
                 jgRede.camera.rotate(com.badlogic.gdx.math.Vector3.Y, yaw);
             } catch(NumberFormatException e) {}
-        } else if(msg.startsWith("MUNDO:")) {
+        } else if(msg.startsWith("CHUNK:")) {
             try {
                 String hex = msg.substring(6);
-                byte[] dados = new byte[hex.length() / 2];
-                for(int i = 0; i < dados.length; i++) {
-                    dados[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+                byte[] comprimido = new byte[hex.length() / 2];
+                for(int i = 0; i < comprimido.length; i++)
+                    comprimido[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+                java.util.zip.InflaterInputStream inflater = new java.util.zip.InflaterInputStream(
+                    new ByteArrayInputStream(comprimido));
+                DataInputStream dis = new DataInputStream(inflater);
+                int cx = dis.readInt();
+                int cz = dis.readInt();
+                long chave = com.minimine.mundo.Chave.calcularChave(cx, cz);
+                com.minimine.mundo.chunks.Chunk chunk = new com.minimine.mundo.chunks.Chunk();
+                chunk.x = cx;
+                chunk.z = cz;
+                chunk.chave = chave;
+                chunk.meta = new short[Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK];
+                com.minimine.mundo.chunks.ChunkProcesso.util.compactar(
+                    com.minimine.mundo.chunks.ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
+                int total = dis.readInt();
+                for(int k = 0; k < total; k++) {
+                    int x = dis.readInt();
+                    int y = dis.readInt();
+                    int z = dis.readInt();
+                    String id = dis.readUTF();
+                    com.minimine.mundo.chunks.ChunkProcesso.util.defBloco(x, y, z, id, chunk);
                 }
-                DataInputStream dis = new DataInputStream(new ByteArrayInputStream(dados));
-                Mundo.carregar(dis);
+                int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+                for(int i = 0; i < metaTam; i++) chunk.meta[i] = dis.readShort();
+                chunk.dadosProntos = true;
+                chunk.att = true;
+                Mundo.chunks.put(chave, chunk);
+                Mundo.estados.put(chave, 2);
             } catch(Exception e) {
-                Gdx.app.error("[Jogo]", "Erro ao carregar mundo da rede: " + e.getMessage());
+                Gdx.app.error("[Jogo]", "Erro ao carregar chunk da rede: " + e.getMessage());
             }
+        } else if(msg.startsWith("CHUNKS_FIM:")) {
+            Gdx.app.log("[Jogo]", "Todos os chunks recebidos do servidor");
         } else if(msg.startsWith("BLOCO:")) {
             String[] p = msg.split(":");
             if(p.length < 5) return;

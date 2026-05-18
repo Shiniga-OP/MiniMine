@@ -22,6 +22,10 @@ import java.io.InputStream;
 import com.badlogic.gdx.Application;
 import com.minimine.Instalador;
 import com.minimine.mundo.Mundo;
+import com.minimine.mundo.chunks.Chunk;
+import com.minimine.mundo.chunks.ChunkProcesso;
+import com.minimine.mundo.blocos.Bloco;
+import java.util.Map;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.ByteArrayInputStream;
@@ -102,20 +106,47 @@ public class Net {
 								new Thread(new Runnable() {
 										public void run() {
 											try {
-												ByteArrayOutputStream baos = new ByteArrayOutputStream();
-												DataOutputStream dos = new DataOutputStream(baos);
-												Mundo.salvar(dos);
-												dos.flush();
-												byte[] raw = baos.toByteArray();
-												StringBuilder sb = new StringBuilder(raw.length * 2);
-												for(int i = 0; i < raw.length; i++) {
-													int v = raw[i] & 0xFF;
-													if(v < 16) sb.append('0');
-													sb.append(Integer.toHexString(v));
+												for(Map.Entry<Long, Chunk> e : Mundo.chunks.entrySet()) {
+													long chave = e.getKey();
+													Chunk chunk = e.getValue();
+													if(Mundo.estados.getOrDefault(chave, 0) < 1) continue;
+													ByteArrayOutputStream baos = new ByteArrayOutputStream();
+													java.util.zip.DeflaterOutputStream deflate = new java.util.zip.DeflaterOutputStream(baos);
+													DataOutputStream dos = new DataOutputStream(deflate);
+													dos.writeInt(chunk.x);
+													dos.writeInt(chunk.z);
+													int total = 0;
+													for(int x = 0; x < Mundo.TAM_CHUNK; x++)
+														for(int y = 0; y < Mundo.Y_CHUNK; y++)
+															for(int z = 0; z < Mundo.TAM_CHUNK; z++)
+																if(ChunkProcesso.util.obterBloco(x, y, z, chunk) != 0) total++;
+													dos.writeInt(total);
+													for(int x = 0; x < Mundo.TAM_CHUNK; x++)
+														for(int y = 0; y < Mundo.Y_CHUNK; y++)
+															for(int z = 0; z < Mundo.TAM_CHUNK; z++) {
+																int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
+																if(b != 0) {
+																	dos.writeInt(x);
+																	dos.writeInt(y);
+																	dos.writeInt(z);
+																	dos.writeUTF("" + Bloco.numIds.get(b).nome);
+																}
+															}
+													int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+													for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
+													dos.close();
+													byte[] raw = baos.toByteArray();
+													StringBuilder sb = new StringBuilder(raw.length * 2);
+													for(int i = 0; i < raw.length; i++) {
+														int v = raw[i] & 0xFF;
+														if(v < 16) sb.append('0');
+														sb.append(Integer.toHexString(v));
+													}
+													clienteFinal.dados.println("CHUNK:" + sb.toString());
 												}
-												clienteFinal.dados.println("MUNDO:" + sb.toString());
+												clienteFinal.dados.println("CHUNKS_FIM:");
 											} catch(Exception e) {
-												Gdx.app.error(NOME, "Erro ao enviar mundo para cliente " + clienteFinal.id + ": " + e.getMessage());
+												Gdx.app.error(NOME, "Erro ao enviar chunks para cliente " + clienteFinal.id + ": " + e.getMessage());
 											}
 										}
 									}).start();
