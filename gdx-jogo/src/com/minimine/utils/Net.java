@@ -106,8 +106,14 @@ public class Net {
 												DataOutputStream dos = new DataOutputStream(baos);
 												Mundo.salvar(dos);
 												dos.flush();
-												String b64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP);
-												clienteFinal.dados.println("MUNDO:" + b64);
+												byte[] raw = baos.toByteArray();
+												StringBuilder sb = new StringBuilder(raw.length * 2);
+												for(int i = 0; i < raw.length; i++) {
+													int v = raw[i] & 0xFF;
+													if(v < 16) sb.append('0');
+													sb.append(Integer.toHexString(v));
+												}
+												clienteFinal.dados.println("MUNDO:" + sb.toString());
 											} catch(Exception e) {
 												Gdx.app.error(NOME, "Erro ao enviar mundo para cliente " + clienteFinal.id + ": " + e.getMessage());
 											}

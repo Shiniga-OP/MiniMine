@@ -115,7 +115,11 @@ public class Jogo implements Screen {
             } catch(NumberFormatException e) {}
         } else if(msg.startsWith("MUNDO:")) {
             try {
-                byte[] dados = android.util.Base64.decode(msg.substring(6), android.util.Base64.NO_WRAP);
+                String hex = msg.substring(6);
+                byte[] dados = new byte[hex.length() / 2];
+                for(int i = 0; i < dados.length; i++) {
+                    dados[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+                }
                 DataInputStream dis = new DataInputStream(new ByteArrayInputStream(dados));
                 Mundo.carregar(dis);
             } catch(Exception e) {
