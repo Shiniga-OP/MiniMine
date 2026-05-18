@@ -25,6 +25,7 @@ import com.minimine.mundo.Mundo;
 import com.minimine.mundo.chunks.Chunk;
 import com.minimine.mundo.chunks.ChunkProcesso;
 import com.minimine.mundo.blocos.Bloco;
+import com.minimine.mundo.Chave;
 import java.util.Map;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -106,32 +107,29 @@ public class Net {
 								new Thread(new Runnable() {
 										public void run() {
 											try {
-												for(Map.Entry<Long, Chunk> e : Mundo.chunks.entrySet()) {
+												clienteFinal.dados.println("SEMENTE:" + Mundo.semente);
+												for(Map.Entry<Long, Chunk> e : Mundo.chunksMod.entrySet()) {
 													long chave = e.getKey();
 													Chunk chunk = e.getValue();
-													if(Mundo.estados.getOrDefault(chave, 0) < 1) continue;
 													ByteArrayOutputStream baos = new ByteArrayOutputStream();
 													java.util.zip.DeflaterOutputStream deflate = new java.util.zip.DeflaterOutputStream(baos);
 													DataOutputStream dos = new DataOutputStream(deflate);
 													dos.writeInt(chunk.x);
 													dos.writeInt(chunk.z);
-													int total = 0;
-													for(int x = 0; x < Mundo.TAM_CHUNK; x++)
-														for(int y = 0; y < Mundo.Y_CHUNK; y++)
-															for(int z = 0; z < Mundo.TAM_CHUNK; z++)
-																if(ChunkProcesso.util.obterBloco(x, y, z, chunk) != 0) total++;
-													dos.writeInt(total);
+													java.util.ArrayList<int[]> blocos = new java.util.ArrayList<int[]>();
 													for(int x = 0; x < Mundo.TAM_CHUNK; x++)
 														for(int y = 0; y < Mundo.Y_CHUNK; y++)
 															for(int z = 0; z < Mundo.TAM_CHUNK; z++) {
 																int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
-																if(b != 0) {
-																	dos.writeInt(x);
-																	dos.writeInt(y);
-																	dos.writeInt(z);
-																	dos.writeUTF("" + Bloco.numIds.get(b).nome);
-																}
+																if(b != 0) blocos.add(new int[]{x, y, z, b});
 															}
+													dos.writeInt(blocos.size());
+													for(int[] bl : blocos) {
+														dos.writeInt(bl[0]);
+														dos.writeInt(bl[1]);
+														dos.writeInt(bl[2]);
+														dos.writeUTF("" + Bloco.numIds.get(bl[3]).nome);
+													}
 													int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
 													for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
 													dos.close();
@@ -143,6 +141,7 @@ public class Net {
 														sb.append(Integer.toHexString(v));
 													}
 													clienteFinal.dados.println("CHUNK:" + sb.toString());
+													Thread.sleep(10);
 												}
 												clienteFinal.dados.println("CHUNKS_FIM:");
 											} catch(Exception e) {
@@ -334,6 +333,11 @@ public class Net {
         }
     }
 
+    public interface OuvinteChunk {
+        void aoReceberChunk(com.minimine.mundo.chunks.Chunk chunk, long chave);
+    }
+    public OuvinteChunk ouvinteChunk = null;
+
     public void receberMsgServidor() {
         try {
             String servidorMsg;
@@ -343,14 +347,59 @@ public class Net {
                     try {
                         idLocal = Integer.parseInt(msg.substring(3).trim());
                     } catch(NumberFormatException e) {}
-                }
-                if(ouvinte != null) {
-                    final OuvinteMensagem ov = ouvinte;
-                    Gdx.app.postRunnable(new Runnable() {
-							public void run() {
-								ov.aoReceber(msg);
-							}
-						});
+                    if(ouvinte != null) {
+                        final OuvinteMensagem ov = ouvinte;
+                        Gdx.app.postRunnable(new Runnable() {
+								public void run() { ov.aoReceber(msg); }
+							});
+                    }
+                } else if(msg.startsWith("CHUNK:")) {
+                    // descomprime na thread de rede, não bloqueia a thread GL
+                    try {
+                        String hex = msg.substring(6);
+                        byte[] comprimido = new byte[hex.length() / 2];
+                        for(int i = 0; i < comprimido.length; i++)
+                            comprimido[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+                        java.util.zip.InflaterInputStream inf = new java.util.zip.InflaterInputStream(
+                            new ByteArrayInputStream(comprimido));
+                        DataInputStream dis = new DataInputStream(inf);
+                        int cx = dis.readInt();
+                        int cz = dis.readInt();
+                        final long chave = com.minimine.mundo.Chave.calcularChave(cx, cz);
+                        final com.minimine.mundo.chunks.Chunk chunk = new com.minimine.mundo.chunks.Chunk();
+                        chunk.x = cx;
+                        chunk.z = cz;
+                        chunk.chave = chave;
+                        chunk.meta = new short[Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK];
+                        ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
+                        int total = dis.readInt();
+                        for(int k = 0; k < total; k++) {
+                            int x = dis.readInt();
+                            int y = dis.readInt();
+                            int z = dis.readInt();
+                            String id = dis.readUTF();
+                            ChunkProcesso.util.defBloco(x, y, z, id, chunk);
+                        }
+                        int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+                        for(int i = 0; i < metaTam; i++) chunk.meta[i] = dis.readShort();
+                        chunk.dadosProntos = true;
+                        chunk.att = true;
+                        if(ouvinteChunk != null) {
+                            final OuvinteChunk oc = ouvinteChunk;
+                            Gdx.app.postRunnable(new Runnable() {
+									public void run() { oc.aoReceberChunk(chunk, chave); }
+								});
+                        }
+                    } catch(Exception e) {
+                        Gdx.app.error(NOME + "-Cliente", "Erro ao processar CHUNK: " + e.getMessage());
+                    }
+                } else {
+                    if(ouvinte != null) {
+                        final OuvinteMensagem ov = ouvinte;
+                        Gdx.app.postRunnable(new Runnable() {
+								public void run() { ov.aoReceber(msg); }
+							});
+                    }
                 }
             }
         } catch(IOException e) {
@@ -561,4 +610,3 @@ public class Net {
         }
     }
 }
-
