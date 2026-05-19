@@ -36,6 +36,7 @@ public class Net {
     public static final String NOME = "[MiniMine]: ";
     public static final int TCP_PORTA = 9001;
     public static final int UDP_PORTA = 9002;
+    public static final int UDP_POS_PORTA = 9003;
     public static final String CLIENTE_MODO = "CLIENTE";
     public static final String SERVIDOR_MODO = "SERVIDOR";
     public static final int[] versao = ArquivosUtil.VERSAO;
@@ -44,6 +45,8 @@ public class Net {
     public ServerSocket servidorSocket;
     public Array<Cliente> clientes = new Array<Cliente>();
     public DatagramSocket attSocket;
+    public DatagramSocket udpCliente;
+    public InetAddress udpServidorEndereco;
     public Socket clienteSocket;
     public PrintWriter clienteDados;
     public BufferedReader clienteEntrada;
@@ -52,7 +55,7 @@ public class Net {
     public static String ultimoIP = null;
 
     public volatile int idLocal = 0;
-    private static int proximoId = 1;
+    public static int proximoId = 1;
 
     public interface OuvinteMensagem {
         void aoReceber(String msg);
@@ -78,9 +81,40 @@ public class Net {
         } else if(modoAtual.equals(CLIENTE_MODO)) {
             new Thread(new Runnable() {
 					public void run() {
+                        try {
+                            udpCliente = new DatagramSocket();
+                        } catch(Exception e) {
+                            Gdx.app.error(NOME, "Falha ao criar socket UDP do cliente: " + e.getMessage());
+                        }
 						procurarE_Conectar();
 					}
 				}).start();
+        }
+    }
+
+    // construtor para conexão direta por IP (sem descoberta UDP — funciona via VPN/internet)
+    public Net(String modoAtual, final String ipFixo) {
+        Gdx.app.log(NOME, "Iniciando como: " + modoAtual + " (IP direto: " + ipFixo + ")");
+        this.modoAtual = modoAtual;
+        this.IP = ipFixo;
+        ultimoIP = ipFixo;
+
+        if(modoAtual.equals(CLIENTE_MODO)) {
+            new Thread(new Runnable() {
+                    public void run() {
+                        try {
+                            udpCliente = new DatagramSocket();
+                            udpServidorEndereco = InetAddress.getByName(ipFixo);
+                        } catch(Exception e) {
+                            Gdx.app.error(NOME, "Falha ao criar socket UDP do cliente: " + e.getMessage());
+                        }
+                    }
+                }).start();
+            Gdx.app.postRunnable(new Runnable() {
+					public void run() {
+						conectarServidorTcp();
+					}
+				});
         }
     }
 
@@ -103,6 +137,14 @@ public class Net {
 								}
 								cliente.dados.println("ID:" + id);
 								broadcast("ENTROU:" + id, cliente);
+								// notifica o próprio servidor que um jogador entrou
+								if(ouvinte != null) {
+									final OuvinteMensagem ov = ouvinte;
+									final int idFinal = id;
+									Gdx.app.postRunnable(new Runnable() {
+											public void run() { ov.aoReceber("ENTROU:" + idFinal); }
+										});
+								}
 								final Cliente clienteFinal = cliente;
 								new Thread(new Runnable() {
 										public void run() {
@@ -163,22 +205,46 @@ public class Net {
     }
 
     public void iniciarReceptor() {
-        Gdx.app.log(NOME, "Ouvindo por pedidos de descoberta UDP na porta " + UDP_PORTA);
+        Gdx.app.log(NOME, "Ouvindo UDP na porta " + UDP_POS_PORTA);
         try {
-            attSocket = new DatagramSocket(UDP_PORTA);
+            attSocket = new DatagramSocket(UDP_POS_PORTA);
             byte[] buffer = new byte[1024];
             DatagramPacket pacote = new DatagramPacket(buffer, buffer.length);
 
             while(attSocket != null && !attSocket.isClosed()) {
                 attSocket.receive(pacote);
-                String msg = new String(pacote.getData(), 0, pacote.getLength());
+                final String msg = new String(pacote.getData(), 0, pacote.getLength());
+                final InetAddress origem = pacote.getAddress();
+                final int portaOrigem = pacote.getPort();
 
                 if(msg.startsWith("[MINIMINE]: descobrindo servidor")) {
-                    Gdx.app.log(NOME + "-descoberta", "Pedido de descoberta de " + pacote.getAddress().getHostAddress());
+                    Gdx.app.log(NOME + "-descoberta", "Pedido de descoberta de " + origem.getHostAddress());
                     byte[] respostaDados = "[MiniMine]: servidor encontrado".getBytes();
-                    DatagramPacket respostaPacote = new DatagramPacket(respostaDados, respostaDados.length, pacote.getAddress(), pacote.getPort());
+                    DatagramPacket respostaPacote = new DatagramPacket(respostaDados, respostaDados.length, origem, portaOrigem);
                     attSocket.send(respostaPacote);
                     Gdx.app.log(NOME + "-descoberta", "Resposta de confirmação enviada.");
+                } else if(msg.startsWith("POS:")) {
+                    // reencaminha para todos os outros clientes via UDP
+                    byte[] dados = msg.getBytes();
+                    synchronized(clientes) {
+                        for(int i = 0; i < clientes.size; i++) {
+                            Cliente c = clientes.get(i);
+                            try {
+                                InetAddress endCliente = InetAddress.getByName(
+                                    c.socket.getRemoteAddress().replace("/", "").split(":")[0]);
+                                DatagramPacket dp = new DatagramPacket(dados, dados.length, endCliente, UDP_POS_PORTA);
+                                attSocket.send(dp);
+                            } catch(Exception e) {
+                                // ignora erro de reencaminhamento pra um cliente específico
+                            }
+                        }
+                    }
+                    if(ouvinte != null) {
+                        final OuvinteMensagem ov = ouvinte;
+                        Gdx.app.postRunnable(new Runnable() {
+                                public void run() { ov.aoReceber(msg); }
+                            });
+                    }
                 }
             }
         } catch(Exception e) {
@@ -192,7 +258,10 @@ public class Net {
         synchronized(clientes) {
             for(int i = 0; i < clientes.size; i++) {
                 Cliente c = clientes.get(i);
-                if(c != exceto) c.dados.println(msg);
+                if(c != exceto) {
+                    c.dados.println(msg);
+                    c.dados.flush();
+                }
             }
         }
     }
@@ -212,7 +281,7 @@ public class Net {
             this.socket = socket;
             this.id = id;
             this.entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()), 1024 * 1024);
-            this.dados = new PrintWriter(socket.getOutputStream(), true);
+            this.dados = new PrintWriter(socket.getOutputStream(), false);
         }
 
         public void run() {
@@ -288,9 +357,25 @@ public class Net {
             socket.setBroadcast(true);
             socket.setSoTimeout(500);
             byte[] dadosEnvio = "[MINIMINE]: descobrindo servidor".getBytes();
-            DatagramPacket envioPacote = new DatagramPacket(dadosEnvio, dadosEnvio.length, InetAddress.getByName("255.255.255.255"), UDP_PORTA);
-            socket.send(envioPacote);
-            Gdx.app.log(NOME + "-descoberta", "Pacote de descoberta enviado...");
+
+            // manda broadcast em todas as interfaces de rede (alcança ZeroTier, Hamachi, etc)
+            java.util.Enumeration<java.net.NetworkInterface> interfaces = java.net.NetworkInterface.getNetworkInterfaces();
+            while(interfaces != null && interfaces.hasMoreElements()) {
+                java.net.NetworkInterface iface = interfaces.nextElement();
+                try {
+                    if(!iface.isUp() || iface.isLoopback()) continue;
+                    for(java.net.InterfaceAddress ifAddr : iface.getInterfaceAddresses()) {
+                        java.net.InetAddress broadcast = ifAddr.getBroadcast();
+                        if(broadcast == null) continue;
+                        DatagramPacket envioPacote = new DatagramPacket(dadosEnvio, dadosEnvio.length, broadcast, UDP_PORTA);
+                        socket.send(envioPacote);
+                        Gdx.app.log(NOME + "-descoberta", "Broadcast enviado para " + broadcast.getHostAddress() + " via " + iface.getDisplayName());
+                    }
+                } catch(Exception e) {
+                    Gdx.app.log(NOME + "-descoberta", "Ignorando interface " + iface.getDisplayName() + ": " + e.getMessage());
+                }
+            }
+            Gdx.app.log(NOME + "-descoberta", "Broadcasts enviados em todas as interfaces...");
             byte[] receBuffer = new byte[1024];
             DatagramPacket pacoteRecebido = new DatagramPacket(receBuffer, receBuffer.length);
             socket.receive(pacoteRecebido);

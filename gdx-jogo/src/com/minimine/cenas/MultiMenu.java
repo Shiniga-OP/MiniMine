@@ -31,6 +31,7 @@ import com.micro.componentes.Rotulo;
 import com.micro.util.Ancora;
 import com.micro.componentes.ItemBotao;
 import com.micro.componentes.ItemLinha;
+import com.micro.componentes.CampoTexto;
 import com.micro.janelas.PainelRolavel;
 import com.micro.componentes.CaixaDialogo;
 import com.micro.janelas.PainelFatiado;
@@ -69,7 +70,11 @@ public class MultiMenu implements Screen, InputProcessor {
     public float tempoBusca = 0f;
     public static final float INTERVALO_BUSCA = 6f;
 
-    // qual sub-tela ta visivel: "inicio", "mundos", "buscando"
+    // conexão por IP manual(VPN/internet)
+    public String ipDigitado = "";
+    public boolean conectandoPorIP = false;
+
+    // qual sub-tela ta visivel: "inicio", "mundos", "buscando", "conectarip"
     public String tela = "inicio";
 
     @Override
@@ -113,10 +118,10 @@ public class MultiMenu implements Screen, InputProcessor {
         }
         Gdx.input.setInputProcessor(this);
     }
-	
+
     public void criarPainelInicio() {
         tela = "inicio";
-        painelPrincipal = new Painel(visualJanela, -300, -250, 600, 500, escalaPixel);
+        painelPrincipal = new Painel(visualJanela, -300, -300, 600, 600, escalaPixel);
         painelPrincipal.defEspaco(20, 30);
 
         Rotulo titulo = new Rotulo("MULTIJOGADOR", fonte, escalaPixel * 1.2f);
@@ -147,6 +152,16 @@ public class MultiMenu implements Screen, InputProcessor {
         };
         Botao botaoEntrar = new Botao("Entrar em Jogo", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoEntrar);
         painelPrincipal.addAncorado(botaoEntrar, Ancora.CENTRO, 0, -50);
+
+        Acao acaoConectarIP = new Acao() {
+            public void exec() {
+                gerenciadorUI.limpar();
+                criarPainelConectarIP();
+                gerenciadorUI.add(painelPrincipal);
+            }
+        };
+        Botao botaoConectarIP = new Botao("Conectar por IP", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConectarIP);
+        painelPrincipal.addAncorado(botaoConectarIP, Ancora.CENTRO, 0, -130);
 
         Acao acaoVoltar = new Acao() {
             public void exec() {
@@ -236,6 +251,71 @@ public class MultiMenu implements Screen, InputProcessor {
         painelPrincipal.addAncorado(botaoVoltar, Ancora.INFERIOR_CENTRO, 0, 0);
     }
 
+    public void criarPainelConectarIP() {
+        tela = "conectarip";
+        ipDigitado = Net.ultimoIP != null ? Net.ultimoIP : "";
+
+        painelPrincipal = new Painel(visualJanela, -300, -220, 600, 440, escalaPixel);
+        painelPrincipal.defEspaco(20, 30);
+
+        Rotulo titulo = new Rotulo("CONECTAR POR IP", fonte, escalaPixel * 1.2f);
+        titulo.largura = 560;
+        titulo.altura = 80;
+        painelPrincipal.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
+
+        Rotulo rotuloInstrucao = new Rotulo("Digite o IP do servidor (ex: 192.168.0.10)", fonte, escalaPixel * 0.65f);
+        rotuloInstrucao.largura = 520;
+        rotuloInstrucao.altura = 50;
+        painelPrincipal.addAncorado(rotuloInstrucao, Ancora.CENTRO, 0, 60);
+
+        final CampoTexto campoIP = new CampoTexto(visualBotao, fonte, 0, 0, 480, 70, escalaPixel);
+        campoIP.padrao = "Ex: 192.168.0.10 ou VPN IP";
+        campoIP.limiteCaracteres = 39;
+        campoIP.gerenciador = gerenciadorUI;
+        campoIP.defTexto(ipDigitado);
+        campoIP.mudanca = new CampoTexto.Texto() {
+            public void aoMudar(String novoTexto) {
+                ipDigitado = novoTexto;
+            }
+        };
+        painelPrincipal.addAncorado(campoIP, Ancora.CENTRO, 0, -10);
+
+        Acao acaoConectar = new Acao() {
+            public void exec() {
+                String ip = ipDigitado.trim();
+                if(ip.isEmpty()) return;
+				ip = ip.split("/")[0].trim();
+                conectarPorIP(ip);
+            }
+        };
+        Botao botaoConectar = new Botao("CONECTAR", visualBotao, fonte, 0, 0, 250, 65, escalaPixel, acaoConectar);
+        painelPrincipal.addAncorado(botaoConectar, Ancora.CENTRO, 0, -90);
+
+        Acao acaoVoltar = new Acao() {
+            public void exec() {
+                gerenciadorUI.limpar();
+                criarPainelInicio();
+            }
+        };
+        Botao botaoVoltar = new Botao("VOLTAR", visualBotao, fonte, 0, 0, 200, 60, escalaPixel, acaoVoltar);
+        painelPrincipal.addAncorado(botaoVoltar, Ancora.INFERIOR_CENTRO, 0, 0);
+
+        gerenciadorUI.add(painelPrincipal);
+    }
+
+    public void conectarPorIP(String ip) {
+        conectandoPorIP = true;
+        modoRede = Net.CLIENTE_MODO;
+
+        gerenciadorUI.limpar();
+        criarPainelBuscando();
+        rotuloStatus.texto = "Conectando em " + ip + "...";
+        gerenciadorUI.add(painelPrincipal);
+
+        // usa o construtor direto: pula UDP, vai direto pro TCP(funciona via VPN/internet)
+        buscaNet = new Net(Net.CLIENTE_MODO, ip);
+    }
+
     public void criarPainelBuscando() {
         tela = "buscando";
         tempoBusca = 0f;
@@ -267,7 +347,6 @@ public class MultiMenu implements Screen, InputProcessor {
     public void hospedarMundo(String nomeMundo) {
         Mundo.nome = nomeMundo;
         modoRede = Net.SERVIDOR_MODO;
-        Jogo.modo = 2;
         Inicio.defTela(Cenas.jogo);
     }
 
@@ -301,13 +380,19 @@ public class MultiMenu implements Screen, InputProcessor {
 
         if(tela.equals("buscando") && buscaNet != null) {
             tempoBusca += delta;
-            if(buscaNet.IP != null) {
+            if(buscaNet.IP != null && buscaNet.conectado) {
                 rotuloStatus.texto = "Servidor encontrado! Entrando...";
                 Net.ultimoIP = buscaNet.IP;
+                Jogo.net = buscaNet; // passa a conexão existente para o Jogo
+                buscaNet = null; // desvincula sem liberar
+                Inicio.defTela(Cenas.jogo);
+            } else if(conectandoPorIP && buscaNet.IP != null && !buscaNet.conectado && tempoBusca >= 6f) {
+                // conexão direta falhou
                 buscaNet.liberar();
                 buscaNet = null;
-                Inicio.defTela(Cenas.jogo);
-            } else if(tempoBusca >= INTERVALO_BUSCA) {
+                conectandoPorIP = false;
+                rotuloStatus.texto = "Falha ao conectar. Verifique o IP.";
+            } else if(!conectandoPorIP && tempoBusca >= INTERVALO_BUSCA) {
                 buscaNet.liberar();
                 buscaNet = null;
                 rotuloStatus.texto = "Nenhum servidor encontrado.";
@@ -334,7 +419,10 @@ public class MultiMenu implements Screen, InputProcessor {
     public void dispose() {
         if(liberado) return;
         liberado = true;
-        if(buscaNet != null) { buscaNet.liberar(); buscaNet = null; }
+        if(buscaNet != null) {
+			buscaNet.liberar();
+			buscaNet = null;
+		}
         if(pincel != null) pincel.dispose();
         if(pincelFormas != null) pincelFormas.dispose();
         if(fonte != null) fonte.dispose();

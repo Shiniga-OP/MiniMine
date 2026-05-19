@@ -55,7 +55,9 @@ public class Jogo implements Screen {
         Bloco.iniciar();
 
         if(MultiMenu.modoRede != null) {
-            net = new Net(MultiMenu.modoRede);
+            if(net == null) {  // so cria se não veio pronto do MultiMenu(conexão por IP)
+                net = new Net(MultiMenu.modoRede);
+            }
             net.ouvinte = new Net.OuvinteMensagem() {
                 public void aoReceber(String msg) {
                     processarMsgRede(msg);
@@ -78,8 +80,7 @@ public class Jogo implements Screen {
             ChunkProcesso.malha = new ChunkMalha();
             render = new Render(jogadores, mundo);
         }
-
-        if(!MultiMenu.modoRede.equals(Net.CLIENTE_MODO)) {
+        if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
 			if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) {
 				ArquivosUtil.crMundo(mundo, jogador);
 			}
@@ -112,7 +113,7 @@ public class Jogo implements Screen {
                 if(jgRede == null) {
                     jgRede = new Jogador();
                     jgRede.modo = modo;
-                    jgRede.pessoa = 1;
+                    jgRede.trocarPessoa();
                     jogadoresRede.put(id, jgRede);
                     jogadores.add(jgRede);
                     Gdx.app.log("[Jogo]", "jogador remoto " + id + " adicionado");
@@ -175,6 +176,21 @@ public class Jogo implements Screen {
                 int z = Integer.parseInt(p[3]);
                 int id = Integer.parseInt(p[4]);
                 mundo.defBlocoMundo(x, y, z, id);
+            } catch(NumberFormatException e) {}
+        } else if(msg.startsWith("ENTROU:")) {
+            String[] p = msg.split(":");
+            if(p.length < 2) return;
+            try {
+                int id = Integer.parseInt(p[1]);
+                if(net != null && id == net.idLocal) return;
+                if(!jogadoresRede.containsKey(id)) {
+                    Jogador jgRede = new Jogador();
+                    jgRede.modo = modo;
+                    jgRede.trocarPessoa();
+                    jogadoresRede.put(id, jgRede);
+                    jogadores.add(jgRede);
+                    Gdx.app.log("[Jogo]", "jogador remoto " + id + " entrou");
+                }
             } catch(NumberFormatException e) {}
         } else if(msg.startsWith("SAIU:")) {
             String[] p = msg.split(":");
