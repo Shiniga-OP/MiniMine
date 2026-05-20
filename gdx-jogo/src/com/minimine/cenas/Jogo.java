@@ -7,25 +7,20 @@ import com.minimine.mundo.Mundo;
 import com.minimine.graficos.Render;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.mods.LuaAPI;
-import com.minimine.Inicio;
-import com.minimine.utils.DiaNoiteUtil;
 import com.minimine.mundo.blocos.Bloco;
-import com.minimine.mundo.geracao.MotorGeracao;
 import com.badlogic.gdx.Gdx;
-import com.minimine.mundo.geracao.RegistroBiomas;
 import com.minimine.graficos.Renderizador;
 import com.minimine.graficos.teste.GraficosTeste;
 import com.minimine.mundo.chunks.ChunkProcesso;
 import com.minimine.mundo.chunks.ChunkLuz;
 import com.minimine.mundo.chunks.ChunkMalha;
-import com.minimine.utils.Net;
+import com.minimine.servidor.Net;
+import com.minimine.servidor.ServidorInterno;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.util.zip.InflaterInputStream;
+import com.badlogic.gdx.math.MathUtils;
 
 public class Jogo implements Screen {
     public static Mundo mundo;
@@ -54,22 +49,30 @@ public class Jogo implements Screen {
 
         Bloco.iniciar();
 
-        if(MultiMenu.modoRede != null) {
-            if(net == null) {  // so cria se não veio pronto do MultiMenu(conexão por IP)
-                net = new Net(MultiMenu.modoRede);
-            }
-            net.ouvinte = new Net.OuvinteMensagem() {
-                public void aoReceber(String msg) {
-                    processarMsgRede(msg);
-                }
-            };
-            net.ouvinteChunk = new Net.OuvinteChunk() {
-                public void aoReceberChunk(com.minimine.mundo.chunks.Chunk chunk, long chave) {
-                    Mundo.chunks.put(chave, chunk);
-                    Mundo.estados.put(chave, 2);
-                }
-            };
+        // solo: sobe servidor interno e conecta cliente local em 127.0.0.1
+        // multi servidor: idem, mas outros clientes também podem conectar
+        // multi cliente: pula o servidor interno, conecta direto ao remoto
+        if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
+            // sobe servidor interno(carrega o mundo, abre socket TCP/UDP)
+            ServidorInterno.iniciar(mundo, jogadores);
+            // cliente local conecta via solo, mesmo caminho de qualquer cliente remoto
+            net = new Net(Net.CLIENTE_MODO, "127.0.0.1");
+        } else {
+            // cliente remoto: net ja pode ter vindo pronto do MultiMenu(conexão por IP)
+            if(net == null) net = new Net(Net.CLIENTE_MODO);
         }
+
+        net.ouvinte = new Net.OuvinteMensagem() {
+            public void aoReceber(String msg) {
+                processarMsgRede(msg);
+            }
+        };
+        net.ouvinteChunk = new Net.OuvinteChunk() {
+            public void aoReceberChunk(com.minimine.mundo.chunks.Chunk chunk, long chave) {
+                Mundo.chunks.put(chave, chunk);
+                Mundo.estados.put(chave, 2);
+            }
+        };
 
         if(graficosTeste) {
             ChunkProcesso.luz = new ChunkLuz();
@@ -80,11 +83,6 @@ public class Jogo implements Screen {
             ChunkProcesso.malha = new ChunkMalha();
             render = new Render(jogadores, mundo);
         }
-        if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
-			if(ArquivosUtil.existe(Inicio.externo+"/MiniMine/mundos/"+mundo.nome+".mini")) {
-				ArquivosUtil.crMundo(mundo, jogador);
-			}
-		}
         render.iniciar();
 
         relogio.schedule(
@@ -126,45 +124,6 @@ public class Jogo implements Screen {
             try {
                 Mundo.semente = Long.parseLong(msg.substring(8).trim());
             } catch(NumberFormatException e) {}
-        } else if(msg.startsWith("CHUNK:")) {
-            final String hex = msg.substring(6);
-            new Thread(new Runnable() {
-					public void run() {
-						try {
-							byte[] comprimido = new byte[hex.length() / 2];
-							for(int i = 0; i < comprimido.length; i++)
-								comprimido[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-							java.util.zip.InflaterInputStream inflater = new java.util.zip.InflaterInputStream(
-								new ByteArrayInputStream(comprimido));
-							final DataInputStream dis = new DataInputStream(inflater);
-							final int cx = dis.readInt();
-							final int cz = dis.readInt();
-							final long chave = com.minimine.mundo.Chave.calcularChave(cx, cz);
-							final com.minimine.mundo.chunks.Chunk chunk = new com.minimine.mundo.chunks.Chunk();
-							chunk.x = cx;
-							chunk.z = cz;
-							chunk.chave = chave;
-							chunk.meta = new short[Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK];
-							com.minimine.mundo.chunks.ChunkProcesso.util.compactar(
-								com.minimine.mundo.chunks.ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
-							int total = dis.readInt();
-							for(int k = 0; k < total; k++) {
-								int x = dis.readInt();
-								int y = dis.readInt();
-								int z = dis.readInt();
-								String bid = dis.readUTF();
-								com.minimine.mundo.chunks.ChunkProcesso.util.defBloco(x, y, z, bid, chunk);
-							}
-							int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
-							for(int i = 0; i < metaTam; i++) chunk.meta[i] = dis.readShort();
-							chunk.dadosProntos = true;
-							chunk.att = true;
-							Mundo.chunksMod.put(chave, chunk);
-						} catch(Exception e) {
-							Gdx.app.error("[Jogo]", "Erro ao carregar chunk da rede: " + e.getMessage());
-						}
-					}
-				}).start();
         } else if(msg.startsWith("CHUNKS_FIM:")) {
             Gdx.app.log("[Jogo]", "Todos os chunks recebidos do servidor");
         } else if(msg.startsWith("BLOCO:")) {
@@ -216,9 +175,9 @@ public class Jogo implements Screen {
             if(tempoPosicao >= INTERVALO_POS) {
                 tempoPosicao = 0f;
                 Jogador jg = jogadores.get(0);
-                float yaw = com.badlogic.gdx.math.MathUtils.atan2(
+                float yaw = MathUtils.atan2(
                     jg.camera.direction.x, jg.camera.direction.z
-                ) * com.badlogic.gdx.math.MathUtils.radiansToDegrees;
+                ) * MathUtils.radiansToDegrees;
                 net.enviarPosicao(
                     jg.posicao.x, jg.posicao.y, jg.posicao.z,
                     yaw, 0
@@ -230,7 +189,6 @@ public class Jogo implements Screen {
     @Override
     public void dispose() {
         mundo.carregado = false;
-        ArquivosUtil.svMundo(mundo, jogadores);
         relogio.cancel();
         render.liberar();
         Bloco.liberar();
@@ -239,23 +197,28 @@ public class Jogo implements Screen {
             net.liberar();
             net = null;
         }
+        // servidor interno salva o mundo e fecha, clientes remotos ja foram desconectados
+        ServidorInterno.parar(mundo, jogadores);
     }
 
     @Override
     public void resize(int v, int h) {
-        ArquivosUtil.svMundo(mundo, jogadores);
         render.ui.ajustar(v, h);
         LuaAPI.ajustar(v, h);
     }
 
     @Override
     public void hide() {
-        ArquivosUtil.svMundo(mundo, jogadores);
         dispose();
     }
     @Override
     public void pause() {
-        ArquivosUtil.svMundo(mundo, jogadores);
+        // salva via servidor interno, ele é a fonte de verdade
+        if(ServidorInterno.rodando) {
+            ArquivosUtil.svMundo(mundo, jogadores);
+        }
     }
     @Override public void resume() {}
 }
+
+

@@ -44,6 +44,7 @@ import com.minimine.entidades.GerenciadorEntidades;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -66,8 +67,7 @@ public class Mundo {
 		null, null, null,
 		null, null, null
 	};
-	public static final java.util.concurrent.atomic.AtomicInteger proximoCache = 
-    new java.util.concurrent.atomic.AtomicInteger(0);
+	public static final AtomicInteger proximoCache = new AtomicInteger(0);
     /*
      * estados:
      *   0 = vazia, sem dados
@@ -755,7 +755,7 @@ public class Mundo {
             chunk.att = true;
 			chunk.dadosProntos = true;
 			estados.put(chave, 2);
-			plano = dis.readBoolean();
         }
+		plano = dis.readBoolean();
     }
 }

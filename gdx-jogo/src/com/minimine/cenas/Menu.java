@@ -19,7 +19,7 @@ import com.minimine.Inicio;
 import com.minimine.Cenas;
 import com.minimine.ui.UI;
 import com.minimine.ui.InterUtil;
-import com.minimine.utils.Net;
+import com.minimine.servidor.Net;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.mundo.Mundo;
 

@@ -17,7 +17,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.minimine.Inicio;
 import com.minimine.Cenas;
 import com.minimine.mundo.Mundo;
-import com.minimine.utils.Net;
+import com.minimine.servidor.Net;
 import com.minimine.utils.ArquivosUtil;
 
 import java.io.File;

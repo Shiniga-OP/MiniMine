@@ -49,7 +49,7 @@ public class Jogador extends Entidade {
 	public CharSequence itemCache = "ar";
 	public int ALCANCE = 7;
 	public Inventario inv;
-	
+
 	public float tam = 1.30f;
 
 	public ModelInstance instancia;
@@ -143,7 +143,8 @@ public class Jogador extends Entidade {
 						);
 						Mundo.entidades.add(deixado);
 					}
-					Mundo.defBlocoMundo(x, y, z, item);
+					// servidor aplica e faz echo de volta — não aplica local
+					if(Jogo.net != null) Jogo.net.enviarBloco(x, y, z, 0);
 					Bloco.tocarSom(bloco.nome);
 					if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
 				} else {
@@ -160,11 +161,13 @@ public class Jogador extends Entidade {
 						attHitbox();
 						if(blocoHitbox.intersects(hitbox)) return;
 
-						Mundo.defBlocoMundo(xAnt, yAnt, zAnt, inv.itens[inv.slotSelecionado].nome);
+						final Bloco blocoColocar = Bloco.texIds.get(item);
+						final int idColocar = blocoColocar != null ? blocoColocar.tipo : 0;
+						// servidor aplica e faz echo de volta — não aplica local
+						if(Jogo.net != null) Jogo.net.enviarBloco(xAnt, yAnt, zAnt, idColocar);
 						Bloco.tocarSom(item);
-						final Bloco blocoColocado = Bloco.texIds.get(item);
-						if(blocoColocado != null && blocoColocado.evento != null) {
-							blocoColocado.evento.aoColocar(xAnt, yAnt, zAnt);
+						if(blocoColocar != null && blocoColocar.evento != null) {
+							blocoColocar.evento.aoColocar(xAnt, yAnt, zAnt);
 						}
 						if(modo == 2) inv.rmItem(inv.slotSelecionado, 1);
 					}
@@ -330,7 +333,7 @@ public class Jogador extends Entidade {
 
 			instancia.transform.translate(0.5f + balancoX, -2.15f + balancoY, -0.5f);
 			instancia.transform.rotate(Vector3.Y, 15);
-			
+
 			instancia.transform.scale(tam, tam, tam);
 
 			instancia.calculateTransforms();
@@ -343,9 +346,9 @@ public class Jogador extends Entidade {
 			instancia.transform.idt();
 			instancia.transform.translate(posicao.x, posicao.y, posicao.z);
 			instancia.transform.rotate(Vector3.Y, yaw);
-			
+
 			instancia.transform.scale(tam, tam, tam);
-			
+
 			instancia.calculateTransforms();
 		}
 		mb.render(instancia);

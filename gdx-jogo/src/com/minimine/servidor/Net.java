@@ -1,4 +1,4 @@
-package com.minimine.utils;
+package com.minimine.servidor;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -31,6 +31,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import com.minimine.utils.ArquivosUtil;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.zip.DeflaterOutputStream;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Enumeration;
+import java.net.NetworkInterface;
+import java.net.InterfaceAddress;
+import java.util.zip.InflaterInputStream;
 
 public class Net {
     public static final String NOME = "[MiniMine]: ";
@@ -92,7 +102,7 @@ public class Net {
         }
     }
 
-    // construtor para conexão direta por IP (sem descoberta UDP — funciona via VPN/internet)
+    // construtor para conexão direta por IP(sem descoberta UDP, funciona via VPN/internet)
     public Net(String modoAtual, final String ipFixo) {
         Gdx.app.log(NOME, "Iniciando como: " + modoAtual + " (IP direto: " + ipFixo + ")");
         this.modoAtual = modoAtual;
@@ -137,7 +147,7 @@ public class Net {
 								}
 								cliente.dados.println("ID:" + id);
 								broadcast("ENTROU:" + id, cliente);
-								// notifica o próprio servidor que um jogador entrou
+								// notifica o proprio servidor que um jogador entrou
 								if(ouvinte != null) {
 									final OuvinteMensagem ov = ouvinte;
 									final int idFinal = id;
@@ -150,42 +160,15 @@ public class Net {
 										public void run() {
 											try {
 												clienteFinal.dados.println("SEMENTE:" + Mundo.semente);
+												clienteFinal.dados.flush();
+												// envia chunks modificados; enviarChunkParaCliente controla duplicatas
 												for(Map.Entry<Long, Chunk> e : Mundo.chunksMod.entrySet()) {
-													long chave = e.getKey();
-													Chunk chunk = e.getValue();
-													ByteArrayOutputStream baos = new ByteArrayOutputStream();
-													java.util.zip.DeflaterOutputStream deflate = new java.util.zip.DeflaterOutputStream(baos);
-													DataOutputStream dos = new DataOutputStream(deflate);
-													dos.writeInt(chunk.x);
-													dos.writeInt(chunk.z);
-													java.util.ArrayList<int[]> blocos = new java.util.ArrayList<int[]>();
-													for(int x = 0; x < Mundo.TAM_CHUNK; x++)
-														for(int y = 0; y < Mundo.Y_CHUNK; y++)
-															for(int z = 0; z < Mundo.TAM_CHUNK; z++) {
-																int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
-																if(b != 0) blocos.add(new int[]{x, y, z, b});
-															}
-													dos.writeInt(blocos.size());
-													for(int[] bl : blocos) {
-														dos.writeInt(bl[0]);
-														dos.writeInt(bl[1]);
-														dos.writeInt(bl[2]);
-														dos.writeUTF("" + Bloco.numIds.get(bl[3]).nome);
-													}
-													int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
-													for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
-													dos.close();
-													byte[] raw = baos.toByteArray();
-													StringBuilder sb = new StringBuilder(raw.length * 2);
-													for(int i = 0; i < raw.length; i++) {
-														int v = raw[i] & 0xFF;
-														if(v < 16) sb.append('0');
-														sb.append(Integer.toHexString(v));
-													}
-													clienteFinal.dados.println("CHUNK:" + sb.toString());
-													Thread.sleep(10);
+													enviarChunkParaCliente(clienteFinal, e.getValue());
+													Thread.sleep(20);
 												}
+												Thread.sleep(500);
 												clienteFinal.dados.println("CHUNKS_FIM:");
+												clienteFinal.dados.flush();
 											} catch(Exception e) {
 												Gdx.app.error(NOME, "Erro ao enviar chunks para cliente " + clienteFinal.id + ": " + e.getMessage());
 											}
@@ -224,7 +207,7 @@ public class Net {
                     attSocket.send(respostaPacote);
                     Gdx.app.log(NOME + "-descoberta", "Resposta de confirmação enviada.");
                 } else if(msg.startsWith("POS:")) {
-                    // reencaminha para todos os outros clientes via UDP
+                    // reencaminha para todos os outros clientes via UDP(exceto o remetente)
                     byte[] dados = msg.getBytes();
                     synchronized(clientes) {
                         for(int i = 0; i < clientes.size; i++) {
@@ -232,10 +215,15 @@ public class Net {
                             try {
                                 InetAddress endCliente = InetAddress.getByName(
                                     c.socket.getRemoteAddress().replace("/", "").split(":")[0]);
+                                // registra endereco UDP e não devolve o pacote pro remetente
+                                if(origem.equals(endCliente)) {
+                                    c.enderecoUdp = endCliente;
+                                    continue;
+                                }
                                 DatagramPacket dp = new DatagramPacket(dados, dados.length, endCliente, UDP_POS_PORTA);
                                 attSocket.send(dp);
                             } catch(Exception e) {
-                                // ignora erro de reencaminhamento pra um cliente específico
+                                // ignora erro de reencaminhamento pra um cliente especifico
                             }
                         }
                     }
@@ -270,12 +258,66 @@ public class Net {
         broadcast(msg, null);
     }
 
+    // serializa e envia um chunk para um cliente, marcando como enviado para nao repetir
+    public void enviarChunkParaCliente(final Cliente cliente, final Chunk chunk) {
+        synchronized(cliente.chunksEnviados) {
+            if(cliente.chunksEnviados.contains(chunk.chave)) return;
+        }
+        new Thread(new Runnable() {
+				public void run() {
+					try {
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						DeflaterOutputStream deflate = new DeflaterOutputStream(baos);
+						DataOutputStream dos = new DataOutputStream(deflate);
+						dos.writeInt(chunk.x);
+						dos.writeInt(chunk.z);
+						List<int[]> blocos = new ArrayList<int[]>();
+						for(int x = 0; x < Mundo.TAM_CHUNK; x++)
+							for(int y = 0; y < Mundo.Y_CHUNK; y++)
+								for(int z = 0; z < Mundo.TAM_CHUNK; z++) {
+									int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
+									if(b != 0) blocos.add(new int[]{x, y, z, b});
+								}
+						dos.writeInt(blocos.size());
+						for(int[] bl : blocos) {
+							dos.writeInt(bl[0]);
+							dos.writeInt(bl[1]);
+							dos.writeInt(bl[2]);
+							dos.writeUTF("" + Bloco.numIds.get(bl[3]).nome);
+						}
+						int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
+						for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
+						dos.close();
+						byte[] raw = baos.toByteArray();
+						StringBuilder sb = new StringBuilder(raw.length * 2);
+						for(int i = 0; i < raw.length; i++) {
+							int v = raw[i] & 0xFF;
+							if(v < 16) sb.append('0');
+							sb.append(Integer.toHexString(v));
+						}
+						synchronized(cliente.chunksEnviados) {
+							if(cliente.chunksEnviados.contains(chunk.chave)) return;
+							cliente.dados.println("CHUNK:" + sb.toString());
+							cliente.dados.flush();
+							cliente.chunksEnviados.add(chunk.chave);
+						}
+					} catch(Exception e) {
+						Gdx.app.error(NOME, "Erro ao enviar chunk " + chunk.chave + " para cliente " + cliente.id + ": " + e.getMessage());
+					}
+				}
+			}).start();
+    }
+
     public class Cliente implements Runnable {
         public final Socket socket;
         public final BufferedReader entrada;
         public final PrintWriter dados;
         public final int id;
         public boolean rodando = true;
+        // chunks já enviados para este cliente, evita reenvio redundante
+        public final Set<Long> chunksEnviados = new HashSet<Long>();
+        // endereço IP do cliente para filtragem UDP
+        public volatile InetAddress enderecoUdp = null;
 
         public Cliente(Socket socket, int id) throws IOException {
             this.socket = socket;
@@ -289,7 +331,8 @@ public class Net {
                 String linha;
                 while(rodando && (linha = entrada.readLine()) != null) {
                     final String msg = linha;
-                    broadcast(msg, this);
+                    if(msg.startsWith("BLOCO:")) broadcast(msg, null);
+                    else broadcast(msg, this);
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
                         Gdx.app.postRunnable(new Runnable() {
@@ -358,14 +401,14 @@ public class Net {
             socket.setSoTimeout(500);
             byte[] dadosEnvio = "[MINIMINE]: descobrindo servidor".getBytes();
 
-            // manda broadcast em todas as interfaces de rede (alcança ZeroTier, Hamachi, etc)
-            java.util.Enumeration<java.net.NetworkInterface> interfaces = java.net.NetworkInterface.getNetworkInterfaces();
+            // manda broadcast em todas as interfaces de rede(alcança ZeroTier, Hamachi, etc)
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while(interfaces != null && interfaces.hasMoreElements()) {
-                java.net.NetworkInterface iface = interfaces.nextElement();
+                NetworkInterface iface = interfaces.nextElement();
                 try {
                     if(!iface.isUp() || iface.isLoopback()) continue;
-                    for(java.net.InterfaceAddress ifAddr : iface.getInterfaceAddresses()) {
-                        java.net.InetAddress broadcast = ifAddr.getBroadcast();
+                    for(InterfaceAddress ifAddr : iface.getInterfaceAddresses()) {
+                        InetAddress broadcast = ifAddr.getBroadcast();
                         if(broadcast == null) continue;
                         DatagramPacket envioPacote = new DatagramPacket(dadosEnvio, dadosEnvio.length, broadcast, UDP_PORTA);
                         socket.send(envioPacote);
@@ -419,7 +462,7 @@ public class Net {
     }
 
     public interface OuvinteChunk {
-        void aoReceberChunk(com.minimine.mundo.chunks.Chunk chunk, long chave);
+        void aoReceberChunk(Chunk chunk, long chave);
     }
     public OuvinteChunk ouvinteChunk = null;
 
@@ -445,13 +488,12 @@ public class Net {
                         byte[] comprimido = new byte[hex.length() / 2];
                         for(int i = 0; i < comprimido.length; i++)
                             comprimido[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-                        java.util.zip.InflaterInputStream inf = new java.util.zip.InflaterInputStream(
-                            new ByteArrayInputStream(comprimido));
+                       InflaterInputStream inf = new InflaterInputStream(new ByteArrayInputStream(comprimido));
                         DataInputStream dis = new DataInputStream(inf);
                         int cx = dis.readInt();
                         int cz = dis.readInt();
-                        final long chave = com.minimine.mundo.Chave.calcularChave(cx, cz);
-                        final com.minimine.mundo.chunks.Chunk chunk = new com.minimine.mundo.chunks.Chunk();
+                        final long chave = Chave.calcularChave(cx, cz);
+                        final Chunk chunk = new Chunk();
                         chunk.x = cx;
                         chunk.z = cz;
                         chunk.chave = chave;
@@ -695,3 +737,4 @@ public class Net {
         }
     }
 }
+
