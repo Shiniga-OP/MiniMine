@@ -222,6 +222,7 @@ public class Render extends Renderizador {
 					jogadores.get(i).render(mb);
 				}
 			}
+			if(ui.gui && ui.jg.pessoa != 0) ui.jg.render(mb);
 			mb.render(gp);
 			mb.end();
 			
@@ -265,11 +266,12 @@ public class Render extends Renderizador {
 
 			if(mundo.nuvens) NuvensUtil.att(delta, ui.jg.camera);
 
-			// 4. jogadores
-			mb.begin(ui.jg.camera);
-			if(ui.gui) ui.jg.render(mb);
-			mb.end();
-			
+			// 4. jogador principal
+			if(ui.jg.pessoa == 0) {
+				mb.begin(ui.jg.camera);
+				if(ui.gui) ui.jg.render(mb);
+				mb.end();
+			}
 			// renderiza o debug:
 			if(ui.debug) {
 				debugCaixas.setColor(1, 0, 0, 1); // vermelho pro jogador

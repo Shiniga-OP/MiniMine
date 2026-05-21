@@ -38,6 +38,7 @@ import com.minimine.inventario.Item;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInputStream;
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 
 public class Jogador extends Entidade {
 	public int modo = 2;
@@ -53,10 +54,14 @@ public class Jogador extends Entidade {
 	public float tam = 1.30f;
 
 	public ModelInstance instancia;
+	public AnimationController animCtr;
 
 	public float tempoAnimacao = 0;
 	public float tempoDuploPulo = 0f;
 	public static final float JANELA_DUPLO_PULO = 0.3f;
+
+	// yaw do corpo, separado da câmera — atualiza com delay pra não ficar rígido
+	public float yawTronco = 180f;
 
 	public final Quaternion rotTemp = new Quaternion();
 	public final Vector3 eulerTemp = new Vector3();
@@ -65,6 +70,7 @@ public class Jogador extends Entidade {
 
 	public final Quaternion rotCabeca = new Quaternion();
 	public final Quaternion rotTronco = new Quaternion();
+	public float troncoTransY = 0f;
 	public final Quaternion rotBracoDir = new Quaternion();
 	public final Quaternion rotBracoEsq = new Quaternion();
 	public final Quaternion rotPernaDir = new Quaternion();
@@ -86,19 +92,8 @@ public class Jogador extends Entidade {
 					bioma = Mundo.motor.obterBioma((int)posicao.x, (int)posicao.z);
 				}
 			}, 0, 500);
-		try {
-			instancia = new ModelInstance(Modelos.obterModelo("modelos/jogador.gltf"));
-			pegarNos();
-			salvarRotacoes();
-			instancia.calculateTransforms();
-		} catch(Exception e) {
-			Gdx.app.error("[Jogador]", "Erro no GLTF: " + e.getMessage());
-		}
-		if(pessoa == 0) {
-			bracoDir.rotation.set(rotBracoDir);
-			bracoDir.rotation.mul(new Quaternion(Vector3.X, 100f));
-			instancia.calculateTransforms();
-		}
+		trocarPessoa();
+		attModelo();
 	}
 
 	@Override
@@ -143,7 +138,7 @@ public class Jogador extends Entidade {
 						);
 						Mundo.entidades.add(deixado);
 					}
-					// servidor aplica e faz echo de volta — não aplica local
+					// servidor aplica e faz echo de volta, não aplica local
 					if(Jogo.net != null) Jogo.net.enviarBloco(x, y, z, 0);
 					Bloco.tocarSom(bloco.nome);
 					if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
@@ -163,7 +158,7 @@ public class Jogador extends Entidade {
 
 						final Bloco blocoColocar = Bloco.texIds.get(item);
 						final int idColocar = blocoColocar != null ? blocoColocar.tipo : 0;
-						// servidor aplica e faz echo de volta — não aplica local
+						// servidor aplica e faz echo de volta, não aplica local
 						if(Jogo.net != null) Jogo.net.enviarBloco(xAnt, yAnt, zAnt, idColocar);
 						Bloco.tocarSom(item);
 						if(blocoColocar != null && blocoColocar.evento != null) {
@@ -281,16 +276,19 @@ public class Jogador extends Entidade {
 		}
 		if(posicao.y < -100f) posicao.y = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
 
-		if(movendo) {
-			tempoAnimacao += delta * 8f;
+		final boolean temMovi = frente || tras || esquerda || direita;
+		if(temMovi) {
+			final float veloHoriz = (float)Math.sqrt(velocidade.x * velocidade.x + velocidade.z * velocidade.z);
+			final float fatorVelo = Math.min(1f, veloHoriz / velo);
+			tempoAnimacao += delta * 8f * fatorVelo;
 			forcaMov = Math.min(1f, forcaMov + delta * 5f);
 		} else {
 			forcaMov = Math.max(0f, forcaMov - delta * 5f);
-			if(forcaMov == 0) tempoAnimacao = 0;
 		}
 		if(pessoa == 0) {
-			// primeira pessoa: camera no olho do jogador
-			camera.position.set(posicao.x, posicao.y + altura * 0.9f, posicao.z);
+			// primeira pessoa: camera no olho do jogador, desce ao agachar
+			final float alturaOlho = agachado ? altura * 0.72f : altura * 0.9f;
+			camera.position.set(posicao.x, posicao.y + alturaOlho, posicao.z);
 		} else if(pessoa == 1) {
 			// terceira pessoa traseira: recua ao longo da direção completa da camera
 			camera.position.set(
@@ -307,10 +305,23 @@ public class Jogador extends Entidade {
 				camera.position.z + (MathUtils.random(-1f, 1f) * intensidade)
 			);
 		}
+		animCtr.update(delta);
 		camera.update();
 
 		instancia.userData = dadosLuz;
 		if(modeloItem != null) modeloItem.userData = dadosLuz;
+
+		float diffYaw = yaw - yawTronco;
+		while(diffYaw > 180f) diffYaw -= 360f;
+		while(diffYaw < -180f) diffYaw += 360f;
+		if(temMovi) {
+			// interpolação suave
+			final float veloGiro = 6f;
+			yawTronco += diffYaw * Math.min(1f, veloGiro * delta);
+		} else {
+			if(diffYaw > 60f) yawTronco = yaw - 60f;
+			else if(diffYaw < -60f) yawTronco = yaw + 60f;
+		}
 	}
 
 	public void render(ModelBatch mb) {
@@ -341,14 +352,13 @@ public class Jogador extends Entidade {
 			mb.flush();
 			Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
 		} else {
-			// terceira pessoa: renderiza modelo completo no mundo
-			final float yaw = MathUtils.atan2(camera.direction.x, camera.direction.z) * MathUtils.radiansToDegrees;
+			// terceira pessoa: modelo rotaciona pelo yaw do corpo
 			instancia.transform.idt();
 			instancia.transform.translate(posicao.x, posicao.y, posicao.z);
-			instancia.transform.rotate(Vector3.Y, yaw);
+			instancia.transform.rotate(Vector3.Y, yawTronco);
 
 			instancia.transform.scale(tam, tam, tam);
-
+			attAnimacao();
 			instancia.calculateTransforms();
 		}
 		mb.render(instancia);
@@ -380,6 +390,10 @@ public class Jogador extends Entidade {
 
 	public void trocarPessoa() {
 		pessoa = (pessoa + 1) % 3;
+		attModelo();
+	}
+	
+	public void attModelo() {
 		try {
 			instancia = new ModelInstance(Modelos.obterModelo("modelos/jogador.gltf"));
 			pegarNos();
@@ -392,11 +406,54 @@ public class Jogador extends Entidade {
 			bracoDir.rotation.mul(new Quaternion(Vector3.X, 100f));
 			instancia.calculateTransforms();
 		}
+		animCtr = new AnimationController(instancia);
+	}
+
+	public void attAnimacao() {
+		if(cabeca == null || tronco == null) return;
+
+		final float tomPreso = Math.max(-80f, Math.min(80f, tom));
+
+		// diferença horizontal entre onde a cmera aponta e onde o corpo aponta
+		// isso faz a cabeça "olhar pro lado" quando o corpo ainda não virou
+		float diffYaw = yaw - yawTronco;
+		while(diffYaw > 180f) diffYaw -= 360f;
+		while(diffYaw < -180f) diffYaw += 360f;
+		final float diffYawPreso = Math.max(-80f, Math.min(80f, diffYaw));
+
+		// cabeça: tom no X + yaw relativo ao tronco no Y
+		cabeca.rotation.set(rotCabeca);
+		cabeca.rotation.mul(new Quaternion(Vector3.Y, diffYawPreso));
+		cabeca.rotation.mul(new Quaternion(Vector3.X, -tomPreso));
+
+		// braços e pernas: balançar ao andar(escala pela forcaMov, que ja depende de velo)
+		final float balanco = MathUtils.sin(tempoAnimacao) * forcaMov;
+		final float balancoBraco = balanco * 40f;
+		final float balancoPerna = balanco * 35f;
+
+		bracoDir.rotation.set(rotBracoDir);
+		bracoDir.rotation.mul(new Quaternion(Vector3.X, balancoBraco));
+
+		bracoEsq.rotation.set(rotBracoEsq);
+		bracoEsq.rotation.mul(new Quaternion(Vector3.X, -balancoBraco));
+
+		pernaDir.rotation.set(rotPernaDir);
+		pernaDir.rotation.mul(new Quaternion(Vector3.X, -balancoPerna));
+
+		pernaEsq.rotation.set(rotPernaEsq);
+		pernaEsq.rotation.mul(new Quaternion(Vector3.X, balancoPerna));
+
+		// agachamento
+		if(agachado) {
+			animCtr.setAnimation("agachar", -1);
+		} else {
+			animCtr.setAnimation(null, 0);
+		}
 	}
 
 	public void salvarRotacoes() {
 		if(cabeca != null) rotCabeca.set(cabeca.rotation);
-		if(tronco != null) rotTronco.set(tronco.rotation);
+		if(tronco != null) { rotTronco.set(tronco.rotation); troncoTransY = tronco.translation.y; }
 		if(bracoDir != null) rotBracoDir.set(bracoDir.rotation);
 		if(bracoEsq != null) rotBracoEsq.set(bracoEsq.rotation);
 		if(pernaDir != null) rotPernaDir.set(pernaDir.rotation);
