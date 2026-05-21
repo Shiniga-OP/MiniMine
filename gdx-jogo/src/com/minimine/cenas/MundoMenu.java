@@ -66,7 +66,7 @@ public class MundoMenu implements Screen, InputProcessor {
 
     // nome pendente de exclusão, preenchido quando o dialogo de confirmação abre
     public String mundoPendenteExcluir = null;
-	
+
     @Override
     public void show() {
 		Mundo.plano = false;
@@ -263,6 +263,7 @@ public class MundoMenu implements Screen, InputProcessor {
         // dialogo de criação de mundo
         dialogoCriar = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel, pincelFormas);
         dialogoCriar.definirTamanho(500, 440);
+        dialogoCriar.centralizar(0, 0);
 
         campoNome = new CampoTexto(visualBotao, fonteTexto, 50, 240, 400, 50, escalaPixel);
         campoNome.padrao = "Nome do Mundo";
@@ -285,28 +286,29 @@ public class MundoMenu implements Screen, InputProcessor {
         };
         // 3 botões de modo de jogo em linha única
         float largBotaoModo = 148f;
-        float altBotaoModo  = 50f;
+        float altBotaoModo = 50f;
         float yLinhaModo = 60f;
-		float yLinhaMundo = 5f;
+        float yLinhaMundo = 5f;
+        float xModo = 21f; // (500 - (3*148 + 2*7)) / 2 = 21, centraliza os 3 botões
         dialogoCriar.addBotaoManual("Sobrevivencia", visualBotao,
-		10f, yLinhaModo, largBotaoModo, altBotaoModo, acaoSobrevivencia);
+		xModo, yLinhaModo, largBotaoModo, altBotaoModo, acaoSobrevivencia);
         dialogoCriar.addBotaoManual("Criativo", visualBotao,
-		10f + largBotaoModo + 7f, yLinhaModo, largBotaoModo, altBotaoModo, acaoCriativo);
+		xModo + largBotaoModo + 7f, yLinhaModo, largBotaoModo, altBotaoModo, acaoCriativo);
         dialogoCriar.addBotaoManual("Espectador", visualBotao,
-		10f + (largBotaoModo + 7f) * 2, yLinhaModo, largBotaoModo, altBotaoModo, acaoEspectador);
-		
-		final Botao[] modoMundo = {null};
-		
-		Acao acaoMundo = new Acao() {
+		xModo + (largBotaoModo + 7f) * 2, yLinhaModo, largBotaoModo, altBotaoModo, acaoEspectador);
+
+        final Botao[] modoMundo = {null};
+
+        Acao acaoMundo = new Acao() {
             public void exec() {
-				Mundo.plano = !Mundo.plano;
-				if(Mundo.plano) modoMundo[0].rotulo.texto = "Mundo Plano";
-				else modoMundo[0].rotulo.texto = "Mundo Normal";
-			}
+                Mundo.plano = !Mundo.plano;
+                if(Mundo.plano) modoMundo[0].rotulo.texto = "Mundo Plano";
+                else modoMundo[0].rotulo.texto = "Mundo Normal";
+            }
         };
-		modoMundo[0] = dialogoCriar.addBotaoManual("Mundo Normal", visualBotao,
-		10f + (largBotaoModo + 7f) * 2, yLinhaMundo, largBotaoModo, altBotaoModo, acaoMundo);
-		
+        modoMundo[0] = dialogoCriar.addBotaoManual("Mundo Normal", visualBotao,
+		xModo + (largBotaoModo + 7f) * 2, yLinhaMundo, largBotaoModo, altBotaoModo, acaoMundo);
+
         gerenciadorUI.addDialogo(dialogoCriar);
 
         // dialogo de confirmação de exclusão
