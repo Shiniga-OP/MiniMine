@@ -22,25 +22,12 @@ import java.io.InputStream;
 import com.badlogic.gdx.Application;
 import com.minimine.Instalador;
 import com.minimine.mundo.Mundo;
-import com.minimine.mundo.chunks.Chunk;
-import com.minimine.mundo.chunks.ChunkProcesso;
-import com.minimine.mundo.blocos.Bloco;
-import com.minimine.mundo.Chave;
-import java.util.Map;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import com.minimine.utils.ArquivosUtil;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.zip.DeflaterOutputStream;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Enumeration;
 import java.net.NetworkInterface;
 import java.net.InterfaceAddress;
-import java.util.zip.InflaterInputStream;
+import java.util.Enumeration;
 
 public class Net {
     public static final String NOME = "[MiniMine]: ";
@@ -54,6 +41,9 @@ public class Net {
     public String modoAtual = SERVIDOR_MODO;
     public ServerSocket servidorSocket;
     public Array<Cliente> clientes = new Array<Cliente>();
+    // log de todos os comandos BLOCO desde o inicio do mundo
+    // replay enviado pra cada cliente novo no lugar das chunks inteiras
+    public final List<String> logBlocos = new ArrayList<String>();
     public DatagramSocket attSocket;
     public DatagramSocket udpCliente;
     public InetAddress udpServidorEndereco;
@@ -161,16 +151,17 @@ public class Net {
 											try {
 												clienteFinal.dados.println("SEMENTE:" + Mundo.semente);
 												clienteFinal.dados.flush();
-												// envia chunks modificados; enviarChunkParaCliente controla duplicatas
-												for(Map.Entry<Long, Chunk> e : Mundo.chunksMod.entrySet()) {
-													enviarChunkParaCliente(clienteFinal, e.getValue());
-													Thread.sleep(20);
+												// replay do log: cliente reconstroi o mundo via geração procedural
+												// + estes comandos, sem transferir chunks inteiras
+												synchronized(logBlocos) {
+													for(int i = 0; i < logBlocos.size(); i++) {
+														clienteFinal.dados.println(logBlocos.get(i));
+													}
 												}
-												Thread.sleep(500);
 												clienteFinal.dados.println("CHUNKS_FIM:");
 												clienteFinal.dados.flush();
 											} catch(Exception e) {
-												Gdx.app.error(NOME, "Erro ao enviar chunks para cliente " + clienteFinal.id + ": " + e.getMessage());
+												Gdx.app.error(NOME, "Erro ao enviar mundo para cliente " + clienteFinal.id + ": " + e.getMessage());
 											}
 										}
 									}).start();
@@ -258,64 +249,12 @@ public class Net {
         broadcast(msg, null);
     }
 
-    // serializa e envia um chunk para um cliente, marcando como enviado para nao repetir
-    public void enviarChunkParaCliente(final Cliente cliente, final Chunk chunk) {
-        synchronized(cliente.chunksEnviados) {
-            if(cliente.chunksEnviados.contains(chunk.chave)) return;
-        }
-        new Thread(new Runnable() {
-				public void run() {
-					try {
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						DeflaterOutputStream deflate = new DeflaterOutputStream(baos);
-						DataOutputStream dos = new DataOutputStream(deflate);
-						dos.writeInt(chunk.x);
-						dos.writeInt(chunk.z);
-						List<int[]> blocos = new ArrayList<int[]>();
-						for(int x = 0; x < Mundo.TAM_CHUNK; x++)
-							for(int y = 0; y < Mundo.Y_CHUNK; y++)
-								for(int z = 0; z < Mundo.TAM_CHUNK; z++) {
-									int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
-									if(b != 0) blocos.add(new int[]{x, y, z, b});
-								}
-						dos.writeInt(blocos.size());
-						for(int[] bl : blocos) {
-							dos.writeInt(bl[0]);
-							dos.writeInt(bl[1]);
-							dos.writeInt(bl[2]);
-							dos.writeUTF("" + Bloco.numIds.get(bl[3]).nome);
-						}
-						int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
-						for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
-						dos.close();
-						byte[] raw = baos.toByteArray();
-						StringBuilder sb = new StringBuilder(raw.length * 2);
-						for(int i = 0; i < raw.length; i++) {
-							int v = raw[i] & 0xFF;
-							if(v < 16) sb.append('0');
-							sb.append(Integer.toHexString(v));
-						}
-						synchronized(cliente.chunksEnviados) {
-							if(cliente.chunksEnviados.contains(chunk.chave)) return;
-							cliente.dados.println("CHUNK:" + sb.toString());
-							cliente.dados.flush();
-							cliente.chunksEnviados.add(chunk.chave);
-						}
-					} catch(Exception e) {
-						Gdx.app.error(NOME, "Erro ao enviar chunk " + chunk.chave + " para cliente " + cliente.id + ": " + e.getMessage());
-					}
-				}
-			}).start();
-    }
-
     public class Cliente implements Runnable {
         public final Socket socket;
         public final BufferedReader entrada;
         public final PrintWriter dados;
         public final int id;
         public boolean rodando = true;
-        // chunks já enviados para este cliente, evita reenvio redundante
-        public final Set<Long> chunksEnviados = new HashSet<Long>();
         // endereço IP do cliente para filtragem UDP
         public volatile InetAddress enderecoUdp = null;
 
@@ -331,8 +270,12 @@ public class Net {
                 String linha;
                 while(rodando && (linha = entrada.readLine()) != null) {
                     final String msg = linha;
-                    if(msg.startsWith("BLOCO:")) broadcast(msg, null);
-                    else broadcast(msg, this);
+                    if(msg.startsWith("BLOCO:")) {
+                        synchronized(logBlocos) {
+                            logBlocos.add(msg);
+                        }
+                        broadcast(msg, null);
+                    } else broadcast(msg, this);
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
                         Gdx.app.postRunnable(new Runnable() {
@@ -461,11 +404,6 @@ public class Net {
         }
     }
 
-    public interface OuvinteChunk {
-        void aoReceberChunk(Chunk chunk, long chave);
-    }
-    public OuvinteChunk ouvinteChunk = null;
-
     public void receberMsgServidor() {
         try {
             String servidorMsg;
@@ -481,46 +419,7 @@ public class Net {
 								public void run() { ov.aoReceber(msg); }
 							});
                     }
-                } else if(msg.startsWith("CHUNK:")) {
-                    // descomprime na thread de rede, não bloqueia a thread GL
-                    try {
-                        String hex = msg.substring(6);
-                        byte[] comprimido = new byte[hex.length() / 2];
-                        for(int i = 0; i < comprimido.length; i++)
-                            comprimido[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-                       InflaterInputStream inf = new InflaterInputStream(new ByteArrayInputStream(comprimido));
-                        DataInputStream dis = new DataInputStream(inf);
-                        int cx = dis.readInt();
-                        int cz = dis.readInt();
-                        final long chave = Chave.calcularChave(cx, cz);
-                        final Chunk chunk = new Chunk();
-                        chunk.x = cx;
-                        chunk.z = cz;
-                        chunk.chave = chave;
-                        chunk.meta = new short[Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK];
-                        ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
-                        int total = dis.readInt();
-                        for(int k = 0; k < total; k++) {
-                            int x = dis.readInt();
-                            int y = dis.readInt();
-                            int z = dis.readInt();
-                            String id = dis.readUTF();
-                            ChunkProcesso.util.defBloco(x, y, z, id, chunk);
-                        }
-                        int metaTam = Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK;
-                        for(int i = 0; i < metaTam; i++) chunk.meta[i] = dis.readShort();
-                        chunk.dadosProntos = true;
-                        chunk.att = true;
-                        if(ouvinteChunk != null) {
-                            final OuvinteChunk oc = ouvinteChunk;
-                            Gdx.app.postRunnable(new Runnable() {
-									public void run() { oc.aoReceberChunk(chunk, chave); }
-								});
-                        }
-                    } catch(Exception e) {
-                        Gdx.app.error(NOME + "-Cliente", "Erro ao processar CHUNK: " + e.getMessage());
-                    }
-                } else {
+				} else {
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
                         Gdx.app.postRunnable(new Runnable() {
@@ -548,6 +447,9 @@ public class Net {
 
     public void enviarBloco(int x, int y, int z, int id) {
         String msg = "BLOCO:" + x + ":" + y + ":" + z + ":" + id;
+        synchronized(logBlocos) {
+            logBlocos.add(msg);
+        }
         if(modoAtual.equals(SERVIDOR_MODO)) {
             broadcastTodos(msg);
         } else {
@@ -564,7 +466,7 @@ public class Net {
          * temAtualizacao: true se encontrou versão nova
          * novaVersao: "0.1.2", ou null se sem internet/erro
          * tipo: "OFICIAL", "BETA" ou "ALFA"
-		 */
+		*/
         void aoVerificar(boolean temAtualizacao, String novaVersao, String tipo);
     }
 
@@ -737,4 +639,3 @@ public class Net {
         }
     }
 }
-

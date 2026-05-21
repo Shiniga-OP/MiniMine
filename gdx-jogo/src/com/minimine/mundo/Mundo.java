@@ -61,7 +61,6 @@ public class Mundo {
     public static final Map<Long, Chunk> chunks = new ConcurrentHashMap<>();
     public static final Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 
-	// Em Mundo.java
 	public static final Chunk[] chunkCache = {
 		null, null, null,
 		null, null, null,

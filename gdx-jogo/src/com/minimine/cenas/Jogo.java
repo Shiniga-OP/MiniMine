@@ -61,19 +61,11 @@ public class Jogo implements Screen {
             // cliente remoto: net ja pode ter vindo pronto do MultiMenu(conexão por IP)
             if(net == null) net = new Net(Net.CLIENTE_MODO);
         }
-
         net.ouvinte = new Net.OuvinteMensagem() {
             public void aoReceber(String msg) {
                 processarMsgRede(msg);
             }
         };
-        net.ouvinteChunk = new Net.OuvinteChunk() {
-            public void aoReceberChunk(com.minimine.mundo.chunks.Chunk chunk, long chave) {
-                Mundo.chunks.put(chave, chunk);
-                Mundo.estados.put(chave, 2);
-            }
-        };
-
         if(graficosTeste) {
             ChunkProcesso.luz = new ChunkLuz();
             ChunkProcesso.malha = new ChunkMalha();
@@ -92,7 +84,11 @@ public class Jogo implements Screen {
                     if(musicas) Musicas.tocarAleatorio();
                 }
             }, 0, 1000);
-        LuaAPI.iniciar();
+        try {
+			LuaAPI.iniciar();
+		} catch(Exception e) {
+			Gdx.app.log("[Jogo]", "[ERRO]: "+e);
+		}
     }
 
     public void processarMsgRede(String msg) {
@@ -125,7 +121,7 @@ public class Jogo implements Screen {
                 Mundo.semente = Long.parseLong(msg.substring(8).trim());
             } catch(NumberFormatException e) {}
         } else if(msg.startsWith("CHUNKS_FIM:")) {
-            Gdx.app.log("[Jogo]", "Todos os chunks recebidos do servidor");
+            Gdx.app.log("[Jogo]", "Mundo recebido do servidor");
         } else if(msg.startsWith("BLOCO:")) {
             String[] p = msg.split(":");
             if(p.length < 5) return;
@@ -220,5 +216,3 @@ public class Jogo implements Screen {
     }
     @Override public void resume() {}
 }
-
-

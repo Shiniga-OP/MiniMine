@@ -151,11 +151,11 @@ public class Render extends Renderizador {
 			Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
 			if(mundo.ciclo) diaNoite.att(ui.jg.camera, delta);
-
+			
+			mundo.att(delta, ui.jg);
+			
 			if(jogadores.size() != 1) {
 				for(Jogador jg : jogadores) {
-					mundo.att(delta, jg);
-					
 					if(mundo.carregado) {
 						if(!jg.nasceu) {
 							final int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
@@ -172,8 +172,6 @@ public class Render extends Renderizador {
 					}
 				}
 			} else {
-				mundo.att(delta, ui.jg);
-				
 				if(mundo.carregado) {
 					if(!ui.jg.nasceu) {
 						final int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
@@ -218,6 +216,11 @@ public class Render extends Renderizador {
 			mb.begin(ui.jg.camera);
 			for(Entidade e : mundo.entidades) {
 				if(e != ui.jg) e.render(mb);
+			}
+			if(jogadores.size() != 1) {
+				for(int i = 1; i < jogadores.size(); i++) {
+					jogadores.get(i).render(mb);
+				}
 			}
 			mb.render(gp);
 			mb.end();
@@ -264,23 +267,18 @@ public class Render extends Renderizador {
 
 			// 4. jogadores
 			mb.begin(ui.jg.camera);
-			if(ui.gui) {
-				ui.jg.render(mb);
-			}
-			if(jogadores.size() != 1) {
-				for(int i = 1; i < jogadores.size(); i++) {
-					jogadores.get(i).render(mb);
-				}
-			}
+			if(ui.gui) ui.jg.render(mb);
 			mb.end();
+			
 			// renderiza o debug:
 			if(ui.debug) {
 				debugCaixas.setColor(1, 0, 0, 1); // vermelho pro jogador
 				debugCaixas.setProjectionMatrix(ui.jg.camera.combined);
 				debugCaixas.begin(ShapeRenderer.ShapeType.Line);
-
-				debugCaixas.box(ui.jg.posicao.x - ui.jg.largura/2, ui.jg.posicao.y, ui.jg.posicao.z + ui.jg.largura/2, ui.jg.largura, ui.jg.altura, ui.jg.largura);
-
+				
+				for(Jogador jg : jogadores) {
+					debugCaixas.box(jg.posicao.x - jg.largura/2, jg.posicao.y, jg.posicao.z + jg.largura/2, jg.largura, jg.altura, jg.largura);
+				}
 				debugCaixas.setColor(0, 1, 0, 1); // verde para as entidades
 				for(Entidade e : mundo.entidades) {
 					debugCaixas.box(
