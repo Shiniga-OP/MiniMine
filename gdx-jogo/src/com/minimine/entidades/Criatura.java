@@ -49,6 +49,7 @@ public class Criatura extends Entidade {
 
     public Criatura(DadosCriatura dados, float x, float y, float z) {
         super();
+		this.nome = dados.nome;
         this.dados = dados;
 
         this.largura = dados.largura;

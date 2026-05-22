@@ -32,7 +32,7 @@ public class IA {
     public float[] viesOculta; // [8]
     public float[] viesSaida; // [4]
 
-    // memória da ultima passagem(necessaria pra retropropagação leve)
+    // memoria da ultima passagem(necessaria pra retropropagação leve)
     public float[] ultimasEntradas;
     public float[] ultimaOculta; // valores pós-ativação
     public float[] ultimasSaidas;
@@ -63,8 +63,8 @@ public class IA {
     }
     // inicialização de He(boa para tanh): N(0, sqrt(2/n))
     public void iniciar() {
-        float escalaE = (float) Math.sqrt(2.0 / ENTRADAS);
-        float escalaO = (float) Math.sqrt(2.0 / OCULTAS);
+        float escalaE = (float)Math.sqrt(2.0 / ENTRADAS);
+        float escalaO = (float)Math.sqrt(2.0 / OCULTAS);
 
         for(int i = 0; i < ENTRADAS; i++) {
             for(int j = 0; j < OCULTAS; j++) {
@@ -82,7 +82,7 @@ public class IA {
 	
     // ativação e sua derivada
     public float tanh(float v) {
-        return (float) Math.tanh(v);
+        return (float)Math.tanh(v);
     }
     // derivada de tanh apartir do valor ja ativado: 1 - tanh²(x)
     public float dtanh(float ativado) {
@@ -144,26 +144,6 @@ public class IA {
             viesOculta[i] += alfa * gradOculta[i];
             for(int k = 0; k < ENTRADAS; k++) {
                 pesosEntrada[k][i] += alfa * gradOculta[i] * ultimasEntradas[k];
-			}
-        }
-    }
-    // mutação leve, usada quando fica presa por muito tempo
-    public void mutar(float intensidade) {
-        for(int i = 0; i < ENTRADAS; i++) {
-            for(int j = 0; j < OCULTAS; j++) {
-                if(MathUtils.random() < 0.15f) {
-                    pesosEntrada[i][j] += MathUtils.random(-intensidade, intensidade);
-				}
-			}
-		}
-        for(int i = 0; i < OCULTAS; i++) {
-            if(MathUtils.random() < 0.15f) {
-                viesOculta[i] += MathUtils.random(-intensidade, intensidade);
-			}
-            for(int j = 0; j < SAIDAS; j++) {
-                if(MathUtils.random() < 0.15f) {
-                    pesosOculta[i][j] += MathUtils.random(-intensidade, intensidade);
-				}
 			}
         }
     }

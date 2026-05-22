@@ -138,7 +138,6 @@ public class Render extends Renderizador {
 					return new ShaderBranco();
 				}
 			});
-		mundo.iniciar();
     }
 	
 	@Override

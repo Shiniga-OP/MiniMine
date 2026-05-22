@@ -21,6 +21,8 @@ import java.util.Map;
 import com.badlogic.gdx.math.MathUtils;
 import com.minimine.servidor.ServidorInterno;
 import java.util.Timer;
+import com.minimine.utils.DiaNoiteUtil;
+import com.minimine.utils.TarefasUtil;
 
 public class Jogo implements Screen {
     public static Mundo mundo;
@@ -40,6 +42,7 @@ public class Jogo implements Screen {
 
         mundo = new Mundo();
         jogadores = new ArrayList<>();
+		TarefasUtil.iniciar();
 
         Bloco.iniciar();
 
@@ -50,9 +53,11 @@ public class Jogo implements Screen {
         } else {
             servidor.mundo = mundo;
             servidor.relogio = new Timer();
+			mundo.diaNoite = new DiaNoiteUtil();
+			if(mundo.ciclo) mundo.diaNoite.iniciar();
+			mundo.iniciar(false);
             servidor.rodando = true;
         }
-
         Jogador jogador = new Jogador();
         jogador.modo = modo;
         jogadores.add(jogador);
@@ -74,7 +79,7 @@ public class Jogo implements Screen {
                 servidor.netCliente = new Net(Net.CLIENTE_MODO);
             }
         }
-        servidor.netCliente.ouvinte = new Net.OuvinteMensagem() {
+		servidor.netCliente.ouvinte = new Net.OuvinteMensagem() {
             public void aoReceber(String msg) {
                 servidor.processarMsg(msg);
             }
@@ -84,7 +89,9 @@ public class Jogo implements Screen {
 		render = new Render(jogadores, mundo);
 
         render.iniciar();
-
+		if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
+			mundo.iniciar(true);
+		}
         servidor.relogio.schedule(
             new java.util.TimerTask() {
                 @Override
@@ -121,6 +128,7 @@ public class Jogo implements Screen {
         mundo.carregado = false;
         render.liberar();
         Bloco.liberar();
+		TarefasUtil.liberar();
         // servidor interno salva o mundo e fecha, clientes remotos ja foram desconectados
         servidor.parar(mundo, jogadores);
     }

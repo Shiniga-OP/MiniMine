@@ -21,7 +21,7 @@ import com.minimine.inventario.Item;
 
 public class Modelos {
 	public static final HashMap<String, SceneAsset> modelosGltf = new HashMap<>();
-	public static final HashMap<CharSequence, Model> modelosItens = new HashMap<>();
+	public static final HashMap<String, Model> modelosItens = new HashMap<>();
 
 	public static final float TAM_ITEM = 0.35f;
 	public static final int PIXELS = 16;
@@ -50,7 +50,7 @@ public class Modelos {
 	// - 6 faces possíveis por pixel: frente(+Z), tras(-Z), esquerda(-X), direita(+X), topo(+Y), base(-Y)
 	// - UV de cada face aponta pro pixel correto no atlas
 	// - malha centrada em(0,0,0); posição e rotação aplicadas via transform em Jogador.render()
-	public static ModelInstance modeloItem(CharSequence item) {
+	public static ModelInstance modeloItem(String item) {
 		if(modelosItens.containsKey(item)) return new ModelInstance(modelosItens.get(item));
 
 		if(item.equals("ar")) return null;

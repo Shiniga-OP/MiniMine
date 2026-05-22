@@ -15,6 +15,10 @@ import com.minimine.mundo.chunks.ChunkUtil;
 import com.minimine.mundo.Chave;
 import com.badlogic.gdx.math.Vector3;
 import java.util.Locale;
+import com.minimine.entidades.Entidade;
+import com.minimine.entidades.ItemMundo;
+import com.minimine.mundo.blocos.Bloco;
+import com.minimine.utils.DiaNoiteUtil;
 /*
  * em solo, sobe um Net(SERVIDOR_MODO) local e conecta o cliente
  * via Net(CLIENTE_MODO, "127.0.0.1")
@@ -26,7 +30,7 @@ import java.util.Locale;
  *   - ser a fonte de verdade do Mundo(estado, chunks, blocos)
 
  * O cliente local recebe tudo via protocolo, igual a um cliente remoto
-*/
+ */
 public class ServidorInterno {
 	// instancia do Net no modo servidor que roda localmente
 	public Net netServidor = null;
@@ -35,6 +39,7 @@ public class ServidorInterno {
 	public Map<Integer, Jogador> jogadoresRede = new HashMap<Integer, Jogador>();
 	public Mundo mundo;
 	public Timer relogio;
+	public Map<Long, Chunk> chunksMod = new HashMap<>();
 	/*
 	 * sobe o servidor interno numa thread separada e espera ele estar pronto
 	 * para aceitar conexões antes de retornar
@@ -48,6 +53,8 @@ public class ServidorInterno {
 		if(ArquivosUtil.existe(Inicio.externo + "/MiniMine/mundos/" + mundo.nome + ".mini")) {
 			ArquivosUtil.crMundo(mundo, jogadores.isEmpty() ? null : jogadores.get(0));
 		}
+		mundo.diaNoite = new DiaNoiteUtil();
+		if(mundo.ciclo) mundo.diaNoite.iniciar();
 		// sobe o Net em modo servidor, vai abrir TCP e UDP nas portas padrão
 		// Gdx.app.postRunnable não é usado aqui porque iniciarTcpServidor
 		// precisa estar pronto antes do cliente conectar; Net.iniciarTcpServidor
@@ -63,14 +70,20 @@ public class ServidorInterno {
 				new Thread(new Runnable() {
 						public void run() {
 							try {
-								cliente.dados.println("MUNDO:TEMPO:"+mundo.diaNoite.tempo+":SEMENTE:" + mundo.semente);
+								String msg =
+									"MUNDO:TEMPO:"+mundo.diaNoite.tempo+
+									":NOME:"+mundo.nome+
+									":SEMENTE:"+mundo.semente+
+									":PLANO:"+(mundo.plano ? "s" : "n");
+								cliente.dados.println(msg);
 								cliente.dados.flush();
 								synchronized(mundo.chunksMod) {
-									cliente.dados.println("CHUNKS_NUM:" + mundo.chunksMod.size());
 									for(Chunk chunk : mundo.chunksMod.values()) {
 										cliente.dados.println(serializarChunk(chunk));
 									}
 								}
+								cliente.dados.flush();
+								cliente.dados.println("MUNDO_FIM");
 								cliente.dados.flush();
 							} catch(Exception e) {
 								Gdx.app.error("[ServidorInterno]", "Erro ao enviar mundo para cliente " + cliente.id + ": " + e.getMessage());
@@ -139,19 +152,21 @@ public class ServidorInterno {
         } else if(msg.startsWith("MUNDO:")) {
             String[] p = msg.split(":");
             try {
-                for(int i = 1; i < p.length - 1; i++) {
+                for(int i = 1; i < p.length; i++) {
                     if(p[i].equals("TEMPO")) mundo.diaNoite.tempo = Float.parseFloat(p[i+1]);
-                    else if(p[i].equals("SEMENTE")) Mundo.semente = Long.parseLong(p[i+1]);
+					else if(p[i].equals("NOME")) mundo.nome = p[i+1];
+					else if(p[i].equals("SEMENTE")) mundo.semente = Long.parseLong(p[i+1]);
+					else if(p[i].equals("PLANO")) mundo.plano = p[i+1].equals("s") ? true : false;
                 }
-            } catch(NumberFormatException e) {}
+            } catch(NumberFormatException e) {
+				Gdx.app.error("[Servidor]", "[ERRO]: mundo inicial "+e);
+			}
         } else if(msg.startsWith("CHUNK:")) {
             deserializarChunk(msg);
-        } else if(msg.startsWith("CHUNKS_NUM:")) {
-            // informativo; chunks chegam em sequencia via CHUNK:
-        } else if(msg.startsWith("SEMENTE:")) {
-            try {
-                Mundo.semente = Long.parseLong(msg.substring(8).trim());
-            } catch(NumberFormatException e) {}
+        } else if(msg.startsWith("MUNDO_FIM")) {
+			mundo.chunksMod = chunksMod;
+			mundo.chunks.clear();
+			mundo.iniciar(true);
         } else if(msg.startsWith("BLOCO:")) {
             String[] p = msg.split(":");
 
@@ -161,6 +176,13 @@ public class ServidorInterno {
                 int z = Integer.parseInt(p[3]);
                 int id = Integer.parseInt(p[4]);
                 mundo.defBlocoMundo(x, y, z, id);
+				if(!p[5].equals("ar")) {
+					final ItemMundo deixado = new ItemMundo(
+						p[5], 1,
+						x + 0.5f, y + 0.5f, z + 0.5f
+					);
+					mundo.entidades.add(deixado);
+				}
             } catch(NumberFormatException e) {}
         } else if(msg.startsWith("ENTROU:")) {
             String[] p = msg.split(":");
@@ -207,8 +229,8 @@ public class ServidorInterno {
         enviarMsg(msg);
     }
 
-    public void enviarBloco(int x, int y, int z, int id) {
-        String msg = String.format("BLOCO:%d:%d:%d:%d", x, y, z, id);
+    public void enviarBloco(int x, int y, int z, int id, String item) {
+        String msg = String.format("BLOCO:%d:%d:%d:%d:%s", x, y, z, id, item);
         enviarMsg(msg);
     }
 	/*
@@ -330,11 +352,11 @@ public class ServidorInterno {
 			chunk.chave = Chave.calcularChave(cx, cz);
 			chunk.dadosProntos = true;
 			chunk.att = true;
-			synchronized(mundo.chunksMod) {
-				mundo.chunksMod.put(chunk.chave, chunk);
+			synchronized(chunksMod) {
+				chunksMod.put(chunk.chave, chunk);
 			}
 		} catch(Exception e) {
-			Gdx.app.error("[ServidorInterno]", "Erro ao deserializar chunk: " + e.getMessage());
+			Gdx.app.error("[Servidor]", "Erro ao deserializar chunk: " + e.getMessage());
 		}
 	}
 	/*
@@ -353,13 +375,15 @@ public class ServidorInterno {
 			try {
 				ArquivosUtil.svMundo(mundo, jogadores);
 			} catch(Throwable t) {
-				Gdx.app.error("[ServidorInterno]", "Erro ao salvar mundo no encerramento: " + t.getMessage());
+				Gdx.app.error("[Servidor]", "Erro ao salvar mundo no encerramento: " + t.getMessage());
 			}
 			netServidor.liberar();
 			netServidor = null;
 		}
+		chunksMod.clear();
 		jogadoresRede.clear();
 		relogio.cancel();
-		Gdx.app.log("[ServidorInterno]", "Servidor interno encerrado.");
+		Gdx.app.log("[Servidor]", "Servidor interno encerrado.");
 	}
 }
+

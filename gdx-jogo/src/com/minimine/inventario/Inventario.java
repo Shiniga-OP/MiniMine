@@ -147,7 +147,7 @@ public class Inventario {
         else jogador.item = "ar";
     }
 
-    public void addItem(CharSequence nome, int quantidade) {
+    public void addItem(String nome, int quantidade) {
         if(itens[slotSelecionado] != null && itens[slotSelecionado].nome.equals(nome)) {
             itens[slotSelecionado].quantidade += quantidade;
             return;
@@ -184,7 +184,7 @@ public class Inventario {
     }
 
     public void attReceita() {
-        CharSequence[] nomes = new CharSequence[9];
+        String[] nomes = new String[9];
         for(int i = 0; i < 9; i++) {
             nomes[i] = (gradeReceita[i] != null) ? gradeReceita[i].nome : null;
         }

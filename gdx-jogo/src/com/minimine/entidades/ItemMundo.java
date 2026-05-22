@@ -8,7 +8,6 @@ import com.minimine.graficos.Modelos;
 import com.minimine.mundo.Mundo;
 
 public class ItemMundo extends Entidade {
-    public CharSequence nome;
     public int quantidade;
     public float tempoVida = 300f;
 
@@ -26,7 +25,7 @@ public class ItemMundo extends Entidade {
 
     public ModelInstance modelo;
 
-    public ItemMundo(CharSequence nome, int quantidade, float x, float y, float z) {
+    public ItemMundo(String nome, int quantidade, float x, float y, float z) {
         this.nome = nome;
         this.quantidade = quantidade;
         this.posicao.set(x, y, z);

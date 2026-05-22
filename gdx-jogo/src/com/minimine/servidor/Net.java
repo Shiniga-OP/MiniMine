@@ -315,19 +315,15 @@ public class Net {
                     try {
                         idLocal = Integer.parseInt(msg.substring(3).trim());
                     } catch(NumberFormatException e) {}
-                    if(ouvinte != null) {
-                        final OuvinteMensagem ov = ouvinte;
-                        Gdx.app.postRunnable(new Runnable() {
-								public void run() { ov.aoReceber(msg); }
-							});
-                    }
-                } else {
-                    if(ouvinte != null) {
-                        final OuvinteMensagem ov = ouvinte;
-                        Gdx.app.postRunnable(new Runnable() {
-								public void run() { ov.aoReceber(msg); }
-							});
-                    }
+                }
+                while(ouvinte == null) {
+                    try { Thread.sleep(10); } catch(InterruptedException e) { break; }
+                }
+                if(ouvinte != null) {
+                    final OuvinteMensagem ov = ouvinte;
+                    Gdx.app.postRunnable(new Runnable() {
+							public void run() { ov.aoReceber(msg); }
+						});
                 }
             }
         } catch(IOException e) {
@@ -336,160 +332,6 @@ public class Net {
             conectado = false;
             Gdx.app.log(NOME + "-Cliente", "Cliente desconectado.");
         }
-    }
-
-    public static final String URL_VERSAO = "https://focadoestudios.netlify.app/pacotes/minimine/versao.txt";
-    public static final String URL_APK = "https://focadoestudios.netlify.app/pacotes/minimine/MiniMine.apk";
-    public static final String URL_JAR = "https://focadoestudios.netlify.app/pacotes/minimine/minimine.jar";
-
-    // padrão chamado na thread principal depois da verificação
-    public interface ResultadoAtualizacao {
-        /*
-         * temAtualizacao: true se encontrou versão nova
-         * novaVersao: "0.1.2", ou null se sem internet/erro
-         * tipo: "OFICIAL", "BETA" ou "ALFA"
-         */
-        void aoVerificar(boolean temAtualizacao, String novaVersao, String tipo);
-    }
-
-    public interface ResultadoDownload {
-        void aoBaixar(String caminho);
-    }
-    /*
-     * verifica em segundo plano se ha uma versão nova disponivel
-     * comparação por hierarquia:
-     *   [0] oficial -> mudança mais importante
-     *   [1] beta -> mudança intermediária
-     *   [2] alfa -> mudança mais frequente/menos polida
-     */
-    public static void verificarAtualizacao(final ResultadoAtualizacao padrao) {
-        new Thread(new Runnable() {
-				public void run() {
-					try {
-						HttpURLConnection con = (HttpURLConnection) new URL(URL_VERSAO).openConnection();
-						con.setConnectTimeout(5000);
-						con.setReadTimeout(5000);
-						con.setRequestMethod("GET");
-
-						int status = con.getResponseCode();
-						if(status != 200) {
-							Gdx.app.log(NOME, "verificarAtualizacao: servidor retornou " + status);
-							notificar(padrao, false, null, null);
-							return;
-						}
-						BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-						String linha = br.readLine();
-						br.close();
-						con.disconnect();
-
-						if(linha == null || linha.trim().isEmpty()) {
-							notificar(padrao, false, null, null);
-							return;
-						}
-						String[] partes = linha.trim().split("\\.");
-						if(partes.length < 3) {
-							Gdx.app.log(NOME, "verificarAtualizacao: formato inválido -> " + linha);
-							notificar(padrao, false, null, null);
-							return;
-						}
-						final int[] i = {
-							Integer.parseInt(partes[0].trim()),
-							Integer.parseInt(partes[1].trim()),
-							Integer.parseInt(partes[2].trim())
-						};
-						final int[] v = ArquivosUtil.VERSAO;
-
-						Gdx.app.log(NOME, "Versão local:    " + v[0]+"."+v[1]+"."+v[2]);
-						Gdx.app.log(NOME, "Versão internet: " + i[0]+"."+i[1]+"."+i[2]);
-
-						boolean temAtu = false;
-						String tipo = null;
-						String novaVersao = i[0]+"."+i[1]+"."+i[2];
-
-						if(i[0] > v[0]) {
-							temAtu = true;
-							tipo = "OFICIAL";
-						} else if(i[0] == v[0] && i[1] > v[1]) {
-							temAtu = true;
-							tipo = "BETA";
-						} else if(i[0] == v[0] && i[1] == v[1] && i[2] > v[2]) {
-							temAtu = true;
-							tipo = "ALFA";
-						}
-						if(temAtu) {
-							Gdx.app.log(NOME, "Nova versão disponível! (" + tipo + ") " + novaVersao);
-						} else {
-							Gdx.app.log(NOME, "Jogo já está na versão mais recente.");
-						}
-						notificar(padrao, temAtu, temAtu ? novaVersao : null, tipo);
-					} catch(Exception e) {
-						Gdx.app.log(NOME, "verificarAtualizacao: sem internet ou erro -> " + e.getMessage());
-						notificar(padrao, false, null, null);
-					}
-				}
-			}).start();
-    }
-
-    public static void notificar(final ResultadoAtualizacao cb, final boolean tem, final String versao, final String tipo) {
-        if(cb == null) return;
-        Gdx.app.postRunnable(new Runnable() {
-				public void run() {
-					cb.aoVerificar(tem, versao, tipo);
-				}
-			});
-    }
-    /*
-     * baixa a atualização e salva no caminho indicado
-     * ao terminar(ou falhar), chama padrao.aoBaixar(caminho) na thread principal
-     *   caminho != null -> sucesso
-     *   caminho == null -> falha
-     */
-    public static void baixarAtualizacao(final String destino, final ResultadoDownload padrao) {
-        final String urlDownload = (Gdx.app.getType() == Application.ApplicationType.Android)
-            ? URL_APK : URL_JAR;
-
-        new Thread(new Runnable() {
-				public void run() {
-					try {
-						Gdx.app.log(NOME, "Baixando atualização de: " + urlDownload);
-
-						HttpURLConnection con = (HttpURLConnection) new URL(urlDownload).openConnection();
-						con.setConnectTimeout(10000);
-						con.setReadTimeout(0);
-						con.setRequestMethod("GET");
-
-						if(con.getResponseCode() != 200) {
-							Gdx.app.log(NOME, "Erro ao baixar: HTTP " + con.getResponseCode());
-							notificarDownload(padrao, null);
-							return;
-						}
-						InputStream is = con.getInputStream();
-						FileOutputStream fos = new FileOutputStream(destino);
-						byte[] buf = new byte[8192];
-						int lido;
-						while((lido = is.read(buf)) > 0) fos.write(buf, 0, lido);
-						fos.flush();
-						fos.close();
-						is.close();
-						con.disconnect();
-
-						Gdx.app.log(NOME, "Download concluído: " + destino);
-						notificarDownload(padrao, destino);
-					} catch(Exception e) {
-						Gdx.app.log(NOME, "Erro no download: " + e.getMessage());
-						notificarDownload(padrao, null);
-					}
-				}
-			}).start();
-    }
-
-    public static void notificarDownload(final ResultadoDownload cb, final String resultado) {
-        if(cb == null) return;
-        Gdx.app.postRunnable(new Runnable() {
-				public void run() {
-					cb.aoBaixar(resultado);
-				}
-			});
     }
 
     public void liberar() {
@@ -517,3 +359,4 @@ public class Net {
         }
     }
 }
+

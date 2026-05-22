@@ -7,8 +7,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Texturas {
-	public static TexLista<CharSequence, Texture> texs = new TexLista<CharSequence, Texture>();
-	public static TexLista<CharSequence, TextureRegion> atlas = new TexLista<CharSequence, TextureRegion>();
+	public static TexLista<String, Texture> texs = new TexLista<String, Texture>();
+	public static TexLista<String, TextureRegion> atlas = new TexLista<String, TextureRegion>();
 	public static Texture blocos, agua, icones, base, ceu, ferramentas,
 	palito;
 	

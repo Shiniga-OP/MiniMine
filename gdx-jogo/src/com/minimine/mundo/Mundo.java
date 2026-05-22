@@ -59,8 +59,8 @@ public class Mundo {
     public static final List<Chunk> praLiberar = new ArrayList<>();
     public static final List<Long> praRemover = new ArrayList<>();
 
-    public static final Map<Long, Chunk> chunks = new ConcurrentHashMap<>();
-    public static final Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
+    public static Map<Long, Chunk> chunks = new ConcurrentHashMap<>();
+    public static Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 
 	public static final Chunk[] chunkCache = {
 		null, null, null,
@@ -106,11 +106,8 @@ public class Mundo {
     public static final java.nio.IntBuffer GL_BUFFER =
 	java.nio.ByteBuffer.allocateDirect(12).order(java.nio.ByteOrder.nativeOrder()).asIntBuffer();
 
-    public void iniciar() {
-		this.diaNoite = new DiaNoiteUtil();
-		if(ciclo) diaNoite.iniciar();
-		
-        semente = semente == 0 ? (System.currentTimeMillis() ^ MathUtils.random(2, 10)) : semente;
+    public void iniciar(boolean gerarSemente) {
+        if(gerarSemente) semente = semente == 0 ? (System.currentTimeMillis() ^ MathUtils.random(2, 10)) : semente;
 
         registroCriaturas = new RegistroCriaturas();
         registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
@@ -121,8 +118,6 @@ public class Mundo {
 		ReceitaRegistro.iniciar();
 
         motor = new MotorGeracao(semente, registroBiomas);
-
-        TarefasUtil.iniciar();
     }
 
     // chamado em render
@@ -164,7 +159,7 @@ public class Mundo {
         filaEstrutura.clear();
         filaTam.clear();
         entidades.clear();
-        TarefasUtil.liberar();
+        
         if(com.minimine.ui.UI.debug) Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
         ArrayReuso.limparPools();
 		if(ciclo) diaNoite.liberar();
@@ -318,7 +313,7 @@ public class Mundo {
     }
 
 	public static final Chunk obterChunk(final long chave) {
-		final Chunk[] cache = chunkCache; // bota no registrador ao inves de chamar static
+		final Chunk[] cache = chunkCache;
 
 		for(int i = 0; i < 9; i++) {
 			if(cache[i] != null && cache[i].chave == chave) {
@@ -327,7 +322,8 @@ public class Mundo {
 		}
 		final Chunk chunk = chunks.get(chave);
 
-		final int slot = proximoCache.getAndIncrement() & 8; 
+		final int indice = proximoCache.getAndIncrement();
+		final int slot = (indice & Integer.MAX_VALUE) % 9; 
 		cache[slot] = chunk;
 
 		return chunk;
@@ -471,6 +467,7 @@ public class Mundo {
     // === GERAÇÃO ===
     // estado 0 -> 1: gera terreno + vegetação
     public static void gerarDados(final long chave) {
+		if(motor == null) return;
         final Chunk chunk = obterChunk(chave);
 
         TarefasUtil.addGeração(new Runnable() {

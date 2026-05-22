@@ -47,8 +47,8 @@ public class Jogador extends Entidade {
 	public PerspectiveCamera camera;
 	public float forcaMov = 0;
 
-	public CharSequence item = "ar";
-	public CharSequence itemCache = "ar";
+	public String item = "ar";
+	public String itemCache = "ar";
 	public int ALCANCE = 7;
 	public Inventario inv;
 
@@ -81,6 +81,7 @@ public class Jogador extends Entidade {
 
 	public Jogador() {
 		super();
+		nome = "jogador";
 		vida = 20;
 		vidaMax = 20;
 		camera = com.minimine.ui.UI.criarCamera();
@@ -131,15 +132,8 @@ public class Jogador extends Entidade {
 
 			if(bloco != null) {
 				if(item.equals("ar") || bloco.render == TipoRender.LIQUIDO) {
-					if(modo == 2) {
-						final ItemMundo deixado = new ItemMundo(
-							bloco.nome, 1,
-							x + 0.5f, y + 0.5f, z + 0.5f
-						);
-						Mundo.entidades.add(deixado);
-					}
 					// servidor aplica e faz echo de volta, não aplica local
-					if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0);
+					if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
 					Bloco.tocarSom(bloco.nome);
 					if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
 				} else {
@@ -159,7 +153,7 @@ public class Jogador extends Entidade {
 						final Bloco blocoColocar = Bloco.texIds.get(item);
 						final int idColocar = blocoColocar != null ? blocoColocar.tipo : 0;
 						// servidor aplica e faz echo de volta, não aplica local
-						if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(xAnt, yAnt, zAnt, idColocar);
+						if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(xAnt, yAnt, zAnt, idColocar, "ar");
 						Bloco.tocarSom(item);
 						if(blocoColocar != null && blocoColocar.evento != null) {
 							blocoColocar.evento.aoColocar(xAnt, yAnt, zAnt);
@@ -426,9 +420,10 @@ public class Jogador extends Entidade {
 
 		// cabeça: tom no X + yaw relativo ao tronco no Y
 		cabeca.rotation.set(rotCabeca);
+		
 		cabeca.rotation.mul(new Quaternion(Vector3.Y, diffYawPreso));
-		cabeca.rotation.mul(new Quaternion(Vector3.X, -tomPreso));
-
+		cabeca.rotation.mul(new Quaternion(Vector3.X, tomPreso));
+		
 		// braços e pernas: balançar ao andar(escala pela forcaMov, que ja depende de velo)
 		final float balanco = MathUtils.sin(tempoAnimacao) * forcaMov;
 		final float balancoBraco = balanco * 40f;

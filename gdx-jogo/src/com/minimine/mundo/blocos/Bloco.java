@@ -12,12 +12,12 @@ import com.micro.janelas.PainelFatiado;
 
 public class Bloco {
 	public static List<Bloco> blocos = new ArrayList<>();
-	public static HashMap<CharSequence, Bloco> texIds = new HashMap<>();
+	public static HashMap<String, Bloco> texIds = new HashMap<>();
 	public static HashMap<Integer, Bloco> numIds = new HashMap<>();
 	public static HashMap<String, String[]> sons = new HashMap<>();
 	public static int AGUA;
 
-	public final CharSequence nome;
+	public final String nome;
 	public final int tipo;
 	public final String topo, lados, baixo;
 	public final int luz;
@@ -32,16 +32,16 @@ public class Bloco {
 	public InterfaceBloco ui = null;
 	public EventoBloco evento = null;
 
-	public Bloco(CharSequence nome, String topo) {this(nome, topo, topo);}
-	public Bloco(CharSequence nome, String topo, String lados) {this(nome, topo, lados, topo);}
-	public Bloco(CharSequence nome, String topo, String lados, String baixo) {this(nome, topo, lados, baixo, TipoRender.OPACO, true, true, 0, false);}
-	public Bloco(CharSequence nome, String topo, TipoRender render) {this(nome, topo, topo, topo, render, true, true, 0, false);}
-	public Bloco(CharSequence nome, String topo, TipoRender render, boolean solido) {this(nome, topo, topo, topo, render, solido, true, 0, false);}
-	public Bloco(CharSequence nome, String topo, TipoRender render, boolean solido, boolean culling) {this(nome, topo, topo, topo, render, solido, culling, 0, false);}
-	public Bloco(CharSequence nome, String topo, TipoRender render, boolean solido, boolean culling, int luz) {this(nome, topo, topo, topo, render, solido, culling, luz, false);}
-	public Bloco(CharSequence nome, String topo, TipoRender render, boolean solido, boolean culling, int luz, boolean formaX) {this(nome, topo, topo, topo, render, solido, culling, luz, formaX);}
+	public Bloco(String nome, String topo) {this(nome, topo, topo);}
+	public Bloco(String nome, String topo, String lados) {this(nome, topo, lados, topo);}
+	public Bloco(String nome, String topo, String lados, String baixo) {this(nome, topo, lados, baixo, TipoRender.OPACO, true, true, 0, false);}
+	public Bloco(String nome, String topo, TipoRender render) {this(nome, topo, topo, topo, render, true, true, 0, false);}
+	public Bloco(String nome, String topo, TipoRender render, boolean solido) {this(nome, topo, topo, topo, render, solido, true, 0, false);}
+	public Bloco(String nome, String topo, TipoRender render, boolean solido, boolean culling) {this(nome, topo, topo, topo, render, solido, culling, 0, false);}
+	public Bloco(String nome, String topo, TipoRender render, boolean solido, boolean culling, int luz) {this(nome, topo, topo, topo, render, solido, culling, luz, false);}
+	public Bloco(String nome, String topo, TipoRender render, boolean solido, boolean culling, int luz, boolean formaX) {this(nome, topo, topo, topo, render, solido, culling, luz, formaX);}
 
-	public Bloco(CharSequence nome, String topo, String lados, String baixo, TipoRender render, boolean solido, boolean culling, int luz, boolean formaX) {
+	public Bloco(String nome, String topo, String lados, String baixo, TipoRender render, boolean solido, boolean culling, int luz, boolean formaX) {
 		this.nome = nome;
 		this.tipo = blocos.size();
 		this.topo = topo; this.lados = lados; this.baixo = baixo;

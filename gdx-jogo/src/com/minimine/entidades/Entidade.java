@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.DataInputStream;
 
 public class Entidade {
+	public String nome;
 	public int vida;
 	public int vidaMax;
 	public float velo = 8f; // velocidade maxima no chão
