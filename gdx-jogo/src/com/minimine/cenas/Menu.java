@@ -92,7 +92,7 @@ public class Menu implements Screen, InputProcessor {
         Jogo.musicas = prefs.getBoolean("musicas", Jogo.musicas);
 		UI.debug = prefs.getBoolean("debug", UI.debug);
 		UI.botoesTam = prefs.getInteger("botoesTam", UI.botoesTam);
-		Jogo.graficosTeste = prefs.getBoolean("graficosTeste", Jogo.graficosTeste);
+		Jogo.nome = prefs.getString("nome", Jogo.nome);
         Gdx.input.setCursorCatched(false);
 
 		Musicas.pausar();

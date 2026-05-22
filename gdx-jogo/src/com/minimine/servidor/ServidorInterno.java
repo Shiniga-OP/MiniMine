@@ -44,7 +44,7 @@ public class ServidorInterno {
 	 * sobe o servidor interno numa thread separada e espera ele estar pronto
 	 * para aceitar conexões antes de retornar
 	 * chame isso antes de criar o Net do cliente local
-	*/
+	 */
 	public void iniciar(final Mundo mundo, final List<Jogador> jogadores) {
 		if(rodando) return;
 		rodando = true;
@@ -113,14 +113,14 @@ public class ServidorInterno {
 	/*
 	 * processa cada mensagem do protocolo enviado
 	 * posição, camera, blocos, e etc
-	*/
+	 */
 	public void processarMsg(String msg) {
         if(msg.startsWith("POS:")) {
             String[] p = msg.split(":");
 
             try {
                 int id = Integer.parseInt(p[1]);
-                if(netCliente != null && id == netCliente.idLocal) return;
+                if(netCliente == null || netCliente.idLocal == 0 || id == netCliente.idLocal) return;
                 float x = Float.parseFloat(p[2]);
                 float y = Float.parseFloat(p[3]);
                 float z = Float.parseFloat(p[4]);
@@ -129,14 +129,7 @@ public class ServidorInterno {
                 int marcas = p.length > 7 ? Integer.parseInt(p[7]) : 0;
 
                 Jogador jgRede = jogadoresRede.get(id);
-                if(jgRede == null) {
-                    jgRede = new Jogador();
-                    jgRede.modo = Jogo.modo;
-                    jgRede.trocarPessoa();
-                    jogadoresRede.put(id, jgRede);
-                    Jogo.jogadores.add(jgRede);
-                    Gdx.app.log("[Jogo]", "jogador " + id + " adicionado");
-                }
+				if(jgRede == null) return;
                 jgRede.posicao.set(x, y, z);
                 jgRede.yaw = yaw;
 				jgRede.tom = tom;
@@ -171,10 +164,10 @@ public class ServidorInterno {
             String[] p = msg.split(":");
 
             try {
-                int x = Integer.parseInt(p[1]);
-                int y = Integer.parseInt(p[2]);
-                int z = Integer.parseInt(p[3]);
-                int id = Integer.parseInt(p[4]);
+                final int x = Integer.parseInt(p[1]);
+                final int y = Integer.parseInt(p[2]);
+                final int z = Integer.parseInt(p[3]);
+                final int id = Integer.parseInt(p[4]);
                 mundo.defBlocoMundo(x, y, z, id);
 				if(!p[5].equals("ar")) {
 					final ItemMundo deixado = new ItemMundo(
@@ -187,18 +180,22 @@ public class ServidorInterno {
         } else if(msg.startsWith("ENTROU:")) {
             String[] p = msg.split(":");
 
+			if(p.length < 3) return;
             try {
                 int id = Integer.parseInt(p[1]);
+                String identidade = p[2];
+				String nome = p[3];
 
                 if(netCliente == null || netCliente.idLocal == 0 || id == netCliente.idLocal) return;
                 if(!jogadoresRede.containsKey(id)) {
-                    Jogador jgRede = new Jogador();
+                    Jogador jgRede = new Jogador(identidade);
                     jgRede.modo = Jogo.modo;
                     jgRede.pessoa = 3;
+					jgRede.nome = nome;
 					jgRede.attModelo();
                     jogadoresRede.put(id, jgRede);
                     Jogo.jogadores.add(jgRede);
-                    Gdx.app.log("[Jogo]", "jogador " + id + " entrou");
+                    Gdx.app.log("[Jogo]", "jogador " + nome + " entrou, identidade: " + identidade + ", número: " + id);
                 }
             } catch(NumberFormatException e) {}
         } else if(msg.startsWith("SAIU:")) {
@@ -209,7 +206,7 @@ public class ServidorInterno {
                 Jogador jgRede = jogadoresRede.remove(id);
                 if(jgRede != null) {
                     Jogo.jogadores.remove(jgRede);
-                    Gdx.app.log("[Jogo]", "jogador " + id + " saiu");
+                    Gdx.app.log("[Jogo]", "jogador " + jgRede.nome + " saiu");
                 }
             } catch(NumberFormatException e) {}
         }
@@ -236,7 +233,7 @@ public class ServidorInterno {
 	/*
 	 * serializa uma chunk para uma unica linha do protocolo:
 	 * CHUNK:cx:cz:usaPaleta:paletaBits:paletaTam:paleta(csv):bitsPorBloco:blocosPorInt:blocos(csv):luz(csv):meta(csv)
-	*/
+	 */
 	public static String serializarChunk(Chunk chunk) {
 		StringBuilder sb = new StringBuilder("CHUNK:");
 		sb.append(chunk.x).append(':').append(chunk.z).append(':');
@@ -276,7 +273,7 @@ public class ServidorInterno {
 	}
 	/*
 	 * reconstroi uma chunk a partir da linha do protocolo e insere em chunksMod
-	*/
+	 */
 	public void deserializarChunk(String msg) {
 		// formato: CHUNK:cx:cz:usaPaleta:paletaBits:paletaTam:paleta(csv):bitsPorBloco:blocosPorInt:blocos(csv):luz(csv):meta(csv)
 		// usa indexOf para evitar split que quebraria os csv internos

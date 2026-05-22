@@ -114,24 +114,15 @@ public class Net {
 								synchronized(clientes) {
 									for(int j = 0; j < clientes.size; j++) {
 										Cliente c = clientes.get(j);
-										if(c != cliente) cliente.dados.println("ENTROU:" + c.id);
+										if(c != cliente) cliente.dados.println("ENTROU:" + c.id + ":" + c.identidade + ":" + c.nome);
 									}
 								}
 								cliente.dados.flush();
-								broadcast("ENTROU:" + id, cliente);
 								if(ouvinteConexao != null) {
 									final OuvinteConexao oc = ouvinteConexao;
 									final Cliente clienteFinal = cliente;
 									Gdx.app.postRunnable(new Runnable() {
 											public void run() { oc.aoConectar(clienteFinal); }
-										});
-								}
-								// notifica o proprio servidor que um jogador entrou
-								if(ouvinte != null) {
-									final OuvinteMensagem ov = ouvinte;
-									final int idFinal = id;
-									Gdx.app.postRunnable(new Runnable() {
-											public void run() { ov.aoReceber("ENTROU:" + idFinal); }
 										});
 								}
 								new Thread(cliente).start();
@@ -169,6 +160,8 @@ public class Net {
         public final PrintWriter dados;
         public final int id;
         public boolean rodando = true;
+        public String identidade = "";
+        public String nome = "";
 
         public Cliente(Socket socket, int id) throws IOException {
             this.socket = socket;
@@ -183,6 +176,10 @@ public class Net {
                 String linha;
                 while(rodando && (linha = entrada.readLine()) != null) {
                     final String msg = linha;
+                    if(msg.startsWith("ENTROU:")) {
+                        String[] p = msg.split(":");
+                        if(p.length >= 4) { identidade = p[2]; nome = p[3]; }
+                    }
                     broadcast(msg, this);
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
@@ -359,4 +356,5 @@ public class Net {
         }
     }
 }
+
 

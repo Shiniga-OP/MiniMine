@@ -30,7 +30,8 @@ public class Jogo implements Screen {
     public static int modo = 2;
     public static Renderizador render;
     public static boolean musicas = true, graficosTeste = false;
-
+	public static String identidade;
+	public static String nome = "Breno";
 	public static ServidorInterno servidor;
 
     public static final float INTERVALO_POS = 0.05f;
@@ -58,7 +59,7 @@ public class Jogo implements Screen {
 			mundo.iniciar(false);
             servidor.rodando = true;
         }
-        Jogador jogador = new Jogador();
+        Jogador jogador = new Jogador(identidade);
         jogador.modo = modo;
         jogadores.add(jogador);
 
@@ -81,6 +82,12 @@ public class Jogo implements Screen {
         }
 		servidor.netCliente.ouvinte = new Net.OuvinteMensagem() {
             public void aoReceber(String msg) {
+				if(msg.startsWith("ID:")) {
+					servidor.enviarMsg(String.format(
+										   "ENTROU:%d:%s:%s",
+										   servidor.netCliente.idLocal, identidade, nome
+									   ));
+				}
                 servidor.processarMsg(msg);
             }
         };
@@ -114,7 +121,7 @@ public class Jogo implements Screen {
             if(tempoPosicao >= INTERVALO_POS) {
                 tempoPosicao = 0f;
                 Jogador jg = jogadores.get(0);
-                
+
                 servidor.enviarPosicao(
                     jg.posicao.x, jg.posicao.y, jg.posicao.z,
                     jg.yaw, jg.tom
@@ -152,3 +159,4 @@ public class Jogo implements Screen {
     }
     @Override public void resume() {}
 }
+

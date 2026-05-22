@@ -217,7 +217,8 @@ public class Render extends Renderizador {
 			}
 			if(jogadores.size() != 1) {
 				for(int i = 1; i < jogadores.size(); i++) {
-					jogadores.get(i).render(mb);
+					Jogador jg = jogadores.get(i);
+					jg.render(mb);
 				}
 			}
 			if(ui.gui && ui.jg.pessoa != 0) ui.jg.render(mb);
@@ -269,6 +270,12 @@ public class Render extends Renderizador {
 				mb.begin(ui.jg.camera);
 				if(ui.gui) ui.jg.render(mb);
 				mb.end();
+			}
+			// renderiza os nomes
+			if(jogadores.size() > 1) {
+				for(int i = 1; i < jogadores.size(); i++) {
+					jogadores.get(i).renderNome(ui.jg.camera);
+				}
 			}
 			// renderiza o debug:
 			if(ui.debug) {

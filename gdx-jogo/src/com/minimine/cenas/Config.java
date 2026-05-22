@@ -23,6 +23,7 @@ import com.micro.janelas.Painel;
 import com.micro.janelas.PainelFatiado;
 import com.micro.janelas.PainelRolavel;
 import com.micro.componentes.ItemConfig;
+import com.micro.componentes.CampoTexto;
 import com.micro.componentes.Botao;
 import com.micro.componentes.Rotulo;
 import com.micro.util.Ancora;
@@ -49,7 +50,8 @@ public class Config implements Screen, InputProcessor {
     // referencias aos itens para atualizar valores no render
     public ItemConfig itemRaio, itemSensi,
 	itemMusicas, itemDistancia, itemPOV,
-	itemDebug, itemBotoesTam, itemGraficos;
+	itemDebug, itemBotoesTam, itemInterface;
+    public CampoTexto campoNome;
 
     @Override
     public void show() {
@@ -220,7 +222,7 @@ public class Config implements Screen, InputProcessor {
             }
         );
         painelOpcoes.add(itemPOV);
-		
+
 		// debug:
         itemDebug = ItemConfig.alternar(
             5, posItem(5, alturaItem, espacamento), larguraItem, alturaItem,
@@ -234,7 +236,7 @@ public class Config implements Screen, InputProcessor {
             }
         );
         painelOpcoes.add(itemDebug);
-		
+
 		// botões:
 		itemBotoesTam = ItemConfig.numerico(
             5, posItem(4, alturaItem, espacamento), larguraItem, alturaItem,
@@ -258,34 +260,39 @@ public class Config implements Screen, InputProcessor {
             }
         );
         painelOpcoes.add(itemBotoesTam);
-		
-		// graficos:
-		itemGraficos = ItemConfig.alternar(
-            5, posItem(6, alturaItem, espacamento), larguraItem, alturaItem,
-            "Graficos teste:", Jogo.graficosTeste ? "Ligado" : "Desligado",
-            fonteTexto, escalaItem, pixelBranco, visualBotao,
-            new Acao() {
-                public void exec() {
-					if(Gdx.graphics.isGL30Available()) throw new RuntimeException("SEU DISPOSITIVO NÃO SUPORTA OPENGL 3.0");
-                    Jogo.graficosTeste = !Jogo.graficosTeste;
-                    itemGraficos.rotuloValor.texto = Jogo.graficosTeste ? "Ligado" : "Desligado";
-                }
+
+        // nome do jogador
+        Rotulo rotuloNome = new Rotulo("Nome:", fonteTexto, escalaItem);
+        rotuloNome.x = 5;
+        rotuloNome.y = posItem(7, alturaItem, espacamento);
+        rotuloNome.largura = 200;
+        rotuloNome.altura = alturaItem;
+        painelOpcoes.add(rotuloNome);
+
+        campoNome = new CampoTexto(visualJanela, fonteTexto, 210, posItem(7, alturaItem, espacamento), 435, alturaItem, escalaItem);
+        campoNome.defTexto(Jogo.nome);
+        campoNome.limiteCaracteres = 16;
+        campoNome.gerenciador = gerenciadorUI;
+        campoNome.mudanca = new CampoTexto.Texto() {
+            public void aoMudar(String novoTexto) {
+                Jogo.nome = novoTexto;
             }
-        );
-        painelOpcoes.add(itemGraficos);
-		
+        };
+        painelOpcoes.add(campoNome);
+
 		// GUI:
-        painelOpcoes.add(ItemConfig.alternar(
-			5, posItem(7, alturaItem, espacamento), larguraItem, alturaItem,
+		itemInterface = ItemConfig.alternar(
+			5, posItem(8, alturaItem, espacamento), larguraItem, alturaItem,
 			"Interface de jogo:", UI.gui ? "Ligado" : "Desligado",
 			fonteTexto, escalaItem, pixelBranco, visualBotao,
 			new Acao() {
 				public void exec() {
-						UI.gui = !UI.gui;
-						itemGraficos.rotuloValor.texto = UI.gui ? "Ligado" : "Desligado";
-					}
+					UI.gui = !UI.gui;
+					itemInterface.rotuloValor.texto = UI.gui ? "Ligado" : "Desligado";
+				}
 			}
-		));
+		);
+        painelOpcoes.add(itemInterface);
         painelPrincipal.add(painelOpcoes);
 
         Acao acaoVoltar = new Acao() {
@@ -297,12 +304,11 @@ public class Config implements Screen, InputProcessor {
                 prefs.putBoolean("musicas", Jogo.musicas);
 				prefs.putBoolean("debug", UI.debug);
 				prefs.putInteger("botoesTam", UI.botoesTam);
-				prefs.putBoolean("graficosTeste", Jogo.graficosTeste);
+                prefs.putString("nome", campoNome.texto);
                 prefs.flush();
                 Inicio.defTela(Cenas.menu);
             }
         };
-		
         Botao botaoVoltar = new Botao("VOLTAR", visualBotao, fonteTexto, 0, 0, 200, 60, escalaPixel, acaoVoltar);
         painelPrincipal.addAncorado(botaoVoltar, Ancora.INFERIOR_CENTRO, 0, 0);
         gerenciadorUI.add(painelPrincipal);
@@ -373,10 +379,9 @@ public class Config implements Screen, InputProcessor {
         gerenciadorUI.processarArraste(toqueAuxiliar.x, toqueAuxiliar.y);
         return true;
     }
-    @Override public boolean keyDown(int c) { return false; }
+    @Override public boolean keyDown(int c) { return campoNome != null && campoNome.processarTecla(c); }
     @Override public boolean keyUp(int c) { return false; }
-    @Override public boolean keyTyped(char c) { return false; }
+    @Override public boolean keyTyped(char c) { return campoNome != null && campoNome.processarCaractere(c); }
     @Override public boolean mouseMoved(int x, int y) { return false; }
     @Override public boolean scrolled(float aX, float aY) { return false; }
 }
-

@@ -119,6 +119,13 @@ public class Intro implements Screen {
 		}
 		sb = new SpriteBatch();
         fonte = InterUtil.carregarFonte("fontes/pixel.ttf", 30);
+		
+		String id = ArquivosUtil.ler(Inicio.externo + "/MiniMine/conta/identidade.mini");
+		if(id.equals("")) {
+			id += (long)(System.currentTimeMillis() * MathUtils.random());
+			ArquivosUtil.escrever(Inicio.externo + "/MiniMine/conta/identidade.mini", id);
+		}
+		Jogo.identidade = id;
     }
 
     @Override  

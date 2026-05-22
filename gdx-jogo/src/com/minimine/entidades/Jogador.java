@@ -40,8 +40,12 @@ import java.io.IOException;
 import java.io.DataInputStream;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.minimine.ui.UI;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.minimine.ui.InterUtil;
 
 public class Jogador extends Entidade {
+	public String id;
 	public int modo = 2;
 	public int pessoa = 0;
 	public PerspectiveCamera camera;
@@ -79,9 +83,13 @@ public class Jogador extends Entidade {
 
 	public ModelInstance modeloItem;
 
-	public Jogador() {
+	public static SpriteBatch sbNome;
+	private static final Vector3 posNome = new Vector3();
+
+	public Jogador(String id) {
 		super();
-		nome = "jogador";
+		this.id = id;
+		nome = "Bruno";
 		vida = 20;
 		vidaMax = 20;
 		camera = com.minimine.ui.UI.criarCamera();
@@ -176,7 +184,7 @@ public class Jogador extends Entidade {
 	public void att(float delta) {
 		UI.attCamera(camera.direction, yaw, tom);
         camera.up.set(0, 1, 0);
-		
+
 		if(modo == 0) voando = true;
 		if(tempoDuploPulo > 0f) tempoDuploPulo -= delta;
 
@@ -365,6 +373,22 @@ public class Jogador extends Entidade {
 			mb.render(modeloItem);
 		}
 	}
+	
+	public void renderNome(PerspectiveCamera camera) {
+		if(pessoa == 3 && nome != null) {
+			posNome.set(posicao.x, posicao.y + altura + 0.3f, posicao.z);
+			Vector3 tela = camera.project(posNome);
+			if(tela.z >= 0f && tela.z <= 1f) {
+				if(sbNome == null) {
+					sbNome = new SpriteBatch();
+				}
+				sbNome.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+				sbNome.begin();
+				UI.fonte.draw(sbNome, nome, tela.x - nome.length() * 5, tela.y);
+				sbNome.end();
+			}
+		}
+	}
 
 	public void pegarNos() {
 		cabeca = instancia.getNode("cabeca", true);
@@ -389,7 +413,7 @@ public class Jogador extends Entidade {
 		pessoa = (pessoa + 1) % 3;
 		attModelo();
 	}
-	
+
 	public void attModelo() {
 		try {
 			instancia = new ModelInstance(Modelos.obterModelo("modelos/jogador.gltf"));
@@ -420,10 +444,10 @@ public class Jogador extends Entidade {
 
 		// cabeça: tom no X + yaw relativo ao tronco no Y
 		cabeca.rotation.set(rotCabeca);
-		
+
 		cabeca.rotation.mul(new Quaternion(Vector3.Y, diffYawPreso));
 		cabeca.rotation.mul(new Quaternion(Vector3.X, tomPreso));
-		
+
 		// braços e pernas: balançar ao andar(escala pela forcaMov, que ja depende de velo)
 		final float balanco = MathUtils.sin(tempoAnimacao) * forcaMov;
 		final float balancoBraco = balanco * 40f;
@@ -477,3 +501,4 @@ public class Jogador extends Entidade {
         inv.slotSelecionado = dis.readInt();
     }
 }
+
