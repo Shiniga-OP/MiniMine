@@ -1,6 +1,5 @@
 package com.minimine.servidor;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.ServerSocket;
@@ -12,28 +11,24 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import com.badlogic.gdx.Application;
-import com.minimine.Instalador;
-import com.minimine.mundo.Mundo;
 import com.minimine.utils.ArquivosUtil;
 import java.util.List;
 import java.util.ArrayList;
 import java.net.NetworkInterface;
 import java.net.InterfaceAddress;
 import java.util.Enumeration;
+import java.net.DatagramSocket;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
 
 public class Net {
     public static final String NOME = "[MiniMine]: ";
     public static final int TCP_PORTA = 9001;
-    public static final int UDP_PORTA = 9002;
-    public static final int UDP_POS_PORTA = 9003;
     public static final String CLIENTE_MODO = "CLIENTE";
     public static final String SERVIDOR_MODO = "SERVIDOR";
     public static final int[] versao = ArquivosUtil.VERSAO;
@@ -41,12 +36,7 @@ public class Net {
     public String modoAtual = SERVIDOR_MODO;
     public ServerSocket servidorSocket;
     public Array<Cliente> clientes = new Array<Cliente>();
-    // log de todos os comandos BLOCO desde o inicio do mundo
-    // replay enviado pra cada cliente novo no lugar das chunks inteiras
-    public final List<String> logBlocos = new ArrayList<String>();
-    public DatagramSocket attSocket;
-    public DatagramSocket udpCliente;
-    public InetAddress udpServidorEndereco;
+
     public Socket clienteSocket;
     public PrintWriter clienteDados;
     public BufferedReader clienteEntrada;
@@ -60,7 +50,12 @@ public class Net {
     public interface OuvinteMensagem {
         void aoReceber(String msg);
     }
-    public OuvinteMensagem ouvinte = null;
+    public volatile OuvinteMensagem ouvinte = null;
+
+    public interface OuvinteConexao {
+        void aoConectar(Cliente cliente);
+    }
+    public OuvinteConexao ouvinteConexao = null;
 
     public Net(String modoAtual) {
         Gdx.app.log(NOME, "Iniciando como: " + modoAtual);
@@ -73,26 +68,16 @@ public class Net {
 						iniciarTcpServidor();
 					}
 				});
-            new Thread(new Runnable() {
-					public void run() {
-						iniciarReceptor();
-					}
-				}).start();
         } else if(modoAtual.equals(CLIENTE_MODO)) {
             new Thread(new Runnable() {
 					public void run() {
-                        try {
-                            udpCliente = new DatagramSocket();
-                        } catch(Exception e) {
-                            Gdx.app.error(NOME, "Falha ao criar socket UDP do cliente: " + e.getMessage());
-                        }
 						procurarE_Conectar();
 					}
 				}).start();
         }
     }
 
-    // construtor para conexão direta por IP(sem descoberta UDP, funciona via VPN/internet)
+    // construtor para conexão direta por IP(sem descoberta, funciona via VPN/internet)
     public Net(String modoAtual, final String ipFixo) {
         Gdx.app.log(NOME, "Iniciando como: " + modoAtual + " (IP direto: " + ipFixo + ")");
         this.modoAtual = modoAtual;
@@ -100,16 +85,6 @@ public class Net {
         ultimoIP = ipFixo;
 
         if(modoAtual.equals(CLIENTE_MODO)) {
-            new Thread(new Runnable() {
-                    public void run() {
-                        try {
-                            udpCliente = new DatagramSocket();
-                            udpServidorEndereco = InetAddress.getByName(ipFixo);
-                        } catch(Exception e) {
-                            Gdx.app.error(NOME, "Falha ao criar socket UDP do cliente: " + e.getMessage());
-                        }
-                    }
-                }).start();
             Gdx.app.postRunnable(new Runnable() {
 					public void run() {
 						conectarServidorTcp();
@@ -136,7 +111,21 @@ public class Net {
 									clientes.add(cliente);
 								}
 								cliente.dados.println("ID:" + id);
+								synchronized(clientes) {
+									for(int j = 0; j < clientes.size; j++) {
+										Cliente c = clientes.get(j);
+										if(c != cliente) cliente.dados.println("ENTROU:" + c.id);
+									}
+								}
+								cliente.dados.flush();
 								broadcast("ENTROU:" + id, cliente);
+								if(ouvinteConexao != null) {
+									final OuvinteConexao oc = ouvinteConexao;
+									final Cliente clienteFinal = cliente;
+									Gdx.app.postRunnable(new Runnable() {
+											public void run() { oc.aoConectar(clienteFinal); }
+										});
+								}
 								// notifica o proprio servidor que um jogador entrou
 								if(ouvinte != null) {
 									final OuvinteMensagem ov = ouvinte;
@@ -145,26 +134,6 @@ public class Net {
 											public void run() { ov.aoReceber("ENTROU:" + idFinal); }
 										});
 								}
-								final Cliente clienteFinal = cliente;
-								new Thread(new Runnable() {
-										public void run() {
-											try {
-												clienteFinal.dados.println("SEMENTE:" + Mundo.semente);
-												clienteFinal.dados.flush();
-												// replay do log: cliente reconstroi o mundo via geração procedural
-												// + estes comandos, sem transferir chunks inteiras
-												synchronized(logBlocos) {
-													for(int i = 0; i < logBlocos.size(); i++) {
-														clienteFinal.dados.println(logBlocos.get(i));
-													}
-												}
-												clienteFinal.dados.println("CHUNKS_FIM:");
-												clienteFinal.dados.flush();
-											} catch(Exception e) {
-												Gdx.app.error(NOME, "Erro ao enviar mundo para cliente " + clienteFinal.id + ": " + e.getMessage());
-											}
-										}
-									}).start();
 								new Thread(cliente).start();
 							} catch(Exception e) {
 								Gdx.app.error(NOME, "Erro ao aceitar conexão TCP: " + e.getMessage());
@@ -175,61 +144,6 @@ public class Net {
 				}).start();
         } catch(Exception e) {
             Gdx.app.error(NOME, "Falha ao iniciar Servidor TCP: " + e.getMessage());
-        }
-    }
-
-    public void iniciarReceptor() {
-        Gdx.app.log(NOME, "Ouvindo UDP na porta " + UDP_POS_PORTA);
-        try {
-            attSocket = new DatagramSocket(UDP_POS_PORTA);
-            byte[] buffer = new byte[1024];
-            DatagramPacket pacote = new DatagramPacket(buffer, buffer.length);
-
-            while(attSocket != null && !attSocket.isClosed()) {
-                attSocket.receive(pacote);
-                final String msg = new String(pacote.getData(), 0, pacote.getLength());
-                final InetAddress origem = pacote.getAddress();
-                final int portaOrigem = pacote.getPort();
-
-                if(msg.startsWith("[MINIMINE]: descobrindo servidor")) {
-                    Gdx.app.log(NOME + "-descoberta", "Pedido de descoberta de " + origem.getHostAddress());
-                    byte[] respostaDados = "[MiniMine]: servidor encontrado".getBytes();
-                    DatagramPacket respostaPacote = new DatagramPacket(respostaDados, respostaDados.length, origem, portaOrigem);
-                    attSocket.send(respostaPacote);
-                    Gdx.app.log(NOME + "-descoberta", "Resposta de confirmação enviada.");
-                } else if(msg.startsWith("POS:")) {
-                    // reencaminha para todos os outros clientes via UDP(exceto o remetente)
-                    byte[] dados = msg.getBytes();
-                    synchronized(clientes) {
-                        for(int i = 0; i < clientes.size; i++) {
-                            Cliente c = clientes.get(i);
-                            try {
-                                InetAddress endCliente = InetAddress.getByName(
-                                    c.socket.getRemoteAddress().replace("/", "").split(":")[0]);
-                                // registra endereco UDP e não devolve o pacote pro remetente
-                                if(origem.equals(endCliente)) {
-                                    c.enderecoUdp = endCliente;
-                                    continue;
-                                }
-                                DatagramPacket dp = new DatagramPacket(dados, dados.length, endCliente, UDP_POS_PORTA);
-                                attSocket.send(dp);
-                            } catch(Exception e) {
-                                // ignora erro de reencaminhamento pra um cliente especifico
-                            }
-                        }
-                    }
-                    if(ouvinte != null) {
-                        final OuvinteMensagem ov = ouvinte;
-                        Gdx.app.postRunnable(new Runnable() {
-                                public void run() { ov.aoReceber(msg); }
-                            });
-                    }
-                }
-            }
-        } catch(Exception e) {
-            Gdx.app.error(NOME, "Erro no listener UDP: " + e.getMessage());
-        } finally {
-            if(attSocket != null) attSocket.close();
         }
     }
 
@@ -255,8 +169,6 @@ public class Net {
         public final PrintWriter dados;
         public final int id;
         public boolean rodando = true;
-        // endereço IP do cliente para filtragem UDP
-        public volatile InetAddress enderecoUdp = null;
 
         public Cliente(Socket socket, int id) throws IOException {
             this.socket = socket;
@@ -265,17 +177,13 @@ public class Net {
             this.dados = new PrintWriter(socket.getOutputStream(), false);
         }
 
+        @Override
         public void run() {
             try {
                 String linha;
                 while(rodando && (linha = entrada.readLine()) != null) {
                     final String msg = linha;
-                    if(msg.startsWith("BLOCO:")) {
-                        synchronized(logBlocos) {
-                            logBlocos.add(msg);
-                        }
-                        broadcast(msg, null);
-                    } else broadcast(msg, this);
+                    broadcast(msg, this);
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
                         Gdx.app.postRunnable(new Runnable() {
@@ -353,7 +261,7 @@ public class Net {
                     for(InterfaceAddress ifAddr : iface.getInterfaceAddresses()) {
                         InetAddress broadcast = ifAddr.getBroadcast();
                         if(broadcast == null) continue;
-                        DatagramPacket envioPacote = new DatagramPacket(dadosEnvio, dadosEnvio.length, broadcast, UDP_PORTA);
+                        DatagramPacket envioPacote = new DatagramPacket(dadosEnvio, dadosEnvio.length, broadcast, TCP_PORTA);
                         socket.send(envioPacote);
                         Gdx.app.log(NOME + "-descoberta", "Broadcast enviado para " + broadcast.getHostAddress() + " via " + iface.getDisplayName());
                     }
@@ -398,12 +306,6 @@ public class Net {
         }
     }
 
-    public void enviarMsg(String msg) {
-        if(conectado && clienteDados != null) {
-            clienteDados.println(msg);
-        }
-    }
-
     public void receberMsgServidor() {
         try {
             String servidorMsg;
@@ -419,7 +321,7 @@ public class Net {
 								public void run() { ov.aoReceber(msg); }
 							});
                     }
-				} else {
+                } else {
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
                         Gdx.app.postRunnable(new Runnable() {
@@ -436,26 +338,6 @@ public class Net {
         }
     }
 
-    public void enviarPosicao(float x, float y, float z, float yaw, float tom) {
-        String msg = "POS:" + idLocal + ":" + x + ":" + y + ":" + z + ":" + yaw + ":" + tom;
-        if(modoAtual.equals(SERVIDOR_MODO)) {
-            broadcastTodos(msg);
-        } else {
-            enviarMsg(msg);
-        }
-    }
-
-    public void enviarBloco(int x, int y, int z, int id) {
-        String msg = "BLOCO:" + x + ":" + y + ":" + z + ":" + id;
-        synchronized(logBlocos) {
-            logBlocos.add(msg);
-        }
-        if(modoAtual.equals(SERVIDOR_MODO)) {
-            broadcastTodos(msg);
-        } else {
-            enviarMsg(msg);
-        }
-    }
     public static final String URL_VERSAO = "https://focadoestudios.netlify.app/pacotes/minimine/versao.txt";
     public static final String URL_APK = "https://focadoestudios.netlify.app/pacotes/minimine/MiniMine.apk";
     public static final String URL_JAR = "https://focadoestudios.netlify.app/pacotes/minimine/minimine.jar";
@@ -466,20 +348,20 @@ public class Net {
          * temAtualizacao: true se encontrou versão nova
          * novaVersao: "0.1.2", ou null se sem internet/erro
          * tipo: "OFICIAL", "BETA" ou "ALFA"
-		*/
+         */
         void aoVerificar(boolean temAtualizacao, String novaVersao, String tipo);
     }
 
-	public interface ResultadoDownload {
-		void aoBaixar(String caminho);
-	}
+    public interface ResultadoDownload {
+        void aoBaixar(String caminho);
+    }
     /*
      * verifica em segundo plano se ha uma versão nova disponivel
      * comparação por hierarquia:
      *   [0] oficial -> mudança mais importante
      *   [1] beta -> mudança intermediária
      *   [2] alfa -> mudança mais frequente/menos polida
-	 */
+     */
     public static void verificarAtualizacao(final ResultadoAtualizacao padrao) {
         new Thread(new Runnable() {
 				public void run() {
@@ -561,7 +443,7 @@ public class Net {
      * ao terminar(ou falhar), chama padrao.aoBaixar(caminho) na thread principal
      *   caminho != null -> sucesso
      *   caminho == null -> falha
-	 */
+     */
     public static void baixarAtualizacao(final String destino, final ResultadoDownload padrao) {
         final String urlDownload = (Gdx.app.getType() == Application.ApplicationType.Android)
             ? URL_APK : URL_JAR;
@@ -623,10 +505,6 @@ public class Net {
                 Gdx.app.error(NOME, "Erro ao fechar servidor socket.", e);
             }
             servidorSocket = null;
-        }
-        if(attSocket != null) {
-            attSocket.close();
-            attSocket = null;
         }
         conectado = false;
         if(clienteSocket != null) {

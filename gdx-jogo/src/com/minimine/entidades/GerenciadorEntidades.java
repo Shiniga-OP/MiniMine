@@ -1,8 +1,13 @@
 package com.minimine.entidades;
 
-import com.minimine.entidades.*;
-import com.minimine.mundo.*;
-import java.util.*;
+import java.util.Iterator;
+import java.util.Random;
+import com.minimine.mundo.Mundo;
+import com.minimine.mundo.Chave;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import com.minimine.cenas.Jogo;
 
 public class GerenciadorEntidades {
 	public static final Random aleatorio = new Random();
@@ -16,8 +21,16 @@ public class GerenciadorEntidades {
 		final Iterator<Entidade> it = mundo.entidades.iterator();
 		while(it.hasNext()) {
 			final Entidade e = it.next();
-			final long chaveE = Chave.calcularChave((int)e.posicao.x >> 4, (int)e.posicao.z >> 4);
-			if(!mundo.chunks.containsKey(chaveE)) {
+			
+			boolean ehVisivel = false;
+			
+			for(Jogador jgR :Jogo.jogadores) {
+				if(mundo.noRaioVisivel(jgR, e.posicao.x, e.posicao.z)) {
+					ehVisivel = true;
+					break;
+				}
+			}
+			if(!ehVisivel) {
 				e.liberar();
 				it.remove();
 			}

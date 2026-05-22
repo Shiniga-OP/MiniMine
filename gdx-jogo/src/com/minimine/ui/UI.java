@@ -399,9 +399,6 @@ public class UI implements InputProcessor {
 
     // loop principal
     public void att(float delta, Mundo mundo) {
-        attCamera(camera.direction, jg.yaw, jg.tom);
-        camera.up.set(0, 1, 0);
-
         if(!gui) return;
 
         Gdx.gl.glActiveTexture(GL20.GL_TEXTURE1);
@@ -606,7 +603,7 @@ public class UI implements InputProcessor {
 					   jg.velo, jg.altura,
 					   jg.direita, jg.esquerda, jg.frente, jg.tras, jg.cima, jg.baixo, jg.acao,
 					   mundo.nome, jg.bioma, mundo.RAIO_CHUNKS, mundo.chunks.size(),
-					   mundo.chunksMod.size(), mundo.semente, Jogo.render.diaNoite.tempo, Jogo.render.diaNoite.tempo_velo),
+					   mundo.chunksMod.size(), mundo.semente, mundo.diaNoite.tempo, mundo.diaNoite.tempo_velo),
 				   50, telaH - 100);
         fonte.draw(sb, String.format(
 					   "FPS: %d\nGPU:\nDesenhos: %d\nVértices: %.0f\nTrocas de Shader: %d\nLinks de textura: %d\n" +

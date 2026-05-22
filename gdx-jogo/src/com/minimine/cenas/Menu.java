@@ -95,49 +95,7 @@ public class Menu implements Screen, InputProcessor {
 		Jogo.graficosTeste = prefs.getBoolean("graficosTeste", Jogo.graficosTeste);
         Gdx.input.setCursorCatched(false);
 
-        if(atualizar) {
-            dialogoSair.mostrar(
-                "Atualização disponível!",
-                "Nova versão " + novaVersao + " (" + tipo + ") encontrada!\nDeseja baixar agora?",
-                new CaixaDialogo.Fechar() {
-                    public void aoFechar(boolean confirmou) {
-                        if(!confirmou) return;
-                        iniciarDownload();
-                    }
-                }
-            );
-        }
 		Musicas.pausar();
-    }
-
-    public static void procurarAtt() {
-        Net.verificarAtualizacao(new Net.ResultadoAtualizacao() {
-				public void aoVerificar(boolean temAtualizacao, String novaVersao, String tipo) {
-					if(!temAtualizacao) return;
-					atualizar = true;
-					Menu.novaVersao = novaVersao;
-					Menu.tipo = tipo;
-				}
-			});
-    }
-
-    public void iniciarDownload() {
-        final String destino;
-        if(com.badlogic.gdx.Application.ApplicationType.Android.equals(Gdx.app.getType())) {
-            destino = Inicio.externo + "/MiniMine/tmp/MiniMine.apk";
-        } else {
-            destino = System.getProperty("user.dir") + "/minimine.jar";
-        }
-        Net.baixarAtualizacao(destino, new Net.ResultadoDownload() {
-				public void aoBaixar(String caminho) {
-					if(caminho == null) {
-						Gdx.app.log("[Menu]", "Falha no download da atualização.");
-						return;
-					}
-					Gdx.app.log("[Menu]", "Atualização baixada: " + caminho);
-					Inicio.instalador.instalar(caminho);
-				}
-			});
     }
 
     public void criarInterface() {

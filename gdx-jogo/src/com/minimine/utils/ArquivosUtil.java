@@ -100,7 +100,9 @@ public final class ArquivosUtil {
 				}
                 // ciclo.bin
                 zos.putNextEntry(new ZipEntry("ciclo.bin"));
-                gravarCiclo(dos);
+                dos.writeFloat(mundo.diaNoite.tempo);
+				dos.writeFloat(mundo.diaNoite.tempo_velo);
+				dos.flush();
                 dos.flush();
                 zos.closeEntry();
                 zos.finish();
@@ -177,8 +179,8 @@ public final class ArquivosUtil {
                         lerInventario(dis, jogador);
                         if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] inventario.bin lido");
                     } else if("ciclo.bin".equals(nome)) {
-                        Jogo.render.diaNoite.tempo = dis.readFloat();
-                        Jogo.render.diaNoite.tempo_velo = dis.readFloat();
+                        mundo.diaNoite.tempo = dis.readFloat();
+                        mundo.diaNoite.tempo_velo = dis.readFloat();
                         if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] ciclo.bin lido");
                     } else {
                         // garante consumo da entrada
@@ -226,12 +228,6 @@ public final class ArquivosUtil {
 			}
 		}
 		dos.flush();
-    }
-
-    public static void gravarCiclo(DataOutputStream dos) throws IOException {
-        dos.writeFloat(Jogo.render.diaNoite.tempo);
-        dos.writeFloat(Jogo.render.diaNoite.tempo_velo);
-        dos.flush();
     }
 
     public static void lerInventario(DataInputStream dis, Jogador jogador) throws IOException {

@@ -119,8 +119,6 @@ public class Intro implements Screen {
 		}
 		sb = new SpriteBatch();
         fonte = InterUtil.carregarFonte("fontes/pixel.ttf", 30);
-		
-		Menu.procurarAtt();
     }
 
     @Override  

@@ -45,6 +45,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.minimine.utils.DiaNoiteUtil;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -98,12 +99,17 @@ public class Mundo {
 
     public static MotorGeracao motor;
     public static RegistroBiomas registroBiomas;
+	
+	public static DiaNoiteUtil diaNoite;
 
     // buffer nativo reutilizavel pra glGenBuffers, alocado uma vez, usado na thread GL
     public static final java.nio.IntBuffer GL_BUFFER =
 	java.nio.ByteBuffer.allocateDirect(12).order(java.nio.ByteOrder.nativeOrder()).asIntBuffer();
 
     public void iniciar() {
+		this.diaNoite = new DiaNoiteUtil();
+		if(ciclo) diaNoite.iniciar();
+		
         semente = semente == 0 ? (System.currentTimeMillis() ^ MathUtils.random(2, 10)) : semente;
 
         registroCriaturas = new RegistroCriaturas();
@@ -161,6 +167,7 @@ public class Mundo {
         TarefasUtil.liberar();
         if(com.minimine.ui.UI.debug) Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
         ArrayReuso.limparPools();
+		if(ciclo) diaNoite.liberar();
     }
 
     // === ACESSO ===
@@ -757,4 +764,15 @@ public class Mundo {
         }
 		plano = dis.readBoolean();
     }
+	
+	// util:
+	public static boolean noRaioVisivel(Jogador jg, float x, float z) {
+		final int distX = Mat.abs((int)(jg.posicao.x - x));
+		final int distZ = Mat.abs((int)(jg.posicao.z - z));
+
+		if(distX > RAIO_CHUNKS || distZ > RAIO_CHUNKS) {
+			return false;
+		}
+		return true;
+	}
 }

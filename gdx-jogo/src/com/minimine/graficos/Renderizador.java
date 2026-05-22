@@ -13,7 +13,6 @@ import java.util.List;
 
 public class Renderizador {
 	public static Mundo mundo;
-	public static DiaNoiteUtil diaNoite;
 	public static UI ui;
 	public static boolean pause = false;
 	public static GerenciadorParticulas gp;
@@ -25,7 +24,7 @@ public class Renderizador {
         this.ui = new UI(jogadores.get(0));
 		this.jogadores = jogadores;
         this.mundo = mundo;
-		this.diaNoite = new DiaNoiteUtil();
+		
 	}
 	
 	public void iniciar() {
@@ -44,7 +43,6 @@ public class Renderizador {
         mundo.liberar();
 		mb.dispose();
         gp.liberar();
-		if(mundo.ciclo) diaNoite.liberar();
 	}
 	
 	public static void renderChunk(Chunk chunk, int iboId, int posIndices, int contaIndices, ShaderProgram shader) {

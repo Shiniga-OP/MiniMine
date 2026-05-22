@@ -39,6 +39,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInputStream;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
+import com.minimine.ui.UI;
 
 public class Jogador extends Entidade {
 	public int modo = 2;
@@ -84,7 +85,7 @@ public class Jogador extends Entidade {
 		vidaMax = 20;
 		camera = com.minimine.ui.UI.criarCamera();
 		this.inv = new Inventario(this);
-		Jogo.relogio.schedule(
+		Jogo.servidor.relogio.schedule(
 			new java.util.TimerTask() {
 				@Override
 				public void run() {
@@ -92,7 +93,6 @@ public class Jogador extends Entidade {
 					bioma = Mundo.motor.obterBioma((int)posicao.x, (int)posicao.z);
 				}
 			}, 0, 500);
-		trocarPessoa();
 		attModelo();
 	}
 
@@ -139,7 +139,7 @@ public class Jogador extends Entidade {
 						Mundo.entidades.add(deixado);
 					}
 					// servidor aplica e faz echo de volta, não aplica local
-					if(Jogo.net != null) Jogo.net.enviarBloco(x, y, z, 0);
+					if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0);
 					Bloco.tocarSom(bloco.nome);
 					if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
 				} else {
@@ -159,7 +159,7 @@ public class Jogador extends Entidade {
 						final Bloco blocoColocar = Bloco.texIds.get(item);
 						final int idColocar = blocoColocar != null ? blocoColocar.tipo : 0;
 						// servidor aplica e faz echo de volta, não aplica local
-						if(Jogo.net != null) Jogo.net.enviarBloco(xAnt, yAnt, zAnt, idColocar);
+						if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(xAnt, yAnt, zAnt, idColocar);
 						Bloco.tocarSom(item);
 						if(blocoColocar != null && blocoColocar.evento != null) {
 							blocoColocar.evento.aoColocar(xAnt, yAnt, zAnt);
@@ -180,6 +180,9 @@ public class Jogador extends Entidade {
 
 	@Override
 	public void att(float delta) {
+		UI.attCamera(camera.direction, yaw, tom);
+        camera.up.set(0, 1, 0);
+		
 		if(modo == 0) voando = true;
 		if(tempoDuploPulo > 0f) tempoDuploPulo -= delta;
 
@@ -285,7 +288,7 @@ public class Jogador extends Entidade {
 		} else {
 			forcaMov = Math.max(0f, forcaMov - delta * 5f);
 		}
-		if(pessoa == 0) {
+		if(pessoa == 0 || pessoa == 3) {
 			// primeira pessoa: camera no olho do jogador, desce ao agachar
 			final float alturaOlho = agachado ? altura * 0.72f : altura * 0.9f;
 			camera.position.set(posicao.x, posicao.y + alturaOlho, posicao.z);
@@ -351,11 +354,11 @@ public class Jogador extends Entidade {
 
 			mb.flush();
 			Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
-		} else {
-			// terceira pessoa: modelo rotaciona pelo yaw do corpo
+		} else if(pessoa == 1 || pessoa == 3) {
+			// renderiza modelo e rotaciona pelo yaw do corpo
 			instancia.transform.idt();
 			instancia.transform.translate(posicao.x, posicao.y, posicao.z);
-			instancia.transform.rotate(Vector3.Y, yawTronco);
+			instancia.transform.rotate(Vector3.Y, yawTronco + 180f);
 
 			instancia.transform.scale(tam, tam, tam);
 			attAnimacao();

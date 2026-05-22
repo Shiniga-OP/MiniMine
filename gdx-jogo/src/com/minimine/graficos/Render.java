@@ -131,8 +131,7 @@ public class Render extends Renderizador {
         gp = new GerenciadorParticulas(ui.jg);
 
         if(mundo.nuvens) NuvensUtil.iniciar(ui.jg.posicao);
-        if(mundo.ciclo) diaNoite.iniciar();
-
+        
 		mb = new ModelBatch(new DefaultShaderProvider() {
 				@Override
 				protected Shader createShader(Renderable r) {
@@ -150,7 +149,7 @@ public class Render extends Renderizador {
 			Gdx.gl.glEnable(GL20.GL_CULL_FACE);
 			Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
-			if(mundo.ciclo) diaNoite.att(ui.jg.camera, delta);
+			if(mundo.ciclo) mundo.diaNoite.att(ui.jg.camera, delta);
 			
 			mundo.att(delta, ui.jg);
 			
@@ -190,8 +189,8 @@ public class Render extends Renderizador {
 			shader.begin();
 
 			shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);
-			shader.setUniformf("u_luzCeu", diaNoite.luz);
-			shader.setUniformf("u_corCeu", diaNoite.corCeuR, diaNoite.corCeuG, diaNoite.corCeuB);
+			shader.setUniformf("u_luzCeu", mundo.diaNoite.luz);
+			shader.setUniformf("u_corCeu", mundo.diaNoite.corCeuR, mundo.diaNoite.corCeuG, mundo.diaNoite.corCeuB);
 
 			// == envia dados do atlas pro shader ===
 			// envia a tabela de pesquisa uma vez por frame(ou quando mudar)
@@ -244,8 +243,8 @@ public class Render extends Renderizador {
 			Gdx.gl.glDepthMask(true);
 			shader.begin();
 			shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);
-			shader.setUniformf("u_luzCeu", diaNoite.luz);
-			shader.setUniformf("u_corCeu", diaNoite.corCeuR, diaNoite.corCeuG, diaNoite.corCeuB);
+			shader.setUniformf("u_luzCeu", mundo.diaNoite.luz);
+			shader.setUniformf("u_corCeu", mundo.diaNoite.corCeuR, mundo.diaNoite.corCeuG, mundo.diaNoite.corCeuB);
 			shader.setUniform4fv("u_atlasRects", BlocoModelo.dadosAtlas, 0, 256 * 4);
 			Texturas.blocos.bind(0);
 			shader.setUniformi("u_textura", 0);

@@ -42,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MultiMenu implements Screen, InputProcessor {
     public static String modoRede = null;
+    public static Net netClientePronto = null;
 
     public SpriteBatch pincel;
     public ShapeRenderer pincelFormas;
@@ -284,7 +285,6 @@ public class MultiMenu implements Screen, InputProcessor {
             public void exec() {
                 String ip = ipDigitado.trim();
                 if(ip.isEmpty()) return;
-				ip = ip.split("/")[0].trim();
                 conectarPorIP(ip);
             }
         };
@@ -383,7 +383,7 @@ public class MultiMenu implements Screen, InputProcessor {
             if(buscaNet.IP != null && buscaNet.conectado) {
                 rotuloStatus.texto = "Servidor encontrado! Entrando...";
                 Net.ultimoIP = buscaNet.IP;
-                Jogo.net = buscaNet; // passa a conexão existente para o Jogo
+                MultiMenu.netClientePronto = buscaNet; // Jogo vai pegar isso no show()
                 buscaNet = null; // desvincula sem liberar
                 Inicio.defTela(Cenas.jogo);
             } else if(conectandoPorIP && buscaNet.IP != null && !buscaNet.conectado && tempoBusca >= 6f) {
