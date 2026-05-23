@@ -120,7 +120,6 @@ public final class DadosBioma {
     public static DadosBioma compilar(String chave, String json) {
         Map<String, Object> raiz = MJson.praObjeto(MJson.analisar(json));
         String nome = MJson.obterString(raiz, "nome", chave);
-        Gdx.app.log("[DadosBioma]", "carregado: " + nome);
         float peso = MJson.obterFloat(raiz, "peso", 1.0f);
         int altMin = MJson.obterInt(raiz, "alt_min", 0);
         int altMax = MJson.obterInt(raiz, "alt_max", 255);

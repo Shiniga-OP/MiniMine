@@ -180,7 +180,8 @@ public class Net {
                         String[] p = msg.split(":");
                         if(p.length >= 4) { identidade = p[2]; nome = p[3]; }
                     }
-                    broadcast(msg, this);
+                    if(msg.startsWith("BLOCO:")) broadcast(msg, null);
+                    else broadcast(msg, this);
                     if(ouvinte != null) {
                         final OuvinteMensagem ov = ouvinte;
                         Gdx.app.postRunnable(new Runnable() {
@@ -356,5 +357,3 @@ public class Net {
         }
     }
 }
-
-

@@ -91,7 +91,7 @@ public class BlocoEstrutura {
      * cada int[3] = { x global, y global, z global }
      * dimensões e posições lidos do meta a cada frame pelo Render
      */
-    public static final List<int[]> bcaixas = new ArrayList<int[]>();
+    public static final List<int[]> bcaixas = new ArrayList<>();
 
     public static void addBcaixa(int x, int y, int z) {
         defDimensoes(x, y, z, DEF_LARG, DEF_ALT, DEF_PROF);

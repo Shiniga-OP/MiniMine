@@ -23,6 +23,7 @@ import com.minimine.servidor.ServidorInterno;
 import java.util.Timer;
 import com.minimine.utils.DiaNoiteUtil;
 import com.minimine.utils.TarefasUtil;
+import com.minimine.Inicio;
 
 public class Jogo implements Screen {
     public static Mundo mundo;
@@ -40,31 +41,27 @@ public class Jogo implements Screen {
     @Override
     public void show() {
 		servidor = new ServidorInterno();
-
+		servidor.relogio = new Timer();
         mundo = new Mundo();
         jogadores = new ArrayList<>();
+		Jogador jogador = new Jogador(identidade);
+        jogador.modo = modo;
+        jogadores.add(jogador);
 		TarefasUtil.iniciar();
 
         Bloco.iniciar();
-
+		
         // solo/multi servidor: sobe servidor interno(carrega mundo, abre socket)
         // cliente remoto: pula servidor, mundo vem do servidor via protocolo
         if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
             servidor.iniciar(mundo, jogadores);
         } else {
             servidor.mundo = mundo;
-            servidor.relogio = new Timer();
 			mundo.diaNoite = new DiaNoiteUtil();
 			if(mundo.ciclo) mundo.diaNoite.iniciar();
 			mundo.iniciar(false);
             servidor.rodando = true;
         }
-        Jogador jogador = new Jogador(identidade);
-        jogador.modo = modo;
-        jogadores.add(jogador);
-
-        mundo.chunksMod.clear();
-
         // solo: sobe servidor interno e conecta cliente local em 127.0.0.1
         // multi servidor: idem, mas outros clientes também podem conectar
         // multi cliente: pula o servidor interno, conecta direto ao remoto
@@ -84,9 +81,9 @@ public class Jogo implements Screen {
             public void aoReceber(String msg) {
 				if(msg.startsWith("ID:")) {
 					servidor.enviarMsg(String.format(
-										   "ENTROU:%d:%s:%s",
-										   servidor.netCliente.idLocal, identidade, nome
-									   ));
+						"ENTROU:%d:%s:%s",
+						servidor.netCliente.idLocal, identidade, nome
+					));
 				}
                 servidor.processarMsg(msg);
             }
@@ -124,7 +121,7 @@ public class Jogo implements Screen {
 
                 servidor.enviarPosicao(
                     jg.posicao.x, jg.posicao.y, jg.posicao.z,
-                    jg.yaw, jg.tom
+                    jg.yaw, jg.tom, jg.item
                 );
             }
         }

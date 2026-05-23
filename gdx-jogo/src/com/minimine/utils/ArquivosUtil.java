@@ -61,7 +61,7 @@ public final class ArquivosUtil {
 
     // salva o mundo compactado(.mini), e faz escrita atomica para evitar arquivos truncados
     public static void svMundo(Mundo mundo, List<Jogador> jogadores) {
-        File pasta = new File(Inicio.externo + "/MiniMine/mundos");
+        File pasta = obter(Inicio.externo + "/MiniMine/mundos");
         if(!pasta.exists()) pasta.mkdirs();
 
         File destino = new File(pasta, URLEncoder.encode(mundo.nome) + ".mini");
@@ -85,19 +85,17 @@ public final class ArquivosUtil {
                 dos.flush();
                 zos.closeEntry();
                 // jogador.bin
-				for(int i = 0; i < jogadores.size(); i++) {
-					zos.putNextEntry(new ZipEntry(i == 0 ? "jogador.bin" : "jogador_"+i+".bin"));
-					jogadores.get(i).salvar(dos);
+				for(Jogador jg : jogadores) {
+					zos.putNextEntry(new ZipEntry(jg.id + ".bin"));
+					jg.salvar(dos);
 					dos.flush();
 					zos.closeEntry();
 				}
                 // inventario.bin
-				for(int i = 0; i < jogadores.size(); i++) {
-					zos.putNextEntry(new ZipEntry(i == 0 ? "inventario.bin" : "inventario_"+i+".bin"));
-					gravarInventario(dos, jogadores.get(i));
-					dos.flush();
-					zos.closeEntry();
-				}
+				zos.putNextEntry(new ZipEntry(jogadores.get(0).id+"_inv.bin"));
+				gravarInventario(dos, jogadores.get(0));
+				dos.flush();
+				zos.closeEntry();
                 // ciclo.bin
                 zos.putNextEntry(new ZipEntry("ciclo.bin"));
                 dos.writeFloat(mundo.diaNoite.tempo);
@@ -139,7 +137,7 @@ public final class ArquivosUtil {
     }
     // carrega o mundo, nao marca Mundo.carregado a menos que o carregamento seja concluído com sucesso
     public static void crMundo(Mundo mundo, Jogador jogador) {
-        File arquivo = new File(Inicio.externo + "/MiniMine/mundos/" + mundo.nome + ".mini");
+        File arquivo = obter(Inicio.externo + "/MiniMine/mundos/" + URLEncoder.encode(mundo.nome) + ".mini");
         if(!arquivo.exists() || arquivo.length() <= 4) {
             if(debug) Gdx.app.log("ArquivosUtil", "[INFO] .mini não existe ou é muito pequeno: " + arquivo.getAbsolutePath());
             Mundo.carregado = false;
@@ -172,10 +170,10 @@ public final class ArquivosUtil {
                     } else if("mundo.bin".equals(nome)) {
                         mundo.carregar(dis);
                         if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] mundo.bin lido");
-                    } else if("jogador.bin".equals(nome)) {
+                    } else if((jogador.id + ".bin").equals(nome)) {
                         jogador.carregar(dis);
                         if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] jogador.bin lido");
-                    } else if("inventario.bin".equals(nome)) {
+                    } else if((jogador.id+"_inv.bin").equals(nome)) {
                         lerInventario(dis, jogador);
                         if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] inventario.bin lido");
                     } else if("ciclo.bin".equals(nome)) {
@@ -320,11 +318,11 @@ public final class ArquivosUtil {
                         if(id == 0) continue;
                         Bloco b = Bloco.numIds.get(id);
                         if(b == null) continue;
-                        if(ID_BLOCO_NULO.equals("" + b.nome)) continue;
+                        if(ID_BLOCO_NULO.equals(b.nome)) continue;
                         dos.writeInt(lx);
                         dos.writeInt(ly);
                         dos.writeInt(lz);
-                        dos.writeUTF("" + b.nome);
+                        dos.writeUTF(b.nome);
 						dos.writeShort(Mundo.obterMetaMundo(baseX + lx, baseY + ly, baseZ + lz));
                     }
                 }
@@ -410,7 +408,6 @@ public final class ArquivosUtil {
                 d.ids[i] = dis.readUTF();
                 d.meta[i] = dis.readShort();
             }
-            if(debug) Gdx.app.log("ArquivosUtil", "[AVISO] estrutura carregada: " + nome + " (" + total + " blocos)");
             return d;
         } catch(Throwable t) {
             Gdx.app.log("ArquivosUtil", "[ERRO] falha ao ler .minies '" + nome + "': " + t.getMessage());
@@ -616,9 +613,8 @@ public final class ArquivosUtil {
 			jar.close();
 
 			return encontrados.toArray(new FileHandle[0]);
-		} catch (Exception e) {
+		} catch(Exception e) {
 			throw new RuntimeException("falha ao varrer JAR em: " + pasta.path(), e);
 		}
 	}
 }
-

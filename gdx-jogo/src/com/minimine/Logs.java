@@ -5,6 +5,8 @@ import com.minimine.utils.ArquivosUtil;
 
 public class Logs implements ApplicationLogger {
 	public static String logs = "";
+	
+	
 
 	@Override
 	public void debug(String string, String string1) {
@@ -34,9 +36,9 @@ public class Logs implements ApplicationLogger {
 		ArquivosUtil.escrever(Inicio.externo+"/MiniMine/debug/logs.txt", logs);
 	}
 
-	public static void log(String msg) {
-		logs += msg + "\n";
-		System.out.println(msg + "\n");
+	public static void log(Object msg) {
+		logs += msg.toString() + "\n";
+		System.out.println(msg.toString() + "\n");
 		ArquivosUtil.escrever(Inicio.externo+"/MiniMine/debug/logs.txt", logs);
 	}
 

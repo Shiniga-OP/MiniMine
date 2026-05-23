@@ -48,10 +48,13 @@ public class ServidorInterno {
 	public void iniciar(final Mundo mundo, final List<Jogador> jogadores) {
 		if(rodando) return;
 		rodando = true;
-
+		
 		// carrega o mundo antes de abrir o socket, servidor é a fonte de verdade
 		if(ArquivosUtil.existe(Inicio.externo + "/MiniMine/mundos/" + mundo.nome + ".mini")) {
 			ArquivosUtil.crMundo(mundo, jogadores.isEmpty() ? null : jogadores.get(0));
+		} else {
+			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado");
+			Gdx.app.log("[Servidor]", "criando novo mundo");
 		}
 		mundo.diaNoite = new DiaNoiteUtil();
 		if(mundo.ciclo) mundo.diaNoite.iniciar();
@@ -62,7 +65,7 @@ public class ServidorInterno {
 		netServidor = new Net(Net.SERVIDOR_MODO);
 		netServidor.ouvinte = new Net.OuvinteMensagem() {
 			public void aoReceber(String msg) {
-				processarMsg(msg);
+				// servidor só repassa, processamento é feito pelo cliente via echo
 			}
 		};
 		netServidor.ouvinteConexao = new Net.OuvinteConexao() {
@@ -126,7 +129,7 @@ public class ServidorInterno {
                 float z = Float.parseFloat(p[4]);
                 float yaw = Float.parseFloat(p[5]);
                 float tom = Float.parseFloat(p[6]);
-                int marcas = p.length > 7 ? Integer.parseInt(p[7]) : 0;
+                int marcas = Integer.parseInt(p[7]);
 
                 Jogador jgRede = jogadoresRede.get(id);
 				if(jgRede == null) return;
@@ -141,6 +144,7 @@ public class ServidorInterno {
                 jgRede.direita = (marcas & 8) != 0;
                 jgRede.voando = (marcas & 16) != 0;
                 jgRede.agachado = (marcas & 32) != 0;
+				jgRede.item = p[8];
             } catch(NumberFormatException e) {}
         } else if(msg.startsWith("MUNDO:")) {
             String[] p = msg.split(":");
@@ -218,11 +222,11 @@ public class ServidorInterno {
         }
     }
 
-	public void enviarPosicao(float x, float y, float z, float yaw, float tom) {
+	public void enviarPosicao(float x, float y, float z, float yaw, float tom, String item) {
         Jogador jg = Jogo.jogadores.get(0);
         int marcas = (jg.frente ? 1 : 0) | (jg.tras ? 2 : 0) | (jg.esquerda ? 4 : 0)
             | (jg.direita ? 8 : 0) | (jg.voando ? 16 : 0) | (jg.agachado ? 32 : 0);
-        String msg = String.format(Locale.US, "POS:%d:%f:%f:%f:%f:%f:%d", netCliente.idLocal, x, y, z, yaw, tom, marcas);
+        String msg = String.format(Locale.US, "POS:%d:%f:%f:%f:%f:%f:%d:%s", netCliente.idLocal, x, y, z, yaw, tom, marcas, item);
         enviarMsg(msg);
     }
 
@@ -233,7 +237,7 @@ public class ServidorInterno {
 	/*
 	 * serializa uma chunk para uma unica linha do protocolo:
 	 * CHUNK:cx:cz:usaPaleta:paletaBits:paletaTam:paleta(csv):bitsPorBloco:blocosPorInt:blocos(csv):luz(csv):meta(csv)
-	 */
+	*/
 	public static String serializarChunk(Chunk chunk) {
 		StringBuilder sb = new StringBuilder("CHUNK:");
 		sb.append(chunk.x).append(':').append(chunk.z).append(':');
@@ -271,9 +275,7 @@ public class ServidorInterno {
 		}
 		return sb.toString();
 	}
-	/*
-	 * reconstroi uma chunk a partir da linha do protocolo e insere em chunksMod
-	 */
+	// reconstroi uma chunk a partir da linha do protocolo e insere em chunksMod
 	public void deserializarChunk(String msg) {
 		// formato: CHUNK:cx:cz:usaPaleta:paletaBits:paletaTam:paleta(csv):bitsPorBloco:blocosPorInt:blocos(csv):luz(csv):meta(csv)
 		// usa indexOf para evitar split que quebraria os csv internos
@@ -356,17 +358,11 @@ public class ServidorInterno {
 			Gdx.app.error("[Servidor]", "Erro ao deserializar chunk: " + e.getMessage());
 		}
 	}
-	/*
-	 * para o servidor interno e salva o mundo
-	 */
+	// para o servidor interno e salva o mundo
 	public void parar(Mundo mundo, List<Jogador> jogadores) {
 		if(!rodando) return;
 		rodando = false;
-
-		if(netCliente != null) {
-            netCliente.liberar();
-            netCliente = null;
-        }
+		
 		// so salva e fecha servidor se for servidor
 		if(netServidor != null) {
 			try {
@@ -377,10 +373,17 @@ public class ServidorInterno {
 			netServidor.liberar();
 			netServidor = null;
 		}
+		if(netCliente != null) {
+            netCliente.liberar();
+            netCliente = null;
+        }
 		chunksMod.clear();
 		jogadoresRede.clear();
 		relogio.cancel();
+		for(Jogador jg : Jogo.jogadores) {
+			jg.liberar();
+		}
+		mundo.liberar();
 		Gdx.app.log("[Servidor]", "Servidor interno encerrado.");
 	}
 }
-

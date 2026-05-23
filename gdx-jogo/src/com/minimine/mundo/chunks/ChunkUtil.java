@@ -65,7 +65,7 @@ public class ChunkUtil {
 		}
 	}
 
-	public static void defBloco(int x, int y, int z, CharSequence nome, Chunk chunk) {
+	public static void defBloco(int x, int y, int z, String nome, Chunk chunk) {
 		defBloco(x, y, z, nome.equals("ar") ? 0 : Bloco.texIds.get(nome).tipo, chunk);
 	}
 

@@ -130,7 +130,6 @@ public final class DadosCriatura {
             chanceNascimento = MJson.obterFloat(orig, "chance", 0f);
             maxNascimento = MJson.obterInt(orig, "max", 1);
         }
-        Gdx.app.log("[DadosCriatura]", "carregado: " + nome);
         return new DadosCriatura(nome, raridade, modelo,
 		largura, altura, profundidade,
 		velo, peso, pulo,

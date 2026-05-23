@@ -99,7 +99,7 @@ public class Mundo {
 
     public static MotorGeracao motor;
     public static RegistroBiomas registroBiomas;
-	
+
 	public static DiaNoiteUtil diaNoite;
 
     // buffer nativo reutilizavel pra glGenBuffers, alocado uma vez, usado na thread GL
@@ -159,7 +159,7 @@ public class Mundo {
         filaEstrutura.clear();
         filaTam.clear();
         entidades.clear();
-        
+
         if(com.minimine.ui.UI.debug) Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
         ArrayReuso.limparPools();
 		if(ciclo) diaNoite.liberar();
@@ -176,7 +176,7 @@ public class Mundo {
         return ChunkProcesso.util.obterBloco(x & 0xF, y, z & 0xF, chunk);
     }
 
-    public static void defBlocoMundo(int x, int y, int z, CharSequence bloco) {
+    public static void defBlocoMundo(int x, int y, int z, String bloco) {
 		final Bloco b = Bloco.texIds.get(bloco);
 		defBlocoMundo(x, y, z, b != null ? b.tipo : 0);
 	}
@@ -346,11 +346,11 @@ public class Mundo {
         }
     }
 	/*
-	NOTA:
-	NÃO MEXA NISSO, BFS É MULTIFRAME, SE VOCÊ MEXER NISSO
-	PRA FAZER EM 1 LOOP SO VOCÊ VAI QUEBRAR TUDO E MATAR 
-	TODO MUNDO E FICAR UM MÊS ACHANDO QUE ERA ChunkLuz.java
-	*/
+	 NOTA:
+	 NÃO MEXA NISSO, BFS É MULTIFRAME, SE VOCÊ MEXER NISSO
+	 PRA FAZER EM 1 LOOP SO VOCÊ VAI QUEBRAR TUDO E MATAR 
+	 TODO MUNDO E FICAR UM MÊS ACHANDO QUE ERA ChunkLuz.java
+	 */
     public static void limparChunks(int chunkX, int chunkZ) {
 		praLiberar.clear();
 		praRemover.clear();
@@ -644,7 +644,7 @@ public class Mundo {
      * se a chunk alvo ainda não chegou ao estado 2: enfileira para aplicar em processarEstruturas
      * se a chunk alvo ja passou do estado 1(>= 2): aplica imediatamente e marca para
      *   recalcular luz e malha: o bloco chegou atrasado mas ainda pode ser corrigido
-	 */
+	*/
     public static void enfileirarEstrutura(long chaveAlvo, EstruturaPendente pendente) {
         final int estadoAlvo = estados.getOrDefault(chaveAlvo, 0);
         if(estadoAlvo >= 2) {
@@ -682,7 +682,7 @@ public class Mundo {
             tam[0]++;
         }
     }
-	
+
 	public static void salvar(DataOutputStream dos) throws IOException {
         dos.writeLong(semente);
         // quantos chunks salvos
@@ -710,58 +710,53 @@ public class Mundo {
                     for(int z = 0; z < cz; z++) {
                         int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
                         if(b != 0) {
-							CharSequence bloco = Bloco.numIds.get(b).nome;
                             dos.writeInt(x);
                             dos.writeInt(y);
                             dos.writeInt(z);
-                            dos.writeUTF(""+bloco);
+                            dos.writeUTF(Bloco.numIds.get(b).nome);
                         }
                     }
                 }
             }
-			int metaTam = TAM_CHUNK * Mundo.Y_CHUNK * TAM_CHUNK;
+			int metaTam = chunk.meta.length;
 			dos.writeInt(metaTam);
 			for(int i = 0; i < metaTam; i++) dos.writeShort(chunk.meta[i]);
         }
 		dos.writeBoolean(plano);
         dos.flush();
     }
-	
+
 	public static void carregar(DataInputStream dis) throws IOException {
         semente = dis.readLong();
-        int totalChunks = dis.readInt();
+        final int totalChunks = dis.readInt();
 
         for(int i = 0; i < totalChunks; i++) {
-            long chave = dis.readLong();
+            final long chave = dis.readLong();
 
-            Chunk chunk = new Chunk();
-            chunk.meta = new short[Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK];
-            ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
+            final Chunk chunk = new Chunk();
             chunk.x = Chave.x(chave);
             chunk.z = Chave.z(chave);
+            chunk.chave = chave;
+            ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
 
-            int totalNaoAr = dis.readInt();
+            final int totalNaoAr = dis.readInt();
             for(int k = 0; k < totalNaoAr; k++) {
-                int x = dis.readInt();
-                int y = dis.readInt();
-                int z = dis.readInt();
-                CharSequence id = dis.readUTF();
-                ChunkProcesso.util.defBloco(x, y, z, id, chunk);
+                ChunkProcesso.util.defBloco(
+					dis.readInt(), dis.readInt(), dis.readInt(), dis.readUTF(), chunk
+				);
             }
 			int metaTam = dis.readInt();
 			chunk.meta = new short[metaTam];
 			for(int d = 0; d < metaTam; d++) chunk.meta[d] = dis.readShort();
 
             chunksMod.put(chave, chunk);
-			chunks.put(chave, chunk);
 
             chunk.att = true;
 			chunk.dadosProntos = true;
-			estados.put(chave, 2);
         }
 		plano = dis.readBoolean();
     }
-	
+
 	// util:
 	public static boolean noRaioVisivel(Jogador jg, float x, float z) {
 		final int distX = Mat.abs((int)(jg.posicao.x - x));

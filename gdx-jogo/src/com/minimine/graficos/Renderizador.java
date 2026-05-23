@@ -24,7 +24,6 @@ public class Renderizador {
         this.ui = new UI(jogadores.get(0));
 		this.jogadores = jogadores;
         this.mundo = mundo;
-		
 	}
 	
 	public void iniciar() {
@@ -39,8 +38,6 @@ public class Renderizador {
 	
 	public void liberar() {
 		ui.liberar();
-        ui.jg.liberar();
-        mundo.liberar();
 		mb.dispose();
         gp.liberar();
 	}
