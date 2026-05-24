@@ -62,15 +62,48 @@ public class ChunkLuz implements GeradorLuz {
         }
     }
 
+    // buffers ThreadLocal para pré-computar propriedades dos blocos, evitando
+    // pesquisas de HashMap e chamadas a ChunkUtil dentro dos loops quentes
+    public static final ThreadLocal<boolean[]> OPACO_REUSO = new ThreadLocal<boolean[]>() {
+        @Override protected boolean[] initialValue() { return new boolean[TOTAL_BLOCOS]; }
+    };
+    public static final ThreadLocal<byte[]> EMISSAO_REUSO = new ThreadLocal<byte[]>() {
+        @Override protected byte[] initialValue() { return new byte[TOTAL_BLOCOS]; }
+    };
+    // blocos decodificados da chunk: evita 65536 chamadas a lerPacote no pré-compute
+    public static final ThreadLocal<int[]> BLOCOS_REUSO = new ThreadLocal<int[]>() {
+        @Override protected int[] initialValue() { return new int[TOTAL_BLOCOS]; }
+    };
+
     public static void execProcesso(Chunk chunk, boolean soVizinhasProntas) {
         chunk.luzFazendo = true;
 
         final byte[] luzTemp = LUZ_TEMP_REUSO.get();
         final int[] filaLuz = FILA_LUZ_REUSO.get();
+        final boolean[] opaco = OPACO_REUSO.get();
+        final byte[] emissao = EMISSAO_REUSO.get();
+        final int[] blocosDecod = BLOCOS_REUSO.get();
         Arrays.fill(luzTemp, (byte) 0);
         int inicioFila = 0;
         int fimFila = 0;
 
+        // decodifica todos os blocos de uma vez, em ordem linear do array compactado,
+        // aproveitando acesso sequencial ao int[] chunk.blocos em vez de 65536 lerPacote individuais
+        decodificarBlocos(chunk, blocosDecod);
+
+        // pré-computa opacidade e emissão na mesma ordem do loop de luz solar (x->z->y),
+        // agora só faz Bloco.numIds.get de um int[] local, sem lerPacote
+        for(int x = 0; x < 16; x++) {
+            for(int z = 0; z < 16; z++) {
+                final int posXZ = x + (z << 4);
+                for(int y = Y_MAX; y >= 0; y--) {
+                    final int idc = posXZ + (y << 8);
+                    final Bloco b = Bloco.numIds.get(blocosDecod[idc]);
+                    opaco[idc] = b != null && b.render == TipoRender.OPACO;
+                    emissao[idc] = (b != null && b.luz > 0) ? (byte)(b.luz & 0x0F) : 0;
+                }
+            }
+        }
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
                 int luzSolarAtual = 15;
@@ -78,8 +111,6 @@ public class ChunkLuz implements GeradorLuz {
 
                 for(int y = Y_MAX; y >= 0; y--) {
                     final int idc = posXZ + (y << 8);
-                    final int blocoId = ChunkUtil.obterBloco(x, y, z, chunk);
-                    final Bloco b = Bloco.numIds.get(blocoId);
 
                     // aplica a luz solar atual no bloco antes de verificar se ele é opaco,
                     // assim o próprio bloco sólido recebe a luz que vem de cima,
@@ -89,17 +120,17 @@ public class ChunkLuz implements GeradorLuz {
                     if(luzSolarAtual > 0) filaLuz[fimFila++] = idc;
 
                     // bloco opaco interrompe a descida da luz solar para os proximos
-                    if(b != null && b.render == TipoRender.OPACO) luzSolarAtual = 0;
+                    if(opaco[idc]) luzSolarAtual = 0;
 
-                    if(b != null && b.luz > 0) {
-                        luzTemp[idc] |= (byte)(b.luz & 0x0F);
+                    if(emissao[idc] > 0) {
+                        luzTemp[idc] |= emissao[idc];
                         filaLuz[fimFila++] = idc;
                     }
                 }
             }
         }
-        fimFila = importarLuzVizinhas(chunk, luzTemp, filaLuz, fimFila, soVizinhasProntas);
-        fimFila = propagarBFS(chunk, luzTemp, filaLuz, inicioFila, fimFila);
+        fimFila = importarLuzVizinhas(chunk, luzTemp, filaLuz, fimFila, soVizinhasProntas, opaco);
+        fimFila = propagarBFS(chunk, luzTemp, filaLuz, inicioFila, fimFila, opaco);
 
         // detecta mudança de borda e propaga sujo para vizinhas
         boolean mudouNorte = false, mudouSul = false, mudouLeste = false, mudouOeste = false;
@@ -160,7 +191,7 @@ public class ChunkLuz implements GeradorLuz {
     }
 
     public static int propagarBFS(Chunk chunk, byte[] luzTemp, int[] filaLuz,
-	int inicioFila, int fimFila) {
+	int inicioFila, int fimFila, boolean[] opaco) {
         while (inicioFila < fimFila) {
             final int idcAtual = filaLuz[inicioFila++];
             final int luzTotal = luzTemp[idcAtual] & 0xFF;
@@ -197,8 +228,7 @@ public class ChunkLuz implements GeradorLuz {
                 if(mudou) {
                     luzTemp[idcVizinho] = (byte) ((lsV << 4) | lbV);
 
-                    final Bloco bV = Bloco.numIds.get(ChunkUtil.obterBloco(nx, ny, nz, chunk));
-                    if((bV == null || bV.render != TipoRender.OPACO) && fimFila < filaLuz.length) {
+                    if(!opaco[idcVizinho] && fimFila < filaLuz.length) {
                         filaLuz[fimFila++] = idcVizinho;
                     }
                 }
@@ -208,16 +238,16 @@ public class ChunkLuz implements GeradorLuz {
     }
 
     public static int importarLuzVizinhas(Chunk chunk, byte[] luzTemp, int[] filaLuz,
-	int fimFila, boolean apenasVizinhasProntas) {
+	int fimFila, boolean apenasVizinhasProntas, boolean[] opaco) {
         final Chunk norte = filtrarVizinha(Mundo.obterChunk(chunk.x, chunk.z - 1), apenasVizinhasProntas);
         final Chunk sul = filtrarVizinha(Mundo.obterChunk(chunk.x, chunk.z + 1), apenasVizinhasProntas);
         final Chunk leste = filtrarVizinha(Mundo.obterChunk(chunk.x + 1, chunk.z), apenasVizinhasProntas);
         final Chunk oeste = filtrarVizinha(Mundo.obterChunk(chunk.x - 1, chunk.z), apenasVizinhasProntas);
 
-        if(norte != null) fimFila = importarBorda(chunk, norte, luzTemp, filaLuz, fimFila, true, 15, 0);
-        if(sul != null) fimFila = importarBorda(chunk, sul, luzTemp, filaLuz, fimFila, true, 0, 15);
-        if(leste != null) fimFila = importarBorda(chunk, leste, luzTemp, filaLuz, fimFila, false, 0, 15);
-        if(oeste != null) fimFila = importarBorda(chunk, oeste, luzTemp, filaLuz, fimFila, false, 15, 0);
+        if(norte != null) fimFila = importarBorda(norte, luzTemp, filaLuz, fimFila, true, 15, 0, opaco);
+        if(sul != null) fimFila = importarBorda(sul, luzTemp, filaLuz, fimFila, true, 0, 15, opaco);
+        if(leste != null) fimFila = importarBorda(leste, luzTemp, filaLuz, fimFila, false, 0, 15, opaco);
+        if(oeste != null) fimFila = importarBorda(oeste, luzTemp, filaLuz, fimFila, false, 15, 0, opaco);
         return fimFila;
     }
 
@@ -228,8 +258,9 @@ public class ChunkLuz implements GeradorLuz {
 		return vizinha;
 	}
 
-    public static int importarBorda(Chunk chunk, Chunk vizinha, byte[] luzTemp, int[] filaLuz,
-	int fimFila, boolean iteraX, int bordaViz, int bordaNossa) {
+    // vizinha: chunk de onde importamos a luz; opaco[]: da chunk atual(destino)
+    public static int importarBorda(Chunk vizinha, byte[] luzTemp, int[] filaLuz,
+	int fimFila, boolean iteraX, int bordaViz, int bordaNossa, boolean[] opaco) {
         for(int a = 0; a < 16; a++) {
             for(int y = 0; y < Mundo.Y_CHUNK; y++) {
                 final int idcViz = iteraX
@@ -242,14 +273,11 @@ public class ChunkLuz implements GeradorLuz {
 
                 if(lbV <= 1 && lsV <= 1) continue;
 
-                final int bxNossa = iteraX ? a : bordaNossa;
-                final int bzNossa = iteraX ? bordaNossa : a;
-                final Bloco b = Bloco.numIds.get(ChunkUtil.obterBloco(bxNossa, y, bzNossa, chunk));
-                if(b != null && b.render == TipoRender.OPACO) continue;
-
                 final int idcNossa = iteraX
 					? a + (bordaNossa << 4) + (y << 8)
 					: bordaNossa + (a << 4) + (y << 8);
+
+                if(opaco[idcNossa]) continue;
 
                 final int lbNova = lbV - 1;
                 final int lsNova = lsV - 1;
@@ -270,10 +298,39 @@ public class ChunkLuz implements GeradorLuz {
         return fimFila;
     }
 
+    // decodifica chunk.blocos inteiro de uma vez em ordem sequencial,
+    // muito mais eficiente que 65536 chamadas individuais a lerPacote
+    public static void decodificarBlocos(Chunk chunk, int[] dest) {
+        if(chunk.blocos == null) {
+            Arrays.fill(dest, 0);
+            return;
+        }
+        final int bits = chunk.usaPaleta ? chunk.paletaBits : chunk.bitsPorBloco;
+        final int bpi = chunk.blocosPorInt;
+        final int log2 = ChunkUtil.LOG2(bpi);
+        final int mascara = (1 << bits) - 1;
+        final int[] blocos = chunk.blocos;
+        if(chunk.usaPaleta) {
+            final int[] paleta = chunk.paleta;
+            final int palTam = chunk.paletaTam;
+            for(int i = 0; i < TOTAL_BLOCOS; i++) {
+                final int idc = i >> log2;
+                final int bitPos = (i & (bpi - 1)) * bits;
+                final int idcPal = (blocos[idc] >>> bitPos) & mascara;
+                dest[i] = (idcPal >= 0 && idcPal < palTam) ? paleta[idcPal] : 0;
+            }
+        } else {
+            for(int i = 0; i < TOTAL_BLOCOS; i++) {
+                final int idc = i >> log2;
+                final int bitPos = (i & (bpi - 1)) * bits;
+                dest[i] = (blocos[idc] >>> bitPos) & mascara;
+            }
+        }
+    }
+
     public static void zerarLuzBlocoChunk(Chunk chunk) {
         for(int i = 0; i < TOTAL_BLOCOS; i++) {
-            final int luzAtual = chunk.luz[i] & 0xFF;
-            final int luzSolar = (luzAtual >> 4) & 0x0F;
+            final int luzSolar = (chunk.luz[i] >> 4) & 0x0F;
 
             final int x = i & 0xF;
             final int z = (i >> 4) & 0xF;
@@ -287,5 +344,3 @@ public class ChunkLuz implements GeradorLuz {
         }
     }
 }
-
-

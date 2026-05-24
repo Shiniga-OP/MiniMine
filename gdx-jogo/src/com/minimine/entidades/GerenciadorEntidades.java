@@ -18,12 +18,11 @@ public class GerenciadorEntidades {
 
 	public static void att(float delta, Mundo mundo, Jogador jg) {
 		// remove entidades se saiu da area visivel
-		final Iterator<Entidade> it = mundo.entidades.iterator();
-		while(it.hasNext()) {
-			final Entidade e = it.next();
-			
+		for(int i = 0; i < mundo.entidades.size(); i++) {
+			final Entidade e = mundo.entidades.get(i);
+
 			boolean ehVisivel = false;
-			
+
 			for(Jogador jgR :Jogo.jogadores) {
 				if(mundo.noRaioVisivel(jgR, e.posicao.x, e.posicao.z)) {
 					ehVisivel = true;
@@ -32,7 +31,7 @@ public class GerenciadorEntidades {
 			}
 			if(!ehVisivel) {
 				e.liberar();
-				it.remove();
+				mundo.entidades.remove(i);
 			}
 		}
 		if(mundo.carregado) {
@@ -42,7 +41,8 @@ public class GerenciadorEntidades {
 				tentarNascerEntidade(jg, mundo);
 			}
 		}
-		for(Entidade e : mundo.entidades) {
+		for(int i = 0; i < mundo.entidades.size(); i++) {
+			final Entidade e = mundo.entidades.get(i);
 			e.att(delta);
 
 			if(e.naAgua) {
@@ -62,12 +62,12 @@ public class GerenciadorEntidades {
 		// pega um chunk carregado aleatório(estado 2 = malha pronta)
 		final List<Long> disponiveis = new ArrayList<>();
 		for(Map.Entry<Long, Integer> e : mundo.estados.entrySet()) {
-			if(e.getValue() == 2) disponiveis.add(e.getKey());
+			if(e.getValue() == 4) disponiveis.add(e.getKey());
 		}
 		if(disponiveis.isEmpty()) return;
 
 		// embaralha tentando até 5 chunks candidatos
-		for(int t = 0; t < 5; t++) {
+		for(int t = 0; t < 10; t++) {
 			final long chave = disponiveis.get(aleatorio.nextInt(disponiveis.size()));
 			final int cx = Chave.x(chave);
 			final int cz = Chave.z(chave);
@@ -84,9 +84,9 @@ public class GerenciadorEntidades {
 			final int vy = mundo.obterAlturaChao(mx, mz);
 			if(vy <= 1) continue;
 
-			final String bioma = Mundo.motor.obterBioma(mx, mz);
+			final String bioma = mundo.motor.obterBioma(mx, mz);
 
-			final List<DadosCriatura> candidatos = Mundo.registroCriaturas.paraOBioma(bioma);
+			final List<DadosCriatura> candidatos = mundo.registroCriaturas.paraOBioma(bioma);
 			if(candidatos.isEmpty()) return;
 
 			final DadosCriatura escolhido = sortearPorRaridade(candidatos);
@@ -108,4 +108,3 @@ public class GerenciadorEntidades {
 		return lista.get(lista.size() - 1);
 	}
 }
-

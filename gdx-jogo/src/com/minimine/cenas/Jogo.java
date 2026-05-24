@@ -18,12 +18,12 @@ import java.util.List;
 import java.util.ArrayList;
 import com.badlogic.gdx.math.MathUtils;
 import com.minimine.servidor.ServidorInterno;
-import java.util.Timer;
 import com.minimine.utils.DiaNoiteUtil;
-import com.minimine.utils.TarefasUtil;
 import com.minimine.Inicio;
 import java.io.DataInputStream;
 import java.io.IOException;
+import com.minimine.servidor.TarefaTick;
+import com.minimine.utils.TarefasUtil;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
@@ -40,22 +40,22 @@ public class Jogo implements Screen {
 
 	@Override
 	public void show() {
+		TarefasUtil.iniciar();
+		
 		servidor = new ServidorInterno();
-		servidor.relogio = new Timer();
 		mundo = new Mundo();
 		jogadores = new ArrayList<Jogador>();
 		Jogador jogador = new Jogador(identidade);
 		jogador.modo = modo;
 		jogadores.add(jogador);
-		TarefasUtil.iniciar();
 
 		Bloco.iniciar();
 
 		if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
 			servidor.iniciar(mundo, jogadores);
 		} else {
+			servidor.jgUi = jogador;
 			servidor.mundo = mundo;
-			mundo.diaNoite = new DiaNoiteUtil();
 			if(mundo.ciclo) mundo.diaNoite.iniciar();
 			mundo.iniciar(false);
 			servidor.rodando = true;
@@ -86,13 +86,11 @@ public class Jogo implements Screen {
 		if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
 			mundo.iniciar(true);
 		}
-		servidor.relogio.schedule(
-			new java.util.TimerTask() {
-				@Override
-				public void run() {
-					if(musicas) Musicas.tocarAleatorio();
+		servidor.tarefas.add(new TarefaTick() {
+				public void executar(int tick) {
+					if(musicas && tick % 20 == 0) Musicas.tocarAleatorio();
 				}
-			}, 0, 1000);
+			});
 		try {
 			LuaAPI.iniciar();
 		} catch(Exception e) {}
@@ -121,8 +119,8 @@ public class Jogo implements Screen {
 		mundo.carregado = false;
 		render.liberar();
 		Bloco.liberar();
+		servidor.parar(jogadores);
 		TarefasUtil.liberar();
-		servidor.parar(mundo, jogadores);
 	}
 
 	@Override

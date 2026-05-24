@@ -100,7 +100,7 @@ public class Mundo {
     public static MotorGeracao motor;
     public static RegistroBiomas registroBiomas;
 
-	public static DiaNoiteUtil diaNoite;
+	public static DiaNoiteUtil diaNoite = new DiaNoiteUtil();;
 
     // buffer nativo reutilizavel pra glGenBuffers, alocado uma vez, usado na thread GL
     public static final java.nio.IntBuffer GL_BUFFER =
@@ -160,7 +160,7 @@ public class Mundo {
         filaTam.clear();
         entidades.clear();
 
-        if(com.minimine.ui.UI.debug) Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
+        Gdx.app.log("ArrayReuso", ArrayReuso.estatisticas());
         ArrayReuso.limparPools();
 		if(ciclo) diaNoite.liberar();
     }
@@ -372,26 +372,28 @@ public class Mundo {
 				calcularLuz(chave);
 			}
 		}
-		// propaga luz em passes até estabilizar(max 16 = alcance maximo de luz)
-		for(int passe = 0; passe < 16; passe++) {
-			boolean algumaSuja = false;
-			for(Map.Entry<Long, Chunk> e : chunks.entrySet()) {
-				final long chave = e.getKey();
-				final Chunk chunk = e.getValue();
-				final int estado = estados.getOrDefault(chave, 0);
-				if(chunk.att && !chunk.fazendo && estado >= 3) {
-					ChunkProcesso.luz.attLuz(chunk);
-					algumaSuja = true;
-				}
-			}
-			if(!algumaSuja) break;
-		}
-		// gera malha so depois que a luz estabilizou
+		// propaga luz: cada chunk suja é enfileirada como tarefa de geração,
+		// saindo da thread GL, estado 13 = transitorio pra evitar disparo duplo
 		for(Map.Entry<Long, Chunk> e : chunks.entrySet()) {
 			final long chave = e.getKey();
 			final Chunk chunk = e.getValue();
 			final int estado = estados.getOrDefault(chave, 0);
-			if(chunk.att && !chunk.fazendo && estado >= 3) {
+			if(chunk.luzSuja && !chunk.luzFazendo && estado >= 3) {
+				chunk.luzFazendo = true;
+				TarefasUtil.addGeração(new Runnable() {
+						@Override
+						public void run() {
+							ChunkProcesso.luz.attLuz(chunk);
+						}
+					});
+			}
+		}
+		// gera malha: só se a luz desta chunk e das vizinhas não está sendo processada
+		for(Map.Entry<Long, Chunk> e : chunks.entrySet()) {
+			final long chave = e.getKey();
+			final Chunk chunk = e.getValue();
+			final int estado = estados.getOrDefault(chave, 0);
+			if(chunk.att && !chunk.fazendo && !chunk.luzFazendo && !chunk.luzSuja && estado >= 3) {
 				if(vizinhosProntos(chunk.x, chunk.z)) gerarMalha(chave);
 			}
 		}
@@ -644,7 +646,7 @@ public class Mundo {
      * se a chunk alvo ainda não chegou ao estado 2: enfileira para aplicar em processarEstruturas
      * se a chunk alvo ja passou do estado 1(>= 2): aplica imediatamente e marca para
      *   recalcular luz e malha: o bloco chegou atrasado mas ainda pode ser corrigido
-	*/
+	 */
     public static void enfileirarEstrutura(long chaveAlvo, EstruturaPendente pendente) {
         final int estadoAlvo = estados.getOrDefault(chaveAlvo, 0);
         if(estadoAlvo >= 2) {
@@ -768,3 +770,4 @@ public class Mundo {
 		return true;
 	}
 }
+

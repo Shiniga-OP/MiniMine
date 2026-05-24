@@ -9,7 +9,6 @@ import java.util.List;
 import com.minimine.Inicio;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Timer;
 import com.minimine.mundo.chunks.Chunk;
 import com.minimine.mundo.chunks.ChunkProcesso;
 import com.minimine.mundo.Chave;
@@ -23,6 +22,12 @@ import java.io.DataOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
+import com.minimine.entidades.Entidade;
+import com.minimine.entidades.ItemMundo;
+import java.util.Iterator;
+import com.badlogic.gdx.math.MathUtils;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 /*
  * em solo, sobe um Net(SERVIDOR_MODO) local e conecta o cliente
  * via Net(CLIENTE_MODO, "127.0.0.1")
@@ -34,27 +39,31 @@ import java.net.URLEncoder;
  *   - ser a fonte de verdade do Mundo(estado, chunks, blocos)
 
  * O cliente local recebe tudo via protocolo, igual a um cliente remoto
- * Protocolo inteiramente binário: sem String, sem CSV, sem split
  */
 public class ServidorInterno {
 	public Net netServidor = null;
 	public Net netCliente = null;
 	public boolean rodando = false;
-	public Map<Integer, Jogador> jogadoresRede = new HashMap<Integer, Jogador>();
+	public Map<Integer, Jogador> jogadoresRede = new HashMap<>();
 	public Mundo mundo;
-	public Timer relogio;
-	public Map<Long, Chunk> chunksMod = new HashMap<Long, Chunk>();
+	public Thread threadTick;
+	public static int tick = 0;
+	public static final long MS_POR_TICK = 50; // 20 TPS
+	public Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
+	public final List<TarefaTick> tarefas = new ArrayList<>();
+	public Jogador jgUi;
 
 	public void iniciar(final Mundo mundo, final List<Jogador> jogadores) {
 		if(rodando) return;
 		rodando = true;
-
+		
+		jgUi = jogadores.get(0);
+		
 		if(ArquivosUtil.existe(Inicio.externo + "/MiniMine/mundos/" + URLEncoder.encode(mundo.nome) + ".mini")) {
 			ArquivosUtil.crMundo(mundo, jogadores.isEmpty() ? null : jogadores.get(0));
 		} else {
 			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado, criando novo");
 		}
-		mundo.diaNoite = new DiaNoiteUtil();
 		if(mundo.ciclo) mundo.diaNoite.iniciar();
 
 		netServidor = new Net(Net.SERVIDOR_MODO);
@@ -69,17 +78,17 @@ public class ServidorInterno {
 						public void run() {
 							try {
 								// envia estado do mundo
-								byte[] pktMundo = montarMundo(mundo);
+								byte[] pacoteMundo = montarMundo(mundo);
 								synchronized(cliente) {
-									cliente.saida.write(pktMundo);
+									cliente.saida.write(pacoteMundo);
 									cliente.saida.flush();
 								}
 								// envia cada chunk modificada
 								synchronized(mundo.chunksMod) {
 									for(Chunk chunk : mundo.chunksMod.values()) {
-										byte[] pkt = montarChunk(chunk);
+										byte[] pacote = montarChunk(chunk);
 										synchronized(cliente) {
-											cliente.saida.write(pkt);
+											cliente.saida.write(pacote);
 											cliente.saida.flush();
 										}
 									}
@@ -98,16 +107,82 @@ public class ServidorInterno {
 		};
 		int tentativas = 0;
 		while(netServidor.servidorSocket == null && tentativas < 30) {
-			try { Thread.sleep(100); } catch(InterruptedException e) { Thread.currentThread().interrupt(); }
+			try {
+				Thread.sleep(100);
+			} catch(InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
 			tentativas++;
 		}
 		if(netServidor.servidorSocket == null) {
-			Gdx.app.error("[ServidorInterno]", "Timeout ao aguardar socket do servidor interno.");
+			Gdx.app.error("[ServidorInterno]", "Saida ao aguardar socket do servidor interno.");
 		} else {
 			Gdx.app.log("[ServidorInterno]", "Servidor interno pronto.");
 		}
 		this.mundo = mundo;
-		this.relogio = new Timer();
+		threadTick = new Thread(new Runnable() {
+				public void run() {
+					int numTick = 0;
+					while(rodando) {
+						final long inicio = System.currentTimeMillis();
+						tick(numTick++);
+						final long gasto = System.currentTimeMillis() - inicio;
+						final long espera = MS_POR_TICK - gasto;
+						if(espera > 0) {
+							try {
+								Thread.sleep(espera);
+							} catch(InterruptedException e) {
+								Thread.currentThread().interrupt();
+							}
+						}
+					}
+				}
+			});
+		threadTick.setName("servidor-tick");
+		threadTick.setDaemon(true);
+		threadTick.start();
+	}
+
+	// chamado 20x por segundo pela threadTick
+	public void tick(int numTick) {
+		if(mundo == null) return;
+		tick = numTick;
+		final float delta = MS_POR_TICK / 1000f;
+
+		// ciclo dia/noite: DiaNoiteUtil não tem thread propria, avança aqui
+		if(mundo.diaNoite != null && mundo.ciclo) {
+			mundo.diaNoite.tempo += mundo.diaNoite.tempo_velo * delta;
+			if(mundo.diaNoite.tempo > MathUtils.PI2)
+				mundo.diaNoite.tempo -= MathUtils.PI2;
+		}
+		// broadcast de posição dos jogadores de rede para o cliente local
+		if(netServidor != null) {
+			for(Map.Entry<Integer, Jogador> e : jogadoresRede.entrySet()) {
+				Jogador jg = e.getValue();
+				try {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+					DataOutputStream dos = new DataOutputStream(baos);
+					dos.writeByte(Net.PACOTE_POS);
+					dos.writeInt(e.getKey());
+					dos.writeFloat(jg.posicao.x);
+					dos.writeFloat(jg.posicao.y);
+					dos.writeFloat(jg.posicao.z);
+					dos.writeFloat(jg.yaw);
+					dos.writeFloat(jg.tom);
+					int marcas = (jg.frente ? 1 : 0) | (jg.tras ? 2 : 0)
+						| (jg.esquerda ? 4 : 0) | (jg.direita ? 8 : 0)
+						| (jg.voando ? 16 : 0) | (jg.agachado ? 32 : 0);
+					dos.writeInt(marcas);
+					Net.escreverUTF(dos, jg.item);
+					dos.flush();
+					netServidor.broadcastTodos(baos.toByteArray());
+				} catch(IOException ex) {
+					Gdx.app.error("[ServidorInterno]", "Erro no broadcast de posição: " + ex.getMessage());
+				}
+			}
+		}
+		// tarefas externas registradas
+		for(int i = 0; i < tarefas.size(); i++) tarefas.get(i).executar(numTick);
 	}
 
 	// processa pacotes recebidos pelo cliente local
@@ -134,34 +209,37 @@ public class ServidorInterno {
 					jgRede.voando  = (marcas & 16) != 0;
 					jgRede.agachado= (marcas & 32) != 0;
 					jgRede.item = item;
-				break;
-			}
+					break;
+				}
 			case Net.PACOTE_MUNDO: {
 					mundo.diaNoite.tempo = dis.readFloat();
 					mundo.nome = Net.lerUTF(dis);
 					mundo.semente = dis.readLong();
 					mundo.plano = dis.readByte() == 1;
-				break;
-			}
+					break;
+				}
 			case Net.PACOTE_CHUNK: {
 					lerChunk(dis);
-				break;
-			}
+					break;
+				}
 			case Net.PACOTE_MUNDO_FIM: {
 					mundo.chunksMod = chunksMod;
 					mundo.chunks.clear();
 					mundo.iniciar(true);
-				break;
-			}
+					break;
+				}
 			case Net.PACOTE_BLOCO: {
-					int x = dis.readInt(); int y = dis.readInt(); int z = dis.readInt(); int id = dis.readInt();
+					int x = dis.readInt();
+					int y = dis.readInt();
+					int z = dis.readInt();
+					int id = dis.readInt();
 					String item = Net.lerUTF(dis);
 					mundo.defBlocoMundo(x, y, z, id);
 					if(!item.equals("ar")) {
 						mundo.entidades.add(new ItemMundo(item, 1, x + 0.5f, y + 0.5f, z + 0.5f));
 					}
-				break;
-			}
+					break;
+				}
 			case Net.PACOTE_ENTROU: {
 					int id = dis.readInt();
 					String identidade = Net.lerUTF(dis);
@@ -177,8 +255,8 @@ public class ServidorInterno {
 						Jogo.jogadores.add(jgRede);
 						Gdx.app.log("[Jogo]", "jogador " + nome + " entrou, id: " + id);
 					}
-				break;
-			}
+					break;
+				}
 			case Net.PACOTE_SAIU: {
 					int id = dis.readInt();
 					Jogador jgRede = jogadoresRede.remove(id);
@@ -186,8 +264,8 @@ public class ServidorInterno {
 						Jogo.jogadores.remove(jgRede);
 						Gdx.app.log("[Jogo]", "jogador " + jgRede.nome + " saiu");
 					}
-				break;
-			}
+					break;
+				}
 		}
 	}
 
@@ -286,7 +364,8 @@ public class ServidorInterno {
 
 	// le PACOTE_CHUNK do stream e insere em chunksMod
 	public void lerChunk(DataInputStream dis) throws IOException {
-		int cx = dis.readInt(); int cz = dis.readInt();
+		int cx = dis.readInt();
+		int cz = dis.readInt();
 		boolean usaPaleta = dis.readByte() == 1;
 		int paletaBits = dis.readInt(); int paletaTam = dis.readInt();
 		Chunk chunk = new Chunk();
@@ -319,7 +398,7 @@ public class ServidorInterno {
 		}
 	}
 
-	public void parar(Mundo mundo, List<Jogador> jogadores) {
+	public void parar(List<Jogador> jogadores) {
 		if(!rodando) return;
 		rodando = false;
 
@@ -338,7 +417,10 @@ public class ServidorInterno {
 		}
 		chunksMod.clear();
 		jogadoresRede.clear();
-		relogio.cancel();
+		if(threadTick != null) {
+			threadTick.interrupt();
+			threadTick = null;
+		}
 		for(Jogador jg : Jogo.jogadores) jg.liberar();
 		mundo.liberar();
 		Gdx.app.log("[Servidor]", "Servidor interno encerrado.");
