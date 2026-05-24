@@ -19,6 +19,9 @@ import com.badlogic.gdx.Gdx;
 import java.io.FileWriter;
 import com.badlogic.gdx.math.Matrix4;
 import com.minimine.entidades.Jogador;
+import com.minimine.entidades.Entidade;
+import com.minimine.entidades.Criatura;
+import com.minimine.entidades.ItemMundo;
 import java.io.FileReader;
 import java.util.List;
 import com.minimine.utils.arrays.FloatArrayUtil;
@@ -96,6 +99,11 @@ public final class ArquivosUtil {
 				gravarInventario(dos, jogadores.get(0));
 				dos.flush();
 				zos.closeEntry();
+                // entidades.bin
+                zos.putNextEntry(new ZipEntry("entidades.bin"));
+                gravarEntidades(dos);
+                dos.flush();
+                zos.closeEntry();
                 // ciclo.bin
                 zos.putNextEntry(new ZipEntry("ciclo.bin"));
                 dos.writeFloat(mundo.diaNoite.tempo);
@@ -175,6 +183,9 @@ public final class ArquivosUtil {
                     } else if((jogador.id+"_inv.bin").equals(nome)) {
                         lerInventario(dis, jogador);
                         if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] inventario.bin lido");
+                    } else if("entidades.bin".equals(nome)) {
+                        lerEntidades(dis);
+                        if(debug) Gdx.app.log("ArquivosUtil", "[DEBUG] entidades.bin lido");
                     } else if("ciclo.bin".equals(nome)) {
                         mundo.diaNoite.tempo = dis.readFloat();
                         mundo.diaNoite.tempo_velo = dis.readFloat();
@@ -206,6 +217,145 @@ public final class ArquivosUtil {
             try { if(zis != null) zis.close(); } catch(Throwable t) {}
         }
         if(sucesso && debug) Gdx.app.log("ArquivosUtil", "[AVISO] mundo carregado");
+    }
+
+    // tipos de entidade salvos
+    public static final byte TIPO_CRIATURA = 1;
+    public static final byte TIPO_ITEM = 2;
+
+    public static void gravarEntidades(DataOutputStream dos) throws IOException {
+        // conta quantas entidades salvaveis existem
+        int total = 0;
+        for(int i = 0; i < Mundo.entidades.size(); i++) {
+            Entidade e = Mundo.entidades.get(i);
+            if(e instanceof Criatura || e instanceof ItemMundo) total++;
+        }
+        dos.writeInt(total);
+        for(int i = 0; i < Mundo.entidades.size(); i++) {
+            Entidade e = Mundo.entidades.get(i);
+            if(e instanceof Criatura) {
+                Criatura c = (Criatura)e;
+                dos.writeByte(TIPO_CRIATURA);
+                dos.writeUTF(c.dados.nome);
+                dos.writeFloat(c.posicao.x);
+                dos.writeFloat(c.posicao.y);
+                dos.writeFloat(c.posicao.z);
+                dos.writeFloat(c.yaw);
+                dos.writeInt(c.vida);
+                // variaveis internas(sede, fome, etc)
+                dos.writeInt(c.variaveis.size());
+                for(java.util.Map.Entry<String, Float> v : c.variaveis.entrySet()) {
+                    dos.writeUTF(v.getKey());
+                    dos.writeFloat(v.getValue());
+                }
+                // pesos da IA(aprendizado acumulado)
+                gravarPesosIA(dos, c.ia);
+            } else if(e instanceof ItemMundo) {
+                ItemMundo item = (ItemMundo) e;
+                dos.writeByte(TIPO_ITEM);
+                dos.writeUTF(item.nome);
+                dos.writeInt(item.quantidade);
+                dos.writeFloat(item.posicao.x);
+                dos.writeFloat(item.posicao.y);
+                dos.writeFloat(item.posicao.z);
+                dos.writeFloat(item.tempoVida);
+            }
+        }
+    }
+
+    public static void lerEntidades(DataInputStream dis) throws IOException {
+        Mundo.entidades.clear();
+        int total = dis.readInt();
+        for(int i = 0; i < total; i++) {
+            byte tipo = dis.readByte();
+            if(tipo == TIPO_CRIATURA) {
+                String nomeD = dis.readUTF();
+                float x = dis.readFloat(), y = dis.readFloat(), z = dis.readFloat();
+                float yaw = dis.readFloat();
+                int vida = dis.readInt();
+                com.minimine.entidades.DadosCriatura dados = Mundo.registroCriaturas != null ? Mundo.registroCriaturas.criaturas.get(nomeD) : null;
+                if(dados != null) {
+                    Criatura c = new Criatura(dados, x, y, z);
+                    c.yaw = yaw;
+                    c.vida = vida;
+                    int numVars = dis.readInt();
+                    for(int v = 0; v < numVars; v++) {
+                        String chave = dis.readUTF();
+                        float val = dis.readFloat();
+                        if(c.variaveis.containsKey(chave)) c.variaveis.put(chave, val);
+                    }
+                    // restaura pesos da IA
+                    lerPesosIA(dis, c.ia);
+                    Mundo.entidades.add(c);
+                } else {
+                    // criatura desconhecida: consome os bytes e ignora
+                    if(debug) Gdx.app.log("ArquivosUtil", "[AVISO] criatura desconhecida: " + nomeD);
+                    int numVars = dis.readInt();
+                    for(int v = 0; v < numVars; v++) { dis.readUTF(); dis.readFloat(); }
+                    lerPesosIA(dis, null); // consome bytes da IA
+                }
+            } else if(tipo == TIPO_ITEM) {
+                String nomeI = dis.readUTF();
+                int qtd = dis.readInt();
+                float x = dis.readFloat(), y = dis.readFloat(), z = dis.readFloat();
+                float tempoVida = dis.readFloat();
+                ItemMundo item = new ItemMundo(nomeI, qtd, x, y, z);
+                item.tempoVida = tempoVida;
+                Mundo.entidades.add(item);
+            } else {
+                // tipo desconhecido: para de ler pra não corromper o stream
+                if(debug) Gdx.app.log("ArquivosUtil", "[AVISO] tipo de entidade desconhecido: " + tipo);
+                break;
+            }
+        }
+    }
+
+    public static void gravarPesosIA(DataOutputStream dos, com.minimine.entidades.IA ia) throws IOException {
+        dos.writeInt(ia.ENTRADAS);
+        dos.writeInt(ia.OCULTAS);
+        dos.writeInt(ia.SAIDAS);
+        for(int i = 0; i < ia.ENTRADAS; i++)
+            for(int j = 0; j < ia.OCULTAS; j++)
+                dos.writeFloat(ia.pesosEntrada[i][j]);
+        for(int i = 0; i < ia.OCULTAS; i++)
+            for(int j = 0; j < ia.SAIDAS; j++)
+                dos.writeFloat(ia.pesosOculta[i][j]);
+        for(int i = 0; i < ia.OCULTAS; i++) dos.writeFloat(ia.viesOculta[i]);
+        for(int i = 0; i < ia.SAIDAS; i++) dos.writeFloat(ia.viesSaida[i]);
+        dos.writeFloat(ia.taxaAtual);
+        dos.writeFloat(ia.recompensaMedia);
+    }
+
+    // ia == null: apenas consome os bytes sem aplicar
+    public static void lerPesosIA(DataInputStream dis, com.minimine.entidades.IA ia) throws IOException {
+        int entradas = dis.readInt();
+        int ocultas = dis.readInt();
+        int saidas = dis.readInt();
+        boolean aplicar = ia != null && ia.ENTRADAS == entradas && ia.OCULTAS == ocultas && ia.SAIDAS == saidas;
+        for(int i = 0; i < entradas; i++)
+            for(int j = 0; j < ocultas; j++) {
+                float v = dis.readFloat();
+                if(aplicar) ia.pesosEntrada[i][j] = v;
+            }
+        for(int i = 0; i < ocultas; i++)
+            for(int j = 0; j < saidas; j++) {
+                float v = dis.readFloat();
+                if(aplicar) ia.pesosOculta[i][j] = v;
+            }
+        for(int i = 0; i < ocultas; i++) {
+            float v = dis.readFloat();
+            if(aplicar) ia.viesOculta[i] = v;
+        }
+        for(int i = 0; i < saidas; i++) {
+            float v = dis.readFloat();
+            if(aplicar) ia.viesSaida[i] = v;
+        }
+        float taxa = dis.readFloat();
+        float media = dis.readFloat();
+        if(aplicar) {
+			ia.taxaAtual = taxa;
+			ia.recompensaMedia = media;
+		}
     }
 
     public static void gravarInventario(DataOutputStream dos, Jogador jogador) throws IOException {
@@ -434,7 +584,7 @@ public final class ArquivosUtil {
          * a ancora é descontada: o bloco de ancora fica em(ox, oy, oz)
          * blocos de ar(ids[i] == null ou "ar") são ignorados
          * pra sobrescrever tudo inclusive ar, chame colocarMundo(ox,oy,oz,true)
-        */
+		*/
         public void colocarMundo(int ox, int oy, int oz) {
             colocarMundo(ox, oy, oz, false);
         }
@@ -471,7 +621,7 @@ public final class ArquivosUtil {
 	public static File obter(String caminho) {
 		return new File(caminho.replace("/", File.separator));
 	}
-	
+
     public static void criar(String caminho) {   
         caminho = caminho.replace("/", File.separator);
 		int ultimoPasso = caminho.lastIndexOf(File.separator);    
@@ -509,7 +659,7 @@ public final class ArquivosUtil {
 	public static void escrever(String caminho, String texto) {
         caminho = caminho.replace("/", File.separator);
 		criar(caminho);    
-		 
+
 		try {    
 			final FileWriter escritor = new FileWriter(new File(caminho), false);    
 			escritor.write(texto);    
@@ -587,7 +737,7 @@ public final class ArquivosUtil {
 			arquivo.mkdirs();    
 		}    
 	}
-	
+
 	public static FileHandle[] listarAssets(FileHandle pasta) {
 		FileHandle[] resultado = pasta.list(".json");
 		if(resultado != null && resultado.length > 0) return resultado;
