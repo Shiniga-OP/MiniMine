@@ -11,6 +11,7 @@
 /gdx-pc/bin/
 /gdx-pc/build/
 /gdx-pc/gen/
+/gdx-pc/libs/
 
 # outras saidas de compilação
 /build/

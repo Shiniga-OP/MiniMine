@@ -185,6 +185,9 @@ public class Render extends Renderizador {
 					ui.jg.att(delta);
 				}
 			}
+			final com.minimine.inventario.Item itemInv = ui.jg.inv.itens[ui.jg.inv.slotSelecionado];
+			if(itemInv != null && itemInv.nome != ui.jg.item) ui.jg.item = itemInv.nome;
+			else if(itemInv == null) ui.jg.item = "ar";
 			shader.begin();
 
 			shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);

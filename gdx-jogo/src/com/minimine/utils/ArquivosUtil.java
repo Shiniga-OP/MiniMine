@@ -101,7 +101,6 @@ public final class ArquivosUtil {
                 dos.writeFloat(mundo.diaNoite.tempo);
 				dos.writeFloat(mundo.diaNoite.tempo_velo);
 				dos.flush();
-                dos.flush();
                 zos.closeEntry();
                 zos.finish();
             } finally {

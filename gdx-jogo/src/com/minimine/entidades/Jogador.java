@@ -214,10 +214,6 @@ public class Jogador extends Entidade {
 				deixados.remove();
 			}
 		}
-		final Item itemInv = inv.itens[inv.slotSelecionado];
-		if(itemInv != null && itemInv.nome != item) item = itemInv.nome;
-		else if(itemInv == null) item = "ar";
-
 		frenteV.x = camera.direction.x;
 		frenteV.z = camera.direction.z;
 		frenteV.nor();
@@ -328,7 +324,8 @@ public class Jogador extends Entidade {
 			else if(diffYaw < -60f) yawTronco = yaw + 60f;
 		}
 	}
-
+	
+	@Override
 	public void render(ModelBatch mb) {
 		if(!item.equals(itemCache)) {
 			itemCache = item;

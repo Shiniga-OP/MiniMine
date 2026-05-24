@@ -11,14 +11,18 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Timer;
 import com.minimine.mundo.chunks.Chunk;
-import com.minimine.mundo.chunks.ChunkUtil;
+import com.minimine.mundo.chunks.ChunkProcesso;
 import com.minimine.mundo.Chave;
 import com.badlogic.gdx.math.Vector3;
-import java.util.Locale;
-import com.minimine.entidades.Entidade;
 import com.minimine.entidades.ItemMundo;
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.utils.DiaNoiteUtil;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataOutputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.net.URLEncoder;
 /*
  * em solo, sobe um Net(SERVIDOR_MODO) local e conecta o cliente
  * via Net(CLIENTE_MODO, "127.0.0.1")
@@ -30,42 +34,33 @@ import com.minimine.utils.DiaNoiteUtil;
  *   - ser a fonte de verdade do Mundo(estado, chunks, blocos)
 
  * O cliente local recebe tudo via protocolo, igual a um cliente remoto
+ * Protocolo inteiramente binário: sem String, sem CSV, sem split
  */
 public class ServidorInterno {
-	// instancia do Net no modo servidor que roda localmente
 	public Net netServidor = null;
 	public Net netCliente = null;
 	public boolean rodando = false;
 	public Map<Integer, Jogador> jogadoresRede = new HashMap<Integer, Jogador>();
 	public Mundo mundo;
 	public Timer relogio;
-	public Map<Long, Chunk> chunksMod = new HashMap<>();
-	/*
-	 * sobe o servidor interno numa thread separada e espera ele estar pronto
-	 * para aceitar conexões antes de retornar
-	 * chame isso antes de criar o Net do cliente local
-	 */
+	public Map<Long, Chunk> chunksMod = new HashMap<Long, Chunk>();
+
 	public void iniciar(final Mundo mundo, final List<Jogador> jogadores) {
 		if(rodando) return;
 		rodando = true;
-		
-		// carrega o mundo antes de abrir o socket, servidor é a fonte de verdade
-		if(ArquivosUtil.existe(Inicio.externo + "/MiniMine/mundos/" + mundo.nome + ".mini")) {
+
+		if(ArquivosUtil.existe(Inicio.externo + "/MiniMine/mundos/" + URLEncoder.encode(mundo.nome) + ".mini")) {
 			ArquivosUtil.crMundo(mundo, jogadores.isEmpty() ? null : jogadores.get(0));
 		} else {
-			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado");
-			Gdx.app.log("[Servidor]", "criando novo mundo");
+			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado, criando novo");
 		}
 		mundo.diaNoite = new DiaNoiteUtil();
 		if(mundo.ciclo) mundo.diaNoite.iniciar();
-		// sobe o Net em modo servidor, vai abrir TCP e UDP nas portas padrão
-		// Gdx.app.postRunnable não é usado aqui porque iniciarTcpServidor
-		// precisa estar pronto antes do cliente conectar; Net.iniciarTcpServidor
-		// ja lança sua propria thread interna
+
 		netServidor = new Net(Net.SERVIDOR_MODO);
-		netServidor.ouvinte = new Net.OuvinteMensagem() {
-			public void aoReceber(String msg) {
-				// servidor só repassa, processamento é feito pelo cliente via echo
+		netServidor.ouvinte = new Net.OuvintePacote() {
+			public void aoReceber(byte tipo, DataInputStream dados) throws IOException {
+				// servidor so repassa via broadcast, não processa aqui
 			}
 		};
 		netServidor.ouvinteConexao = new Net.OuvinteConexao() {
@@ -73,21 +68,27 @@ public class ServidorInterno {
 				new Thread(new Runnable() {
 						public void run() {
 							try {
-								String msg =
-									"MUNDO:TEMPO:"+mundo.diaNoite.tempo+
-									":NOME:"+mundo.nome+
-									":SEMENTE:"+mundo.semente+
-									":PLANO:"+(mundo.plano ? "s" : "n");
-								cliente.dados.println(msg);
-								cliente.dados.flush();
+								// envia estado do mundo
+								byte[] pktMundo = montarMundo(mundo);
+								synchronized(cliente) {
+									cliente.saida.write(pktMundo);
+									cliente.saida.flush();
+								}
+								// envia cada chunk modificada
 								synchronized(mundo.chunksMod) {
 									for(Chunk chunk : mundo.chunksMod.values()) {
-										cliente.dados.println(serializarChunk(chunk));
+										byte[] pkt = montarChunk(chunk);
+										synchronized(cliente) {
+											cliente.saida.write(pkt);
+											cliente.saida.flush();
+										}
 									}
 								}
-								cliente.dados.flush();
-								cliente.dados.println("MUNDO_FIM");
-								cliente.dados.flush();
+								// sinaliza fim do mundo
+								synchronized(cliente) {
+									cliente.saida.writeByte(Net.PACOTE_MUNDO_FIM);
+									cliente.saida.flush();
+								}
 							} catch(Exception e) {
 								Gdx.app.error("[ServidorInterno]", "Erro ao enviar mundo para cliente " + cliente.id + ": " + e.getMessage());
 							}
@@ -95,14 +96,9 @@ public class ServidorInterno {
 					}).start();
 			}
 		};
-		// aguarda o socket estar aberto(max 3s) antes de deixar o cliente conectar
 		int tentativas = 0;
 		while(netServidor.servidorSocket == null && tentativas < 30) {
-			try {
-				Thread.sleep(100);
-			} catch(InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
+			try { Thread.sleep(100); } catch(InterruptedException e) { Thread.currentThread().interrupt(); }
 			tentativas++;
 		}
 		if(netServidor.servidorSocket == null) {
@@ -113,257 +109,220 @@ public class ServidorInterno {
 		this.mundo = mundo;
 		this.relogio = new Timer();
 	}
-	/*
-	 * processa cada mensagem do protocolo enviado
-	 * posição, camera, blocos, e etc
-	 */
-	public void processarMsg(String msg) {
-        if(msg.startsWith("POS:")) {
-            String[] p = msg.split(":");
 
-            try {
-                int id = Integer.parseInt(p[1]);
-                if(netCliente == null || netCliente.idLocal == 0 || id == netCliente.idLocal) return;
-                float x = Float.parseFloat(p[2]);
-                float y = Float.parseFloat(p[3]);
-                float z = Float.parseFloat(p[4]);
-                float yaw = Float.parseFloat(p[5]);
-                float tom = Float.parseFloat(p[6]);
-                int marcas = Integer.parseInt(p[7]);
-
-                Jogador jgRede = jogadoresRede.get(id);
-				if(jgRede == null) return;
-                jgRede.posicao.set(x, y, z);
-                jgRede.yaw = yaw;
-				jgRede.tom = tom;
-                jgRede.camera.direction.set(0, 0, -1);
-                jgRede.camera.rotate(Vector3.Y, yaw);
-                jgRede.frente = (marcas & 1) != 0;
-                jgRede.tras = (marcas & 2) != 0;
-                jgRede.esquerda = (marcas & 4) != 0;
-                jgRede.direita = (marcas & 8) != 0;
-                jgRede.voando = (marcas & 16) != 0;
-                jgRede.agachado = (marcas & 32) != 0;
-				jgRede.item = p[8];
-            } catch(NumberFormatException e) {}
-        } else if(msg.startsWith("MUNDO:")) {
-            String[] p = msg.split(":");
-            try {
-                for(int i = 1; i < p.length; i++) {
-                    if(p[i].equals("TEMPO")) mundo.diaNoite.tempo = Float.parseFloat(p[i+1]);
-					else if(p[i].equals("NOME")) mundo.nome = p[i+1];
-					else if(p[i].equals("SEMENTE")) mundo.semente = Long.parseLong(p[i+1]);
-					else if(p[i].equals("PLANO")) mundo.plano = p[i+1].equals("s") ? true : false;
-                }
-            } catch(NumberFormatException e) {
-				Gdx.app.error("[Servidor]", "[ERRO]: mundo inicial "+e);
+	// processa pacotes recebidos pelo cliente local
+	public void processarPacote(byte tipo, DataInputStream dis) throws IOException {
+		switch(tipo) {
+			case Net.PACOTE_POS: {
+					int id = dis.readInt();
+					if(netCliente == null || id == netCliente.idLocal) break;
+					float x = dis.readFloat(); float y = dis.readFloat(); float z = dis.readFloat();
+					float yaw = dis.readFloat(); float tom = dis.readFloat();
+					int marcas = dis.readInt();
+					String item = Net.lerUTF(dis);
+					Jogador jgRede = jogadoresRede.get(id);
+					if(jgRede == null) break;
+					jgRede.posicao.set(x, y, z);
+					jgRede.yaw = yaw;
+					jgRede.tom = tom;
+					jgRede.camera.direction.set(0, 0, -1);
+					jgRede.camera.rotate(Vector3.Y, yaw);
+					jgRede.frente = (marcas & 1)  != 0;
+					jgRede.tras = (marcas & 2)  != 0;
+					jgRede.esquerda= (marcas & 4)  != 0;
+					jgRede.direita = (marcas & 8)  != 0;
+					jgRede.voando  = (marcas & 16) != 0;
+					jgRede.agachado= (marcas & 32) != 0;
+					jgRede.item = item;
+				break;
 			}
-        } else if(msg.startsWith("CHUNK:")) {
-            deserializarChunk(msg);
-        } else if(msg.startsWith("MUNDO_FIM")) {
-			mundo.chunksMod = chunksMod;
-			mundo.chunks.clear();
-			mundo.iniciar(true);
-        } else if(msg.startsWith("BLOCO:")) {
-            String[] p = msg.split(":");
-
-            try {
-                final int x = Integer.parseInt(p[1]);
-                final int y = Integer.parseInt(p[2]);
-                final int z = Integer.parseInt(p[3]);
-                final int id = Integer.parseInt(p[4]);
-                mundo.defBlocoMundo(x, y, z, id);
-				if(!p[5].equals("ar")) {
-					final ItemMundo deixado = new ItemMundo(
-						p[5], 1,
-						x + 0.5f, y + 0.5f, z + 0.5f
-					);
-					mundo.entidades.add(deixado);
-				}
-            } catch(NumberFormatException e) {}
-        } else if(msg.startsWith("ENTROU:")) {
-            String[] p = msg.split(":");
-
-			if(p.length < 3) return;
-            try {
-                int id = Integer.parseInt(p[1]);
-                String identidade = p[2];
-				String nome = p[3];
-
-                if(netCliente == null || netCliente.idLocal == 0 || id == netCliente.idLocal) return;
-                if(!jogadoresRede.containsKey(id)) {
-                    Jogador jgRede = new Jogador(identidade);
-                    jgRede.modo = Jogo.modo;
-                    jgRede.pessoa = 3;
-					jgRede.nome = nome;
-					jgRede.attModelo();
-                    jogadoresRede.put(id, jgRede);
-                    Jogo.jogadores.add(jgRede);
-                    Gdx.app.log("[Jogo]", "jogador " + nome + " entrou, identidade: " + identidade + ", número: " + id);
-                }
-            } catch(NumberFormatException e) {}
-        } else if(msg.startsWith("SAIU:")) {
-            String[] p = msg.split(":");
-
-            try {
-                int id = Integer.parseInt(p[1]);
-                Jogador jgRede = jogadoresRede.remove(id);
-                if(jgRede != null) {
-                    Jogo.jogadores.remove(jgRede);
-                    Gdx.app.log("[Jogo]", "jogador " + jgRede.nome + " saiu");
-                }
-            } catch(NumberFormatException e) {}
-        }
-    }
-
-	public void enviarMsg(String msg) {
-        if(netCliente.conectado && netCliente.clienteDados != null) {
-            netCliente.clienteDados.println(msg);
-        }
-    }
+			case Net.PACOTE_MUNDO: {
+					mundo.diaNoite.tempo = dis.readFloat();
+					mundo.nome = Net.lerUTF(dis);
+					mundo.semente = dis.readLong();
+					mundo.plano = dis.readByte() == 1;
+				break;
+			}
+			case Net.PACOTE_CHUNK: {
+					lerChunk(dis);
+				break;
+			}
+			case Net.PACOTE_MUNDO_FIM: {
+					mundo.chunksMod = chunksMod;
+					mundo.chunks.clear();
+					mundo.iniciar(true);
+				break;
+			}
+			case Net.PACOTE_BLOCO: {
+					int x = dis.readInt(); int y = dis.readInt(); int z = dis.readInt(); int id = dis.readInt();
+					String item = Net.lerUTF(dis);
+					mundo.defBlocoMundo(x, y, z, id);
+					if(!item.equals("ar")) {
+						mundo.entidades.add(new ItemMundo(item, 1, x + 0.5f, y + 0.5f, z + 0.5f));
+					}
+				break;
+			}
+			case Net.PACOTE_ENTROU: {
+					int id = dis.readInt();
+					String identidade = Net.lerUTF(dis);
+					String nome = Net.lerUTF(dis);
+					if(netCliente == null || id == netCliente.idLocal) break;
+					if(!jogadoresRede.containsKey(id)) {
+						Jogador jgRede = new Jogador(identidade);
+						jgRede.modo = Jogo.modo;
+						jgRede.pessoa = 3;
+						jgRede.nome = nome;
+						jgRede.attModelo();
+						jogadoresRede.put(id, jgRede);
+						Jogo.jogadores.add(jgRede);
+						Gdx.app.log("[Jogo]", "jogador " + nome + " entrou, id: " + id);
+					}
+				break;
+			}
+			case Net.PACOTE_SAIU: {
+					int id = dis.readInt();
+					Jogador jgRede = jogadoresRede.remove(id);
+					if(jgRede != null) {
+						Jogo.jogadores.remove(jgRede);
+						Gdx.app.log("[Jogo]", "jogador " + jgRede.nome + " saiu");
+					}
+				break;
+			}
+		}
+	}
 
 	public void enviarPosicao(float x, float y, float z, float yaw, float tom, String item) {
-        Jogador jg = Jogo.jogadores.get(0);
-        int marcas = (jg.frente ? 1 : 0) | (jg.tras ? 2 : 0) | (jg.esquerda ? 4 : 0)
-            | (jg.direita ? 8 : 0) | (jg.voando ? 16 : 0) | (jg.agachado ? 32 : 0);
-        String msg = String.format(Locale.US, "POS:%d:%f:%f:%f:%f:%f:%d:%s", netCliente.idLocal, x, y, z, yaw, tom, marcas, item);
-        enviarMsg(msg);
-    }
-
-    public void enviarBloco(int x, int y, int z, int id, String item) {
-        String msg = String.format("BLOCO:%d:%d:%d:%d:%s", x, y, z, id, item);
-        enviarMsg(msg);
-    }
-	/*
-	 * serializa uma chunk para uma unica linha do protocolo:
-	 * CHUNK:cx:cz:usaPaleta:paletaBits:paletaTam:paleta(csv):bitsPorBloco:blocosPorInt:blocos(csv):luz(csv):meta(csv)
-	*/
-	public static String serializarChunk(Chunk chunk) {
-		StringBuilder sb = new StringBuilder("CHUNK:");
-		sb.append(chunk.x).append(':').append(chunk.z).append(':');
-		sb.append(chunk.usaPaleta ? 1 : 0).append(':');
-		sb.append(chunk.paletaBits).append(':');
-		sb.append(chunk.paletaTam).append(':');
-		// paleta
-		if(chunk.usaPaleta && chunk.paleta != null) {
-			for(int i = 0; i < chunk.paletaTam; i++) {
-				if(i > 0) sb.append(',');
-				sb.append(chunk.paleta[i]);
-			}
-		}
-		sb.append(':');
-		sb.append(chunk.bitsPorBloco).append(':');
-		sb.append(chunk.blocosPorInt).append(':');
-		// blocos
-		if(chunk.blocos != null) {
-			for(int i = 0; i < chunk.blocos.length; i++) {
-				if(i > 0) sb.append(',');
-				sb.append(chunk.blocos[i]);
-			}
-		}
-		sb.append(':');
-		// luz
-		for(int i = 0; i < chunk.luz.length; i++) {
-			if(i > 0) sb.append(',');
-			sb.append(chunk.luz[i]);
-		}
-		sb.append(':');
-		// meta
-		for(int i = 0; i < chunk.meta.length; i++) {
-			if(i > 0) sb.append(',');
-			sb.append(chunk.meta[i]);
-		}
-		return sb.toString();
-	}
-	// reconstroi uma chunk a partir da linha do protocolo e insere em chunksMod
-	public void deserializarChunk(String msg) {
-		// formato: CHUNK:cx:cz:usaPaleta:paletaBits:paletaTam:paleta(csv):bitsPorBloco:blocosPorInt:blocos(csv):luz(csv):meta(csv)
-		// usa indexOf para evitar split que quebraria os csv internos
+		if(!netCliente.conectado || netCliente.clienteSaida == null) return;
 		try {
-			int pos = 6; // pula "CHUNK:"
-			int fim;
-
-			fim = msg.indexOf(':', pos);
-			int cx = Integer.parseInt(msg.substring(pos, fim));
-			pos = fim + 1;
-			fim = msg.indexOf(':', pos);
-			int cz = Integer.parseInt(msg.substring(pos, fim));
-			pos = fim + 1;
-			fim = msg.indexOf(':', pos);
-			boolean usaPaleta = msg.charAt(pos) == '1'; pos = fim + 1;
-			fim = msg.indexOf(':', pos);
-			int paletaBits = Integer.parseInt(msg.substring(pos, fim));
-			pos = fim + 1;
-			fim = msg.indexOf(':', pos);
-			int paletaTam = Integer.parseInt(msg.substring(pos, fim));
-			pos = fim + 1;
-
-			// paleta csv
-			fim = msg.indexOf(':', pos);
-			String paletaCsv = msg.substring(pos, fim); pos = fim + 1;
-			fim = msg.indexOf(':', pos);
-			int bitsPorBloco = Integer.parseInt(msg.substring(pos, fim));
-			pos = fim + 1;
-			fim = msg.indexOf(':', pos);
-			int blocosPorInt = Integer.parseInt(msg.substring(pos, fim));
-			pos = fim + 1;
-
-			// blocos csv
-			fim = msg.indexOf(':', pos);
-			String blocosCsv = msg.substring(pos, fim);
-			pos = fim + 1;
-
-			// luz csv
-			fim = msg.indexOf(':', pos);
-			String luzCsv = msg.substring(pos, fim);
-			pos = fim + 1;
-
-			// meta csv(resto da string)
-			String metaCsv = msg.substring(pos);
-
-			Chunk chunk = new Chunk();
-			chunk.x = cx;
-			chunk.z = cz;
-			chunk.usaPaleta = usaPaleta;
-			chunk.paletaBits = paletaBits;
-			chunk.paletaTam = paletaTam;
-			chunk.bitsPorBloco = bitsPorBloco;
-			chunk.blocosPorInt = blocosPorInt;
-
-			if(usaPaleta && paletaTam > 0 && !paletaCsv.isEmpty()) {
-				String[] pv = paletaCsv.split(",");
-				chunk.paleta = new int[Math.max(1 << paletaBits, paletaTam)];
-				for(int i = 0; i < pv.length; i++) chunk.paleta[i] = Integer.parseInt(pv[i]);
+			Jogador jg = Jogo.jogadores.get(0);
+			int marcas = (jg.frente ? 1 : 0) | (jg.tras ? 2 : 0) | (jg.esquerda ? 4 : 0)
+				| (jg.direita ? 8 : 0) | (jg.voando ? 16 : 0) | (jg.agachado ? 32 : 0);
+			synchronized(netCliente.clienteSaida) {
+				netCliente.clienteSaida.writeByte(Net.PACOTE_POS);
+				netCliente.clienteSaida.writeInt(netCliente.idLocal);
+				netCliente.clienteSaida.writeFloat(x);
+				netCliente.clienteSaida.writeFloat(y);
+				netCliente.clienteSaida.writeFloat(z);
+				netCliente.clienteSaida.writeFloat(yaw);
+				netCliente.clienteSaida.writeFloat(tom);
+				netCliente.clienteSaida.writeInt(marcas);
+				Net.escreverUTF(netCliente.clienteSaida, item);
+				netCliente.clienteSaida.flush();
 			}
-			if(!blocosCsv.isEmpty()) {
-				String[] bv = blocosCsv.split(",");
-				chunk.blocos = new int[bv.length];
-				for(int i = 0; i < bv.length; i++) chunk.blocos[i] = Integer.parseInt(bv[i]);
-			}
-			if(!luzCsv.isEmpty()) {
-				String[] lv = luzCsv.split(",");
-				for(int i = 0; i < lv.length && i < chunk.luz.length; i++) chunk.luz[i] = Byte.parseByte(lv[i]);
-			}
-			if(!metaCsv.isEmpty()) {
-				String[] mv = metaCsv.split(",");
-				for(int i = 0; i < mv.length && i < chunk.meta.length; i++) chunk.meta[i] = Short.parseShort(mv[i]);
-			}
-			chunk.chave = Chave.calcularChave(cx, cz);
-			chunk.dadosProntos = true;
-			chunk.att = true;
-			synchronized(chunksMod) {
-				chunksMod.put(chunk.chave, chunk);
-			}
-		} catch(Exception e) {
-			Gdx.app.error("[Servidor]", "Erro ao deserializar chunk: " + e.getMessage());
+		} catch(IOException e) {
+			Gdx.app.error("[Servidor]", "Erro ao enviar posição: " + e.getMessage());
 		}
 	}
-	// para o servidor interno e salva o mundo
+
+	public void enviarBloco(int x, int y, int z, int id, String item) {
+		if(!netCliente.conectado || netCliente.clienteSaida == null) return;
+		try {
+			synchronized(netCliente.clienteSaida) {
+				netCliente.clienteSaida.writeByte(Net.PACOTE_BLOCO);
+				netCliente.clienteSaida.writeInt(x);
+				netCliente.clienteSaida.writeInt(y);
+				netCliente.clienteSaida.writeInt(z);
+				netCliente.clienteSaida.writeInt(id);
+				Net.escreverUTF(netCliente.clienteSaida, item);
+				netCliente.clienteSaida.flush();
+			}
+		} catch(IOException e) {
+			Gdx.app.error("[Servidor]", "Erro ao enviar bloco: " + e.getMessage());
+		}
+	}
+
+	public void enviarEntrou(int idLocal, String identidade, String nome) {
+		if(!netCliente.conectado || netCliente.clienteSaida == null) return;
+		try {
+			synchronized(netCliente.clienteSaida) {
+				netCliente.clienteSaida.writeByte(Net.PACOTE_ENTROU);
+				netCliente.clienteSaida.writeInt(idLocal);
+				Net.escreverUTF(netCliente.clienteSaida, identidade);
+				Net.escreverUTF(netCliente.clienteSaida, nome);
+				netCliente.clienteSaida.flush();
+			}
+		} catch(IOException e) {
+			Gdx.app.error("[Servidor]", "Erro ao enviar entrou: " + e.getMessage());
+		}
+	}
+
+	// monta PACOTE_MUNDO como byte[]
+	public static byte[] montarMundo(Mundo mundo) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+		DataOutputStream dos = new DataOutputStream(baos);
+		dos.writeByte(Net.PACOTE_MUNDO);
+		dos.writeFloat(mundo.diaNoite.tempo);
+		Net.escreverUTF(dos, mundo.nome);
+		dos.writeLong(mundo.semente);
+		dos.writeByte(mundo.plano ? 1 : 0);
+		dos.flush();
+		return baos.toByteArray();
+	}
+
+	// monta PACOTE_CHUNK como byte[]
+	public static byte[] montarChunk(Chunk chunk) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
+		DataOutputStream dos = new DataOutputStream(baos);
+		dos.writeByte(Net.PACOTE_CHUNK);
+		dos.writeInt(chunk.x);
+		dos.writeInt(chunk.z);
+		dos.writeByte(chunk.usaPaleta ? 1 : 0);
+		dos.writeInt(chunk.paletaBits);
+		dos.writeInt(chunk.paletaTam);
+		int paletaTam = (chunk.usaPaleta && chunk.paleta != null) ? chunk.paletaTam : 0;
+		for(int i = 0; i < paletaTam; i++) dos.writeInt(chunk.paleta[i]);
+		dos.writeInt(chunk.bitsPorBloco);
+		dos.writeInt(chunk.blocosPorInt);
+		int tamBlocos = (chunk.blocos != null) ? chunk.blocos.length : 0;
+		dos.writeInt(tamBlocos);
+		for(int i = 0; i < tamBlocos; i++) dos.writeInt(chunk.blocos[i]);
+		dos.writeInt(chunk.luz.length);
+		dos.write(chunk.luz);
+		dos.writeInt(chunk.meta.length);
+		for(int i = 0; i < chunk.meta.length; i++) dos.writeShort(chunk.meta[i]);
+		dos.flush();
+		return baos.toByteArray();
+	}
+
+	// le PACOTE_CHUNK do stream e insere em chunksMod
+	public void lerChunk(DataInputStream dis) throws IOException {
+		int cx = dis.readInt(); int cz = dis.readInt();
+		boolean usaPaleta = dis.readByte() == 1;
+		int paletaBits = dis.readInt(); int paletaTam = dis.readInt();
+		Chunk chunk = new Chunk();
+		chunk.x = cx; chunk.z = cz;
+		chunk.usaPaleta = usaPaleta;
+		chunk.paletaBits = paletaBits;
+		chunk.paletaTam = paletaTam;
+		if(paletaTam > 0) {
+			chunk.paleta = new int[Math.max(1 << paletaBits, paletaTam)];
+			for(int i = 0; i < paletaTam; i++) chunk.paleta[i] = dis.readInt();
+		}
+		chunk.bitsPorBloco = dis.readInt();
+		chunk.blocosPorInt = dis.readInt();
+		int tamBlocos = dis.readInt();
+		if(tamBlocos > 0) {
+			chunk.blocos = new int[tamBlocos];
+			for(int i = 0; i < tamBlocos; i++) chunk.blocos[i] = dis.readInt();
+		}
+		int luzLen = dis.readInt();
+		chunk.luz = new byte[luzLen];
+		dis.readFully(chunk.luz);
+		int metaLen = dis.readInt();
+		chunk.meta = new short[metaLen];
+		for(int i = 0; i < metaLen; i++) chunk.meta[i] = dis.readShort();
+		chunk.chave = Chave.calcularChave(cx, cz);
+		chunk.dadosProntos = true;
+		chunk.att = true;
+		synchronized(chunksMod) {
+			chunksMod.put(chunk.chave, chunk);
+		}
+	}
+
 	public void parar(Mundo mundo, List<Jogador> jogadores) {
 		if(!rodando) return;
 		rodando = false;
-		
-		// so salva e fecha servidor se for servidor
+
 		if(netServidor != null) {
 			try {
 				ArquivosUtil.svMundo(mundo, jogadores);
@@ -374,15 +333,13 @@ public class ServidorInterno {
 			netServidor = null;
 		}
 		if(netCliente != null) {
-            netCliente.liberar();
-            netCliente = null;
-        }
+			netCliente.liberar();
+			netCliente = null;
+		}
 		chunksMod.clear();
 		jogadoresRede.clear();
 		relogio.cancel();
-		for(Jogador jg : Jogo.jogadores) {
-			jg.liberar();
-		}
+		for(Jogador jg : Jogo.jogadores) jg.liberar();
 		mundo.liberar();
 		Gdx.app.log("[Servidor]", "Servidor interno encerrado.");
 	}
