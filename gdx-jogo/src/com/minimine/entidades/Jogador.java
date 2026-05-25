@@ -43,7 +43,6 @@ import com.minimine.ui.UI;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.minimine.ui.InterUtil;
-import com.minimine.servidor.TarefaTick;
 
 public class Jogador extends Entidade {
 	public String id;
@@ -95,12 +94,6 @@ public class Jogador extends Entidade {
 		vidaMax = 20;
 		camera = com.minimine.ui.UI.criarCamera();
 		this.inv = new Inventario(this);
-		Jogo.servidor.tarefas.add(new TarefaTick() {
-				public void executar(int tick) {
-					if(Mundo.carregado && tick % 10 == 0)
-						bioma = Mundo.motor.obterBioma((int)posicao.x, (int)posicao.z);
-				}
-			});
 		attModelo();
 	}
 

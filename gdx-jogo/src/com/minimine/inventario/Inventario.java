@@ -15,6 +15,7 @@ import com.minimine.entidades.Jogador;
 public class Inventario {
     public Jogador jogador;
     public int quantSlots = 25;
+    public static final int SLOTS_GRADE = 9;
     public int slotsV = 5, slotsH = 5;
     public int tamSlot = 64+16;
     public Texture texSlot;
@@ -25,7 +26,8 @@ public class Inventario {
     public int slotOrigem = -1;
     public int ponteiroArrastando = -1;
 
-    public Item[] itens = new Item[quantSlots];
+    // itens[0..quantSlots-1] = inventário normal, itens[quantSlots..quantSlots+SLOTS_GRADE-1] = grade de receita
+    public Item[] itens = new Item[quantSlots + SLOTS_GRADE];
     public int slotSelecionado = 0;
     public boolean aberto = false;
 
@@ -34,22 +36,19 @@ public class Inventario {
     public int hotbarY = 20;
 
     public Item itemFlutuante = null;
-    public boolean itemFlutuanteVeioDaGrade = false;
-    public int slotOrigemFlutuante = -1; // -1 se veio da grade
-    public int slotGradeOrigem = -1; // slot da grade de origem, se veio dela
+    public int slotOrigemFlutuante = -1;
     public Vector2 posFlutuante = new Vector2();
 
     // === modo divisão por arrastar ===
     public boolean modoDivisao = false;
     public int quantidadeOriginalDivisao = 0;
-    public int[] slotsDivisao = new int[30]; // slots visitados durante o arrastar
+    public int[] slotsDivisao = new int[30];
     public int qtdSlotsDivisao = 0;
 
     // === receita ===
-    public int tamReceita = 56;
-    public Item[] gradeReceita = new Item[9];
+    // rectsGrade[i] aponta pro mesmo rect que rects[quantSlots + i]
+    public Rectangle[] rectsGrade = new Rectangle[SLOTS_GRADE];
     public Item resultadoReceita = null;
-    public Rectangle[] rectsGrade = new Rectangle[9];
     public Rectangle rectResultado;
 
     public Inventario(Jogador jogador) {
@@ -63,37 +62,34 @@ public class Inventario {
         invX = (v >> 1) - ((slotsH * tamSlot) >> 1);
         invY = (h >> 1) - ((slotsV * tamSlot) >> 1);
 
-        rects = new Rectangle[quantSlots];
+        rects = new Rectangle[quantSlots + SLOTS_GRADE];
         int i = 0;
         for(int y = 0; y < slotsV; y++) {
             for(int x = 0; x < slotsH; x++) {
                 if(i >= quantSlots) break;
-                final float sx = invX + (x * tamSlot);
-                final float sy = invY + (y * tamSlot);
-                rects[i] = new Rectangle(sx, sy, tamSlot, tamSlot);
+                rects[i] = new Rectangle(invX + x * tamSlot, invY + y * tamSlot, tamSlot, tamSlot);
                 i++;
             }
         }
         rectsHotbar = new Rectangle[hotbarSlots];
         final int hotbarX = (v >> 1) - ((hotbarSlots * tamSlot) >> 1);
         for(int x = 0; x < hotbarSlots; x++) {
-            final float sx = hotbarX + (x * tamSlot);
-            rectsHotbar[x] = new Rectangle(sx, hotbarY, tamSlot, tamSlot);
+            rectsHotbar[x] = new Rectangle(hotbarX + x * tamSlot, hotbarY, tamSlot, tamSlot);
         }
         // grade de receita: a direita do inventario, centralizada verticalmente
         final int gradeX = invX + slotsH * tamSlot + 40;
-        final int gradeY = invY + ((slotsV * tamSlot) >> 1) - ((3 * tamReceita) >> 1);
+        final int gradeY = invY + ((slotsV * tamSlot) >> 1) - ((3 * tamSlot) >> 1);
         for(int l = 0; l < 3; l++) {
             for(int c = 0; c < 3; c++) {
-                final float sx = gradeX + c * tamReceita;
-                final float sy = gradeY + (2 - l) * tamReceita;
-                rectsGrade[l * 3 + c] = new Rectangle(sx, sy, tamReceita, tamReceita);
+                final int idx = quantSlots + l * 3 + c;
+                rects[idx] = new Rectangle(gradeX + c * tamSlot, gradeY + (2 - l) * tamSlot, tamSlot, tamSlot);
+                rectsGrade[l * 3 + c] = rects[idx];
             }
         }
         // slot de resultado: a direita da grade, centralizado
-        final int resX = gradeX + 3 * tamReceita + 24;
-        final int resY = gradeY + tamReceita;
-        rectResultado = new Rectangle(resX, resY, tamReceita, tamReceita);
+        final int resX = gradeX + 3 * tamSlot + 24;
+        final int resY = gradeY + tamSlot;
+        rectResultado = new Rectangle(resX, resY, tamSlot, tamSlot);
     }
     public void aoSoltar(int telaX, int telaY, int p) {
 		if(modoDivisao) {
@@ -102,8 +98,6 @@ public class Inventario {
 			if(itemFlutuante != null && itemFlutuante.quantidade <= 0) {
 				itemFlutuante = null;
 				slotOrigemFlutuante = -1;
-				itemFlutuanteVeioDaGrade = false;
-				slotGradeOrigem = -1;
 			}
 			return;
 		}
@@ -133,6 +127,7 @@ public class Inventario {
 				itens[slotDestino] = itemSendoArrastado;
 				itens[slotOrigem] = itemNoDestino;
 			}
+			if(slotDestino >= quantSlots) attReceita();
 		} else {
 			itens[slotOrigem] = itemSendoArrastado;
 		}
@@ -184,9 +179,10 @@ public class Inventario {
     }
 
     public void attReceita() {
-        String[] nomes = new String[9];
-        for(int i = 0; i < 9; i++) {
-            nomes[i] = (gradeReceita[i] != null) ? gradeReceita[i].nome : null;
+        String[] nomes = new String[SLOTS_GRADE];
+        for(int i = 0; i < SLOTS_GRADE; i++) {
+            final Item it = itens[quantSlots + i];
+            nomes[i] = (it != null) ? it.nome : null;
         }
         final ReceitaRegistro.Receita r = ReceitaRegistro.combinar(nomes);
         if(r == null) {
@@ -197,7 +193,7 @@ public class Inventario {
 		final Item b = ItemRegistro.obter(r.resultado);
 		if(b != null) tex = b.textura;
 		else tex = Texturas.atlas.obter("terra");
-        
+
         resultadoReceita = new Item(r.resultado, tex, r.quantidade);
     }
 
@@ -218,56 +214,22 @@ public class Inventario {
 			if(resultadoReceita == null) return;
 			if(itemFlutuante == null) {
 				itemFlutuante = resultadoReceita;
-				itemFlutuanteVeioDaGrade = false;
 				slotOrigemFlutuante = -1;
-				slotGradeOrigem = -1;
 				// consome 1 de cada ingrediente usado
-				for(int i = 0; i < 9; i++) {
-					if(gradeReceita[i] != null) {
-						gradeReceita[i].quantidade--;
-						if(gradeReceita[i].quantidade <= 0) {
-							gradeReceita[i] = null;
-						}
+				for(int i = 0; i < SLOTS_GRADE; i++) {
+					final Item it = itens[quantSlots + i];
+					if(it != null) {
+						it.quantidade--;
+						if(it.quantidade <= 0) itens[quantSlots + i] = null;
 					}
 				}
-				attReceita(); // atualiza: se ainda tiver ingredientes, mostra o resultado de novo
+				attReceita();
 				resultadoReceita = null;
 			}
 			return;
 		}
-        // === slots da grade de receita ===
-        for(int i = 0; i < 9; i++) {
-            if(rectsGrade[i].contains(telaX, telaY)) {
-                if(itemFlutuante == null) {
-                    if(gradeReceita[i] != null && gradeReceita[i].nome.length() > 0) {
-                        itemFlutuante = new Item(gradeReceita[i].nome, gradeReceita[i].textura, gradeReceita[i].quantidade);
-                        itemFlutuanteVeioDaGrade = true;
-                        slotGradeOrigem = i;
-                        slotOrigemFlutuante = -1;
-                        gradeReceita[i] = null;
-                        attReceita();
-                    }
-                } else {
-                    // o que tava na grade volta pro flutuante
-                    final Item anteriorNaGrade = gradeReceita[i];
-					if(anteriorNaGrade != null && anteriorNaGrade.nome.length() > 0) {
-						gradeReceita[i] = new Item(itemFlutuante.nome, itemFlutuante.textura, itemFlutuante.quantidade);
-						itemFlutuante = new Item(anteriorNaGrade.nome, anteriorNaGrade.textura, anteriorNaGrade.quantidade);
-						itemFlutuanteVeioDaGrade = true;
-						slotGradeOrigem = i;
-						slotOrigemFlutuante = -1;
-					} else {
-						gradeReceita[i] = new Item(itemFlutuante.nome, itemFlutuante.textura, itemFlutuante.quantidade);
-						itemFlutuante = null;
-						itemFlutuanteVeioDaGrade = false;
-						slotGradeOrigem = -1;
-					}
-					attReceita();
-                }
-                return;
-            }
-        }
-        // === slots normais do inventario e hotbar ===
+
+        // === todos os slots (inventario, hotbar e grade) tratados igual ===
         int slotClicado = -1;
         for(int i = 0; i < rectsHotbar.length; i++) {
             if(rectsHotbar[i].contains(telaX, telaY)) {
@@ -285,15 +247,16 @@ public class Inventario {
         }
         if(slotClicado == -1) return;
 
+        final boolean ehGrade = slotClicado >= quantSlots;
+
         if(itemFlutuante == null) {
             if(itens[slotClicado] != null) {
                 itemFlutuante = itens[slotClicado];
-                itemFlutuanteVeioDaGrade = false;
                 slotOrigemFlutuante = slotClicado;
-                slotGradeOrigem = -1;
                 itens[slotClicado] = null;
                 modoDivisao = false;
                 qtdSlotsDivisao = 0;
+                if(ehGrade) attReceita();
             }
         } else if(modoDivisao) {
 			modoDivisao = false;
@@ -305,22 +268,25 @@ public class Inventario {
 			}
 			itemFlutuante = null;
 			slotOrigemFlutuante = -1;
-			itemFlutuanteVeioDaGrade = false;
-			slotGradeOrigem = -1;
+			if(ehGrade) attReceita();
 			return;
 		} else {
 			final Item destino = itens[slotClicado];
 			if(destino != null && destino.nome.equals(itemFlutuante.nome)) {
-				// agrupa
 				destino.quantidade += itemFlutuante.quantidade;
 				itemFlutuante = null;
 				slotOrigemFlutuante = -1;
-				return;
+			} else if(destino != null) {
+				itens[slotClicado] = itemFlutuante;
+				if(slotOrigemFlutuante >= 0) itens[slotOrigemFlutuante] = destino;
+				itemFlutuante = null;
+				slotOrigemFlutuante = -1;
+			} else {
+				modoDivisao = true;
+				quantidadeOriginalDivisao = itemFlutuante.quantidade;
+				qtdSlotsDivisao = 0;
 			}
-			// so ativa divisão se não agrupou
-			modoDivisao = true;
-			quantidadeOriginalDivisao = itemFlutuante.quantidade;
-			qtdSlotsDivisao = 0;
+			if(ehGrade) attReceita();
 		}
     }
 
@@ -360,38 +326,37 @@ public class Inventario {
 			qtdSlotsDivisao--;
 			return;
 		}
+		boolean tocouGrade = false;
 		for(int i = 0; i < qtdSlotsDivisao; i++) {
 			final int s = slotsDivisao[i];
 			if(itens[s] == null)
 				itens[s] = new Item(itemFlutuante.nome, itemFlutuante.textura, porcao);
 			else
 				itens[s].quantidade = porcao;
+			if(s >= quantSlots) tocouGrade = true;
 		}
 		itemFlutuante.quantidade = quantidadeOriginalDivisao - porcao * qtdSlotsDivisao;
+		if(tocouGrade) attReceita();
 	}
 
     public void alternar() {
         if(aberto) {
             aberto = false;
-            // devolve item flutuante
             if(itemFlutuante != null) {
-                if(itemFlutuanteVeioDaGrade && slotGradeOrigem >= 0) {
-                    gradeReceita[slotGradeOrigem].nome = itemFlutuante.nome;
-                } else if(slotOrigemFlutuante >= 0 && itens[slotOrigemFlutuante] == null) {
+                if(slotOrigemFlutuante >= 0 && itens[slotOrigemFlutuante] == null) {
                     itens[slotOrigemFlutuante] = itemFlutuante;
                 } else {
                     addItem(itemFlutuante.nome, itemFlutuante.quantidade);
                 }
                 itemFlutuante = null;
-                itemFlutuanteVeioDaGrade = false;
                 slotOrigemFlutuante = -1;
-                slotGradeOrigem = -1;
             }
             // devolve ingredientes da grade pro inventario
-            for(int i = 0; i < 9; i++) {
-                if(gradeReceita[i] != null && gradeReceita[i].nome.length() > 0) {
-                    addItem(gradeReceita[i].nome, gradeReceita[i].quantidade);
-                    gradeReceita[i] = null;
+            for(int i = 0; i < SLOTS_GRADE; i++) {
+                final Item it = itens[quantSlots + i];
+                if(it != null && it.nome.length() > 0) {
+                    addItem(it.nome, it.quantidade);
+                    itens[quantSlots + i] = null;
                 }
             }
             resultadoReceita = null;
@@ -416,36 +381,20 @@ public class Inventario {
 				}
             }
         }
-        // grade de receita
-        for(int i = 0; i < 9; i++) {
-            final Rectangle r = rectsGrade[i];
-            sb.draw(texSlot, r.x, r.y, r.width, r.height);
-            if(gradeReceita[i] != null && gradeReceita[i].nome.length() > 0) {
-				final TextureRegion tex;
-				final Item b = ItemRegistro.obter(gradeReceita[i].nome);
-				if(b != null) tex = b.textura;
-				else tex = Texturas.atlas.obter("terra");
-				
-				if(tex != null) sb.draw(tex, r.x + 4, r.y + 4, r.width - 8, r.height - 8);
-				if(gradeReceita[i].quantidade > 1) {
-					fonte.draw(sb, String.valueOf(gradeReceita[i].quantidade), r.x + 4, r.y + 16);
-				}
-			}
-        }
         // slot de resultado
         sb.draw(texSlot, rectResultado.x, rectResultado.y, rectResultado.width, rectResultado.height);
         if(resultadoReceita != null) {
             sb.draw(resultadoReceita.textura, rectResultado.x + 4, rectResultado.y + 4,
-			rectResultado.width - 8, rectResultado.height - 8);
+					rectResultado.width - 8, rectResultado.height - 8);
             if(resultadoReceita.quantidade > 1)
                 fonte.draw(sb, String.valueOf(resultadoReceita.quantidade),
-				rectResultado.x + 4, rectResultado.y + 16);
+						   rectResultado.x + 4, rectResultado.y + 16);
         }
         // item flutuante
         if(itemFlutuante != null) {
-            final float px = posFlutuante.x - tamReceita / 2f;
-            final float py = posFlutuante.y - tamReceita / 2f;
-            sb.draw(itemFlutuante.textura, px, py, tamReceita, tamReceita);
+            final float px = posFlutuante.x - tamSlot / 2f;
+            final float py = posFlutuante.y - tamSlot / 2f;
+            sb.draw(itemFlutuante.textura, px, py, tamSlot, tamSlot);
             if(itemFlutuante.quantidade > 1) {
                 fonte.draw(sb, String.valueOf(itemFlutuante.quantidade), px + 4, py + 16);
 			}

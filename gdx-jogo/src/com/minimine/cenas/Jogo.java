@@ -34,6 +34,7 @@ public class Jogo implements Screen {
 	public static String identidade;
 	public static String nome = "Breno";
 	public static ServidorInterno servidor;
+	public static String debug1 = "", debug2 = "";
 
 	public static final float INTERVALO_POS = 0.05f;
 	public float tempoPosicao = 0f;
@@ -86,7 +87,7 @@ public class Jogo implements Screen {
 		if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
 			mundo.iniciar(true);
 		}
-		servidor.tarefas.add(new TarefaTick() {
+		servidor.tarefasLoop.add(new TarefaTick() {
 				public void executar(int tick) {
 					if(musicas && tick % 20 == 0) Musicas.tocarAleatorio();
 				}
@@ -119,7 +120,7 @@ public class Jogo implements Screen {
 		mundo.carregado = false;
 		render.liberar();
 		Bloco.liberar();
-		servidor.parar(jogadores);
+		servidor.parar();
 		TarefasUtil.liberar();
 	}
 

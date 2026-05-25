@@ -252,7 +252,7 @@ public class DiaNoiteUtil {
 
         // alfa das estrelas: so a noite, some quando o sol ta subindo
         float alfaEstrelas = 1f - dia;
-
+		
         // === renderiza ===
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDisable(GL20.GL_CULL_FACE);

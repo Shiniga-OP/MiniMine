@@ -14,21 +14,16 @@ import com.minimine.audio.Audio;
 import com.minimine.audio.Musicas;
 import com.minimine.graficos.Modelos;
 import com.minimine.ui.InterUtil;
+import com.minimine.cenas.Jogo;
 
 public class Inicio extends Game {
-	public static boolean ehArm64;
 	public static String externo;
 	public static boolean telaNova = false;
 	public static Screen telaAtual;
 	public static Logs log = new Logs();
-	public static Instalador instalador;
 	
-	public Inicio(String externo, Debugador debugador, Instalador instalador) {
+	public Inicio(String externo) {
 		Inicio.externo = externo;
-		UI.debugador = debugador;
-		Inicio.instalador = instalador;
-		ehArm64 = debugador.ehArm64();
-		ehArm64 = false;
 	}
 
 	@Override

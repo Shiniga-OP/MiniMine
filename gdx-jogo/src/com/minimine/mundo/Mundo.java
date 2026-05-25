@@ -121,7 +121,7 @@ public class Mundo {
     }
 
     // chamado em render
-    public void att(float delta, Jogador jg) {
+    public void att(Jogador jg) {
         attChunks((int)jg.posicao.x, (int)jg.posicao.z);
 
         if(!carregado && estados.size() >= 1) {
@@ -129,9 +129,6 @@ public class Mundo {
             if(est != null && est == 4) {
 				carregado = true;
 			}
-        }
-        if(carregado) {
-            GerenciadorEntidades.att(delta, this, jg);
         }
     }
 
@@ -380,12 +377,7 @@ public class Mundo {
 			final int estado = estados.getOrDefault(chave, 0);
 			if(chunk.luzSuja && !chunk.luzFazendo && estado >= 3) {
 				chunk.luzFazendo = true;
-				TarefasUtil.addGeração(new Runnable() {
-						@Override
-						public void run() {
-							ChunkProcesso.luz.attLuz(chunk);
-						}
-					});
+				ChunkProcesso.luz.attLuz(chunk);
 			}
 		}
 		// gera malha: só se a luz desta chunk e das vizinhas não está sendo processada
@@ -434,7 +426,6 @@ public class Mundo {
         novo.x = x;
 		novo.z = z;
 		novo.chave = Chave.calcularChave(x, z);
-        novo.meta = new short[Mundo.TAM_CHUNK * Mundo.Y_CHUNK * Mundo.TAM_CHUNK];
         ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(novo.maxIds), novo);
         chunks.put(chave, novo);
         estados.put(chave, 0);
@@ -472,19 +463,14 @@ public class Mundo {
 		if(motor == null) return;
         final Chunk chunk = obterChunk(chave);
 
-        TarefasUtil.addGeração(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						if(plano) motor.gerarPlano(chunk);
-						else motor.gerarChunk(chunk);
-						chunk.dadosProntos = true;
-						estados.put(chave, 1);
-					} catch(final Exception e) {
-						throw new RuntimeException("[Mundo] erro ao gerar dados: " + e);
-					}
-				}
-			});
+        try {
+			if(plano) motor.gerarPlano(chunk);
+			else motor.gerarChunk(chunk);
+			chunk.dadosProntos = true;
+			estados.put(chave, 1);
+		} catch(final Exception e) {
+			throw new RuntimeException("[Mundo] erro ao gerar dados: " + e);
+		}
     }
     /*
      * estado 1 -> 2: processa estruturas da chunk e aplica fila de pendentes recebida
@@ -500,64 +486,59 @@ public class Mundo {
         if(chunk == null) return;
         if(!estados.replace(chave, 1, 11)) return; // 11 = transitorio
 
-        TarefasUtil.addGeração(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						final int chunkX = chunk.x << 4;
-						final int chunkZ = chunk.z << 4;
-						final ContextoGeracao ctx = motor.ctxLocal.get();
+        try {
+			final int chunkX = chunk.x << 4;
+			final int chunkZ = chunk.z << 4;
+			final ContextoGeracao ctx = motor.ctxLocal.get();
 
-						// reconstroi biomas para as estruturas
-						motor.calcular2D(motor.semCalor, motor.espalharCalor, motor.octCalor, motor.perCalor, 2.0f, chunkX, chunkZ, ctx.calorMapa);
-						motor.calcular2D(motor.semUmidade, motor.espalharUmidade, motor.octUmidade, motor.perUmidade, 2.0f, chunkX, chunkZ, ctx.umidadeMapa);
-						for(int i = 0; i < 256; i++) {
-							ctx.calorMapa[i] = Math.max(0f, Math.min(1f, ctx.calorMapa[i]   * 0.5f + 0.5f));
-							ctx.umidadeMapa[i] = Math.max(0f, Math.min(1f, ctx.umidadeMapa[i] * 0.5f + 0.5f));
-						}
-						for(int z = 0; z < 16; z++) {
-							for(int x = 0; x < 16; x++) {
-								final int idc = (z << 4) + x;
-								int topo = Y_CHUNK - 1;
-								while(topo > 0 && ChunkProcesso.util.obterBloco(x, topo, z, chunk) == 0) topo--;
-								ctx.topoMapa[idc] = topo;
-								float calor = ctx.calorMapa[idc];
-								final float umidade = ctx.umidadeMapa[idc];
-								calor = Math.max(0f, Math.min(1f, calor - (float)((topo - MotorGeracao.NIVEL_MAR) * 0.004)));
-								ctx.biomaMapa[idc] = registroBiomas.selecionar(calor, umidade, topo);
-							}
-						}
-						// 1. aplica estruturas pendentes que outras chunks enfileiraram pra esta
-						final int[] pendentes;
-						final int[] tamArr;
-						synchronized(filaEstrutura) {
-							pendentes = filaEstrutura.remove(chave);
-							tamArr = filaTam.remove(chave);
-						}
-						if(pendentes != null && tamArr != null) {
-							final int total = tamArr[0];
-							for(int i = 0; i < total; i++) {
-								final int base = i * FILA_CAMPOS;
-								final int lx = pendentes[base];
-								final int ly = pendentes[base + 1];
-								final int lz = pendentes[base + 2];
-								final int id = pendentes[base + 3];
-								final short meta = (short)pendentes[base + 4];
-								if(ly >= 0 && ly < 256) {
-									ChunkProcesso.util.defBloco(lx, ly, lz, id, chunk);
-									if(meta != 0) ChunkProcesso.util.defMeta(lx, ly, lz, meta, chunk);
-								}
-							}
-						}
-						// 2. gera as estruturas desta chunk(vegetação ja foi feita em gerarDados)
-						motor.colocarEstruturas(chunk, chunkX, chunkZ, ctx);
-
-						estados.put(chave, 2);
-					} catch(final Exception e) {
-						throw new RuntimeException("[Mundo] erro ao processar estruturas: " + e);
+			// reconstroi biomas para as estruturas
+			motor.calcular2D(motor.semCalor, motor.espalharCalor, motor.octCalor, motor.perCalor, 2.0f, chunkX, chunkZ, ctx.calorMapa);
+			motor.calcular2D(motor.semUmidade, motor.espalharUmidade, motor.octUmidade, motor.perUmidade, 2.0f, chunkX, chunkZ, ctx.umidadeMapa);
+			for(int i = 0; i < 256; i++) {
+				ctx.calorMapa[i] = Math.max(0f, Math.min(1f, ctx.calorMapa[i]   * 0.5f + 0.5f));
+				ctx.umidadeMapa[i] = Math.max(0f, Math.min(1f, ctx.umidadeMapa[i] * 0.5f + 0.5f));
+			}
+			for(int z = 0; z < 16; z++) {
+				for(int x = 0; x < 16; x++) {
+					final int idc = (z << 4) + x;
+					int topo = Y_CHUNK - 1;
+					while(topo > 0 && ChunkProcesso.util.obterBloco(x, topo, z, chunk) == 0) topo--;
+					ctx.topoMapa[idc] = topo;
+					float calor = ctx.calorMapa[idc];
+					final float umidade = ctx.umidadeMapa[idc];
+					calor = Math.max(0f, Math.min(1f, calor - (float)((topo - MotorGeracao.NIVEL_MAR) * 0.004)));
+					ctx.biomaMapa[idc] = registroBiomas.selecionar(calor, umidade, topo);
+				}
+			}
+			// 1. aplica estruturas pendentes que outras chunks enfileiraram pra esta
+			final int[] pendentes;
+			final int[] tamArr;
+			synchronized(filaEstrutura) {
+				pendentes = filaEstrutura.remove(chave);
+				tamArr = filaTam.remove(chave);
+			}
+			if(pendentes != null && tamArr != null) {
+				final int total = tamArr[0];
+				for(int i = 0; i < total; i++) {
+					final int base = i * FILA_CAMPOS;
+					final int lx = pendentes[base];
+					final int ly = pendentes[base + 1];
+					final int lz = pendentes[base + 2];
+					final int id = pendentes[base + 3];
+					final short meta = (short)pendentes[base + 4];
+					if(ly >= 0 && ly < 256) {
+						ChunkProcesso.util.defBloco(lx, ly, lz, id, chunk);
+						if(meta != 0) ChunkProcesso.util.defMeta(lx, ly, lz, meta, chunk);
 					}
 				}
-			});
+			}
+			// 2. gera as estruturas desta chunk(vegetação ja foi feita em gerarDados)
+			motor.colocarEstruturas(chunk, chunkX, chunkZ, ctx);
+
+			estados.put(chave, 2);
+		} catch(final Exception e) {
+			throw new RuntimeException("[Mundo] erro ao processar estruturas: " + e);
+		}
     }
     /*
      * estado 2 -> 3: calcula luz
@@ -569,17 +550,12 @@ public class Mundo {
         if(chunk == null) return;
         if(!estados.replace(chave, 2, 12)) return; // 12 = transitorio
 
-        TarefasUtil.addGeração(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						ChunkProcesso.luz.calcularLuz(chunk);
-						estados.put(chave, 3);
-					} catch(final Exception e) {
-						throw new RuntimeException("[Mundo] erro ao calcular luz: " + e);
-					}
-				}
-			});
+        try {
+			ChunkProcesso.luz.calcularLuz(chunk);
+			estados.put(chave, 3);
+		} catch(final Exception e) {
+			throw new RuntimeException("[Mundo] erro ao calcular luz: " + e);
+		}
     }
     // estado 3 -> 4: gera malha na thread do executor, envia para GPU na thread GL
     public static void gerarMalha(final long chave) {
@@ -587,56 +563,55 @@ public class Mundo {
         if(chunk == null) return;
         chunk.fazendo = true;
 
-        TarefasUtil.addMalha(new Runnable() {
-				@Override
-				public void run() {
-					final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
-					final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
-					final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
+        try {
+			final FloatArrayUtil vertsGeral = ArrayReuso.obterFloatArray();
+			final ShortArrayUtil idcSolidos = ArrayReuso.obterShortArray();
+			final ShortArrayUtil idcTransp = ArrayReuso.obterShortArray();
 
-					ChunkProcesso.malha.attMalha(chunk, vertsGeral, idcSolidos, idcTransp);
+			ChunkProcesso.malha.attMalha(chunk, vertsGeral, idcSolidos, idcTransp);
 
-					Gdx.app.postRunnable(new Runnable() {
-							@Override
-							public void run() {
-								try {
-									liberarGpu(chunk);
+			Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							liberarGpu(chunk);
 
-									GL_BUFFER.clear();
-									Gdx.gl20.glGenBuffers(3, GL_BUFFER);
-									chunk.vboId = GL_BUFFER.get(0);
-									chunk.iboId = GL_BUFFER.get(1);
-									chunk.iboTranspId = GL_BUFFER.get(2);
+							GL_BUFFER.clear();
+							Gdx.gl20.glGenBuffers(3, GL_BUFFER);
+							chunk.vboId = GL_BUFFER.get(0);
+							chunk.iboId = GL_BUFFER.get(1);
+							chunk.iboTranspId = GL_BUFFER.get(2);
 
-									Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, chunk.vboId);
-									Gdx.gl.glBufferData(GL20.GL_ARRAY_BUFFER, vertsGeral.tam * 4, vertsGeral.bufPronto(), GL20.GL_STATIC_DRAW);
+							Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, chunk.vboId);
+							Gdx.gl.glBufferData(GL20.GL_ARRAY_BUFFER, vertsGeral.tam * 4, vertsGeral.bufPronto(), GL20.GL_STATIC_DRAW);
 
-									Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, chunk.iboId);
-									Gdx.gl.glBufferData(GL20.GL_ELEMENT_ARRAY_BUFFER, idcSolidos.tam * 2, idcSolidos.bufPronto(), GL20.GL_STATIC_DRAW);
+							Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, chunk.iboId);
+							Gdx.gl.glBufferData(GL20.GL_ELEMENT_ARRAY_BUFFER, idcSolidos.tam * 2, idcSolidos.bufPronto(), GL20.GL_STATIC_DRAW);
 
-									Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, chunk.iboTranspId);
-									Gdx.gl.glBufferData(GL20.GL_ELEMENT_ARRAY_BUFFER, idcTransp.tam * 2, idcTransp.bufPronto(), GL20.GL_STATIC_DRAW);
+							Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, chunk.iboTranspId);
+							Gdx.gl.glBufferData(GL20.GL_ELEMENT_ARRAY_BUFFER, idcTransp.tam * 2, idcTransp.bufPronto(), GL20.GL_STATIC_DRAW);
 
-									Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, 0);
-									Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, 0);
+							Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, 0);
+							Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, 0);
 
-									chunk.gpuPronta = true;
-									chunk.contaSolida = idcSolidos.tam;
-									chunk.contaTransp = idcTransp.tam;
-									chunk.fazendo = false;
-									chunk.att = false;
-									estados.put(chave, 4);
-								} catch(final Exception e) {
-									Gdx.app.error("Mundo", "erro ao gerar malha", e);
-								} finally {
-									ArrayReuso.devolver(vertsGeral);
-									ArrayReuso.devolver(idcSolidos);
-									ArrayReuso.devolver(idcTransp);
-								}
-							}
-						});
-				}
-			});
+							chunk.gpuPronta = true;
+							chunk.contaSolida = idcSolidos.tam;
+							chunk.contaTransp = idcTransp.tam;
+							chunk.fazendo = false;
+							chunk.att = false;
+							estados.put(chave, 4);
+						} catch(final Exception e) {
+							Gdx.app.error("Mundo", "erro ao gerar malha", e);
+						} finally {
+							ArrayReuso.devolver(vertsGeral);
+							ArrayReuso.devolver(idcSolidos);
+							ArrayReuso.devolver(idcTransp);
+						}
+					}
+				});
+		} catch(Exception e) {
+			Gdx.app.error("[Mundo]", "[ERRO] ao gerar malha: "+e);
+		}
     }
     // === FILA DE ESTRUTURAS PENDENTES ===
     /*
@@ -770,4 +745,3 @@ public class Mundo {
 		return true;
 	}
 }
-

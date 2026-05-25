@@ -359,18 +359,12 @@ public final class ArquivosUtil {
     }
 
     public static void gravarInventario(DataOutputStream dos, Jogador jogador) throws IOException {
-		if(jogador.inv == null || jogador.inv.itens == null) {
-			dos.writeInt(0);
-			dos.flush();
-			return;
-		}
-		dos.writeInt(jogador.inv.itens.length);
 		for(int i = 0; i < jogador.inv.itens.length; i++) {
 			if(jogador.inv.itens[i] == null) {
 				dos.writeBoolean(false);
 			} else {
 				dos.writeBoolean(true);
-				dos.writeUTF(jogador.inv.itens[i].nome+"");
+				dos.writeUTF(jogador.inv.itens[i].nome);
 				dos.writeInt(jogador.inv.itens[i].quantidade);
 			}
 		}
@@ -378,11 +372,7 @@ public final class ArquivosUtil {
     }
 
     public static void lerInventario(DataInputStream dis, Jogador jogador) throws IOException {
-		int total = dis.readInt();
-		if(jogador.inv == null || total == 0) jogador.inv = new Inventario(jogador);
-		if(jogador.inv.itens == null || (jogador.inv.itens.length != total && total != 0)) jogador.inv.itens = new Item[total];
-
-		for(int i = 0; i < total; i++) {
+		for(int i = 0; i < jogador.inv.itens.length; i++) {
 			boolean temItem = false;
 			try {
 				temItem = dis.readBoolean();

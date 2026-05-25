@@ -12,19 +12,10 @@ public class Iniciador {
         config.width = 1280;
         config.height = 720;
 
-        Debugador debug = new Debugador() {
-            @Override public boolean ehArm64() { return false; }
-            @Override public long obterHeapLivre() { return Runtime.getRuntime().freeMemory(); }
-            @Override public long obterHeapTotal() { return Runtime.getRuntime().totalMemory(); }
-        };
-
-        Instalador instalador = new Instalador() {
-            public void instalar(String caminho) {}
-        };
         Gdx.files = new com.badlogic.gdx.backends.lwjgl.LwjglFiles();
 
         try {
-            new LwjglApplication(new Inicio(Gdx.files.getExternalStoragePath(), debug, instalador), config);
+            new LwjglApplication(new Inicio(Gdx.files.getExternalStoragePath()), config);
         } catch(Exception e) {
             e.printStackTrace();
         }

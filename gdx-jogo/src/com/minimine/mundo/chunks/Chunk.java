@@ -15,16 +15,14 @@ public final class Chunk {
     public volatile boolean gpuPronta = false; // true quando vboId/iboId são validos
     public volatile int x, z, maxIds = 8;
 	public volatile long chave;
-    public volatile int paletaTam = 0;    // quantas entradas existem
+    public volatile int paletaTam = 0; // quantas entradas existem
     public volatile int paletaBits = 1; // bits para indice da paleta(1..8)
 	public volatile int[] paleta = new int[1 << this.paletaBits]; // array de valores reais(ids de blocos)
 	public volatile boolean usaPaleta = true; // controla se estamos no modo paleta
 	public volatile boolean fazendo = false;
-	public volatile boolean fluxoProcessando = true;
 	public volatile boolean att = false;
 	public volatile boolean luzFazendo = false;
 	public volatile boolean luzSuja = true;
-	public volatile boolean fluxoSujo = false;
 	public volatile boolean dadosProntos = false;
 	public volatile int contaSolida = 0;
     public volatile int contaTransp = 0;

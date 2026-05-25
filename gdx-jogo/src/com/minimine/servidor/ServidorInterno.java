@@ -28,6 +28,11 @@ import java.util.Iterator;
 import com.badlogic.gdx.math.MathUtils;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
+import com.minimine.Debugador;
+import com.badlogic.gdx.graphics.profiling.GLProfiler;
+import com.minimine.ui.UI;
+import com.minimine.Logs;
+import com.minimine.utils.TarefasUtil;
 /*
  * em solo, sobe um Net(SERVIDOR_MODO) local e conecta o cliente
  * via Net(CLIENTE_MODO, "127.0.0.1")
@@ -44,18 +49,28 @@ public class ServidorInterno {
 	public Net netServidor = null;
 	public Net netCliente = null;
 	public boolean rodando = false;
+	public List<Jogador> jogadores;
 	public Map<Integer, Jogador> jogadoresRede = new HashMap<>();
 	public Mundo mundo;
 	public Thread threadTick;
 	public static int tick = 0;
 	public static final long MS_POR_TICK = 50; // 20 TPS
 	public Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
-	public final List<TarefaTick> tarefas = new ArrayList<>();
-	public Jogador jgUi;
+	public final List<TarefaTick> tarefasLoop = new ArrayList<>();
+	public final List<Runnable> tarefas = new ArrayList<>();
+	public static Jogador jgUi;
+	public Runnable attMundo = new Runnable() {
+		@Override
+		public void run() {
+			mundo.att(jgUi);
+		}
+	};
 
 	public void iniciar(final Mundo mundo, final List<Jogador> jogadores) {
 		if(rodando) return;
 		rodando = true;
+		
+		this.jogadores = jogadores;
 		
 		jgUi = jogadores.get(0);
 		
@@ -155,10 +170,32 @@ public class ServidorInterno {
 			if(mundo.diaNoite.tempo > MathUtils.PI2)
 				mundo.diaNoite.tempo -= MathUtils.PI2;
 		}
+		TarefasUtil.exec.execute(attMundo);
+		
+		for(int i = 0; i < jogadores.size(); i++) {
+			final Jogador jg = jogadores.get(i);
+			if(mundo.carregado) {
+				if(!jg.nasceu) {
+					final int yTeste = Mundo.obterAlturaChao((int)jg.posicao.x, (int)jg.posicao.z);
+					if(yTeste > 1) {
+						jg.posicao.y = yTeste;
+						jg.nasceu = true;
+						final long chave = Chave.calcularChave(0, 0);
+						final Chunk chunk = mundo.obterChunk(chave);
+						mundo.chunksMod.put(chave, chunk);
+						Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
+					} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
+				}
+				jg.att(delta);
+			}
+		}
+		final com.minimine.inventario.Item itemInv = jgUi.inv.itens[jgUi.inv.slotSelecionado];
+		if(itemInv != null && itemInv.nome != jgUi.item) jgUi.item = itemInv.nome;
+		else if(itemInv == null) jgUi.item = "ar";
 		// broadcast de posição dos jogadores de rede para o cliente local
 		if(netServidor != null) {
 			for(Map.Entry<Integer, Jogador> e : jogadoresRede.entrySet()) {
-				Jogador jg = e.getValue();
+				final Jogador jg = e.getValue();
 				try {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
 					DataOutputStream dos = new DataOutputStream(baos);
@@ -182,7 +219,15 @@ public class ServidorInterno {
 			}
 		}
 		// tarefas externas registradas
-		for(int i = 0; i < tarefas.size(); i++) tarefas.get(i).executar(numTick);
+		for(int i = 0; i < tarefas.size(); i++) {
+			tarefas.get(i).run();
+			tarefas.remove(i);
+		}
+		for(int i = 0; i < tarefasLoop.size(); i++) tarefasLoop.get(i).executar(numTick);
+	}
+	
+	public void addTarefa(Runnable tarefa) {
+		tarefas.add(tarefa);
 	}
 
 	// processa pacotes recebidos pelo cliente local
@@ -252,7 +297,7 @@ public class ServidorInterno {
 						jgRede.nome = nome;
 						jgRede.attModelo();
 						jogadoresRede.put(id, jgRede);
-						Jogo.jogadores.add(jgRede);
+						jogadores.add(jgRede);
 						Gdx.app.log("[Jogo]", "jogador " + nome + " entrou, id: " + id);
 					}
 					break;
@@ -261,7 +306,7 @@ public class ServidorInterno {
 					int id = dis.readInt();
 					Jogador jgRede = jogadoresRede.remove(id);
 					if(jgRede != null) {
-						Jogo.jogadores.remove(jgRede);
+						jogadores.remove(jgRede);
 						Gdx.app.log("[Jogo]", "jogador " + jgRede.nome + " saiu");
 					}
 					break;
@@ -272,7 +317,7 @@ public class ServidorInterno {
 	public void enviarPosicao(float x, float y, float z, float yaw, float tom, String item) {
 		if(!netCliente.conectado || netCliente.clienteSaida == null) return;
 		try {
-			Jogador jg = Jogo.jogadores.get(0);
+			Jogador jg = jgUi;
 			int marcas = (jg.frente ? 1 : 0) | (jg.tras ? 2 : 0) | (jg.esquerda ? 4 : 0)
 				| (jg.direita ? 8 : 0) | (jg.voando ? 16 : 0) | (jg.agachado ? 32 : 0);
 			synchronized(netCliente.clienteSaida) {
@@ -398,7 +443,7 @@ public class ServidorInterno {
 		}
 	}
 
-	public void parar(List<Jogador> jogadores) {
+	public void parar() {
 		if(!rodando) return;
 		rodando = false;
 
@@ -421,7 +466,7 @@ public class ServidorInterno {
 			threadTick.interrupt();
 			threadTick = null;
 		}
-		for(Jogador jg : Jogo.jogadores) jg.liberar();
+		for(Jogador jg : jogadores) jg.liberar();
 		mundo.liberar();
 		Gdx.app.log("[Servidor]", "Servidor interno encerrado.");
 	}

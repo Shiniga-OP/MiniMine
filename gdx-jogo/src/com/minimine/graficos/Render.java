@@ -27,11 +27,15 @@ import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.minimine.graficos.shaders.ShaderBranco;
 import com.minimine.utils.Mat;
 import java.util.List;
+import com.minimine.entidades.GerenciadorEntidades;
+import com.minimine.Logs;
+import com.badlogic.gdx.graphics.profiling.GLProfiler;
+import com.minimine.cenas.Jogo;
 
 public class Render extends Renderizador {
     public static ShaderProgram shader;
     public static ShapeRenderer debugCaixas;
-    
+	
     public static String vert = 
     "attribute float a_pos;\n" +
     "attribute vec2 a_texCoord;\n" +
@@ -106,6 +110,9 @@ public class Render extends Renderizador {
     "   vec3 corNevoa = u_corCeu;\n" + 
     "   gl_FragColor = vec4(mix(texCor.rgb * iluminacaoFinal, corNevoa, fator), texCor.a);\n" +
     "}";
+	public static String logs = "";
+	public static Runtime rt = Runtime.getRuntime();
+	public static GLProfiler gpu;
 
     public Render(List<Jogador> jogadores, Mundo mundo) {
         super(jogadores, mundo);
@@ -138,10 +145,14 @@ public class Render extends Renderizador {
 					return new ShaderBranco();
 				}
 			});
+		gpu = new GLProfiler(Gdx.graphics);
+		if(UI.debug) gpu.enable();
+		else gpu.disable();
     }
 	
 	@Override
     public void att(float delta) {
+		super.att(delta);
 		if(!pause) {
 			Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
 			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -150,44 +161,9 @@ public class Render extends Renderizador {
 
 			if(mundo.ciclo) mundo.diaNoite.att(ui.jg.camera, delta);
 			
-			mundo.att(delta, ui.jg);
-			
-			if(jogadores.size() != 1) {
-				for(Jogador jg : jogadores) {
-					if(mundo.carregado) {
-						if(!jg.nasceu) {
-							final int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
-							if(yTeste > 1) {
-								jg.posicao.y = yTeste;
-								jg.nasceu = true;
-								long chave = com.minimine.mundo.Chave.calcularChave(0, 0);
-								Chunk chunk = mundo.obterChunk(chave);
-								mundo.chunksMod.put(chave, chunk);
-								Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
-							} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
-						}
-						jg.att(delta);
-					}
-				}
-			} else {
-				if(mundo.carregado) {
-					if(!ui.jg.nasceu) {
-						final int yTeste = Mundo.obterAlturaChao((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
-						if(yTeste > 1) {
-							ui.jg.posicao.y = yTeste;
-							ui.jg.nasceu = true;
-							long chave = com.minimine.mundo.Chave.calcularChave(0, 0);
-							Chunk chunk = mundo.obterChunk(chave);
-							mundo.chunksMod.put(chave, chunk);
-							Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
-						} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
-					}
-					ui.jg.att(delta);
-				}
+			if(mundo.carregado) {
+				GerenciadorEntidades.att(delta, mundo, ui.jg);
 			}
-			final com.minimine.inventario.Item itemInv = ui.jg.inv.itens[ui.jg.inv.slotSelecionado];
-			if(itemInv != null && itemInv.nome != ui.jg.item) ui.jg.item = itemInv.nome;
-			else if(itemInv == null) ui.jg.item = "ar";
 			shader.begin();
 
 			shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);
@@ -215,12 +191,13 @@ public class Render extends Renderizador {
 			shader.end();
 			gp.att(delta);
 			mb.begin(ui.jg.camera);
-			for(Entidade e : mundo.entidades) {
+			for(int i = 0; i < mundo.entidades.size(); i++) {
+				final Entidade e = mundo.entidades.get(i);
 				if(e != ui.jg) e.render(mb);
 			}
 			if(jogadores.size() != 1) {
 				for(int i = 1; i < jogadores.size(); i++) {
-					Jogador jg = jogadores.get(i);
+					final Jogador jg = jogadores.get(i);
 					jg.render(mb);
 				}
 			}
@@ -286,11 +263,13 @@ public class Render extends Renderizador {
 				debugCaixas.setProjectionMatrix(ui.jg.camera.combined);
 				debugCaixas.begin(ShapeRenderer.ShapeType.Line);
 				
-				for(Jogador jg : jogadores) {
+				for(int i = 0; i < jogadores.size(); i++) {
+					final Jogador jg = jogadores.get(i);
 					debugCaixas.box(jg.posicao.x - jg.largura/2, jg.posicao.y, jg.posicao.z + jg.largura/2, jg.largura, jg.altura, jg.largura);
 				}
 				debugCaixas.setColor(0, 1, 0, 1); // verde para as entidades
-				for(Entidade e : mundo.entidades) {
+				for(int i = 0; i < mundo.entidades.size(); i++) {
+					final Entidade e = mundo.entidades.get(i);
 					debugCaixas.box(
 						e.posicao.x - e.largura / 2, 
 						e.posicao.y, 
@@ -320,6 +299,61 @@ public class Render extends Renderizador {
 					debugCaixas.box(bx + cx, by + cy, bz + cz, larg, alt, -prof);
 				}
 				debugCaixas.end();
+			}
+			// debug:
+			final float yawNorm = ((ui.jg.yaw % 360) + 360) % 360;
+			final String direcao;
+			if(yawNorm >= 337.5f || yawNorm < 22.5f)   direcao = "Norte";
+			else if(yawNorm < 67.5f) direcao = "Nordeste";
+			else if(yawNorm < 112.5f) direcao = "Leste";
+			else if(yawNorm < 157.5f) direcao = "Sudeste";
+			else if(yawNorm < 202.5f) direcao = "Sul";
+			else if(yawNorm < 247.5f) direcao = "Sudoeste";
+			else if(yawNorm < 292.5f) direcao = "Oeste";
+			else direcao = "Noroeste";
+
+			final float livre = rt.freeMemory() >> 20;
+			final float total = rt.totalMemory() >> 20;
+			final float nativa = Gdx.app.getNativeHeap() >> 20;
+
+			final String[] logsArr = Logs.logs.split("\n");
+			Logs.logs = "";
+			final int inicio = Math.max(0, logsArr.length - 15);
+			for(int i = inicio; i < logsArr.length; i++) logs += logsArr[i] + '\n';
+
+			String bioma = "";
+
+			if(mundo.motor != null) {
+				bioma = mundo.motor.obterBioma((int)ui.jg.posicao.x, (int)ui.jg.posicao.z);
+			}
+			if(ui.debug) {
+				Jogo.debug1 = String.format(
+					"Jogador:\nX: %.1f, Y: %.1f, Z: %.1f\nDireção: %s (%.1f°)\nModo: %s\nSlot: %d\nItem: %s\n" +
+					"No chão: %b\nNa água: %b\nAgachado: %b\nVoando: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\n" +
+					"Controles:\nDireita: %b, Esquerda: %b\nFrente: %b, Trás: %b\nCima: %b\nBaixo: %b\nAção: %b\n\n" +
+					"Mundo:\nNome: %s\nBioma atual: %s\nRaio Chunks: %d\nChunks: %d\n" +
+					"Chunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nVelocidade do tempo: %.5f",
+					ui.jg.posicao.x, ui.jg.posicao.y, ui.jg.posicao.z, direcao, yawNorm,
+					(ui.jg.modo == 0 ? "espectador" : ui.jg.modo == 1 ? "criativo" : "sobrevivencia"),
+					ui.jg.inv.slotSelecionado, ui.jg.item, ui.jg.noChao, ui.jg.naAgua, ui.jg.agachado, ui.jg.voando,
+					ui.jg.velo, ui.jg.altura,
+					ui.jg.direita, ui.jg.esquerda, ui.jg.frente, ui.jg.tras, ui.jg.cima, ui.jg.baixo, ui.jg.acao,
+					mundo.nome, bioma, mundo.RAIO_CHUNKS, mundo.chunks.size(),
+					mundo.chunksMod.size(), mundo.semente, mundo.diaNoite.tempo, mundo.diaNoite.tempo_velo);
+
+				Jogo.debug2 = String.format(
+					"FPS: %d\nGPU:\nDesenhos: %d\nVértices: %.0f\nTrocas de Shader: %d\nLinks de textura: %d\n" +
+					"Threads ativas: %d\nMemória livre: %.1f MB\nMemória total: %.1f MB\n" +
+					"Memória usada: %.1f MB\nMemória nativa: %.1f MB\n\nLogs:\n%s",
+					fps,
+					gpu.getDrawCalls(),
+					gpu.getVertexCount().total,
+					gpu.getShaderSwitches(),
+					gpu.getTextureBindings(),
+					Thread.activeCount(), livre, total, total - livre,
+					nativa,
+					logs);
+				gpu.reset();
 			}
 		}
 		// renderiza a interface de usuario:

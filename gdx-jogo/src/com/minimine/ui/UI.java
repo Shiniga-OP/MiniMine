@@ -54,7 +54,7 @@ public class UI implements InputProcessor {
     public static float aprox = 0.01f;
     public static float distancia = 400f;
     public static int pov = 90;
-	
+
 	public static int telaV, telaH;
 
     // botões do DPad mobile
@@ -81,17 +81,12 @@ public class UI implements InputProcessor {
     public static Jogador jg;
     public static boolean debug = false;
     public static boolean modoTexto = false;
-    public static int fps = 0;
-    public static Debugador debugador;
-
+    
     public boolean chatAberto = false;
     public String ultimaMensagem = "";
     public List<String> msgs = new ArrayList<>();
 
     public PaginaItens paginaItens = new PaginaItens();
-
-    public static Runtime rt = Runtime.getRuntime();
-	public static GLProfiler gpu;
 
     public static boolean gui = true;
 
@@ -118,9 +113,6 @@ public class UI implements InputProcessor {
 
         Gdx.input.setInputProcessor(this);
         Gdx.input.setCursorCatched(true);
-		gpu = new GLProfiler(Gdx.graphics);
-		if(debug) gpu.enable();
-		else gpu.disable();
     }
 
     // === criação de componentes Micro ===
@@ -342,7 +334,7 @@ public class UI implements InputProcessor {
         // === inv e receita colados a hotbar ===
         final int hotbarX = (v >> 1) - ((jg.inv.hotbarSlots * jg.inv.tamSlot) >> 1);
         defPosDpad("inv", hotbarX + jg.inv.hotbarSlots * jg.inv.tamSlot, jg.inv.hotbarY);
-        
+
         // === menu pause canto superior direito ===
         defPosDpad("menu_principal", v - tam - marg, h - tam - marg);
 
@@ -488,13 +480,13 @@ public class UI implements InputProcessor {
         }
         // grade de receita(so quando inventário aberto)
         if(inv.aberto && inv.rectsGrade != null) {
-            for(int i = 0; i < 9; i++) {
+            for(int i = 0; i < inv.SLOTS_GRADE; i++) {
                 if(inv.rectsGrade[i] == null) continue;
                 final float rx = inv.rectsGrade[i].x, ry = inv.rectsGrade[i].y;
                 final float rv = inv.rectsGrade[i].width, rh = inv.rectsGrade[i].height;
                 sb.draw(inv.texSlot, rx, ry, rv, rh);
-				if(inv.gradeReceita[i] == null) continue;
-                final Item item = inv.gradeReceita[i];
+				if(inv.itens[inv.quantSlots+i] == null) continue;
+                final Item item = inv.itens[inv.quantSlots+i];
                 if(item != null && item.nome.length() > 0) {
                     sb.draw(item.textura, rx + 4, ry + 4, rv - 8, rh - 8);
                 }
@@ -531,7 +523,7 @@ public class UI implements InputProcessor {
 						ultimoSlot.x,
 						ultimoSlot.y + inv.tamSlot + 4,
 						inv.tamSlot, inv.tamSlot
-					);
+						);
             }
         }
     }
@@ -569,57 +561,8 @@ public class UI implements InputProcessor {
     }
 
     public void renderDebug(final Mundo mundo) {
-        final float livre = rt.freeMemory() >> 20;
-        final float total = rt.totalMemory() >> 20;
-        final float nativaLivre = debugador.obterHeapLivre() >> 20;
-        final float nativaTotal = debugador.obterHeapTotal() >> 20;
-        fps = Gdx.graphics.getFramesPerSecond();
-
-        final String[] logsArr = Logs.logs.split("\n");
-		Logs.logs = "";
-        final int inicio = Math.max(0, logsArr.length - 15);
-        for(int i = inicio; i < logsArr.length; i++) Logs.logs += logsArr[i] + '\n';
-
-        final float yawNorm = ((jg.yaw % 360) + 360) % 360;
-        final String direcao;
-        if(yawNorm >= 337.5f || yawNorm < 22.5f)   direcao = "Norte";
-        else if(yawNorm < 67.5f) direcao = "Nordeste";
-        else if(yawNorm < 112.5f) direcao = "Leste";
-        else if(yawNorm < 157.5f) direcao = "Sudeste";
-        else if(yawNorm < 202.5f) direcao = "Sul";
-        else if(yawNorm < 247.5f) direcao = "Sudoeste";
-        else if(yawNorm < 292.5f) direcao = "Oeste";
-        else direcao = "Noroeste";
-
-        fonte.draw(sb, String.format(
-					   "Jogador:\nX: %.1f, Y: %.1f, Z: %.1f\nDireção: %s (%.1f°)\nModo: %s\nSlot: %d\nItem: %s\n" +
-					   "No chão: %b\nNa água: %b\nAgachado: %b\nVoando: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\n" +
-					   "Controles:\nDireita: %b, Esquerda: %b\nFrente: %b, Trás: %b\nCima: %b\nBaixo: %b\nAção: %b\n\n" +
-					   "Mundo:\nNome: %s\nBioma atual: %s\nRaio Chunks: %d\nChunks: %d\n" +
-					   "Chunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nVelocidade do tempo: %.5f",
-					   jg.posicao.x, jg.posicao.y, jg.posicao.z, direcao, yawNorm,
-					   (jg.modo == 0 ? "espectador" : jg.modo == 1 ? "criativo" : "sobrevivencia"),
-					   jg.inv.slotSelecionado, jg.item, jg.noChao, jg.naAgua, jg.agachado, jg.voando,
-					   jg.velo, jg.altura,
-					   jg.direita, jg.esquerda, jg.frente, jg.tras, jg.cima, jg.baixo, jg.acao,
-					   mundo.nome, jg.bioma, mundo.RAIO_CHUNKS, mundo.chunks.size(),
-					   mundo.chunksMod.size(), mundo.semente, mundo.diaNoite.tempo, mundo.diaNoite.tempo_velo),
-				   50, telaH - 100);
-        fonte.draw(sb, String.format(
-					   "FPS: %d\nGPU:\nDesenhos: %d\nVértices: %.0f\nTrocas de Shader: %d\nLinks de textura: %d\n" +
-					   "Threads ativas: %d\nMemória livre: %.1f MB\nMemória total: %.1f MB\n" +
-					   "Memória usada: %.1f MB\nMemória nativa livre: %.1f MB\nMemória nativa total: %.1f MB\n" +
-					   "Memória nativa usada: %.1f MB\n\nLogs:\n%s",
-					   fps,
-					   gpu.getDrawCalls(),
-					   gpu.getVertexCount().total,
-					   gpu.getShaderSwitches(),
-					   gpu.getTextureBindings(),
-					   Thread.activeCount(), livre, total, total - livre,
-					   nativaLivre, nativaTotal, nativaTotal - nativaLivre,
-					   Logs.logs),
-				   telaV - 300, telaH - 100);
-		gpu.reset();
+        fonte.draw(sb, Jogo.debug1, 50, telaH - 100);
+        fonte.draw(sb, Jogo.debug2, telaV - 300, telaH - 100);
     }
 
     // camera
@@ -632,7 +575,7 @@ public class UI implements InputProcessor {
             MathUtils.cos(tomRad) * MathUtils.cos(yawRad)
         ).nor();
     }
-	
+
 	public static PerspectiveCamera criarCamera() {
 		PerspectiveCamera camera = new PerspectiveCamera(pov, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(10f, 18f, 10f);
@@ -757,6 +700,7 @@ public class UI implements InputProcessor {
 				bd.sprite.setAlpha(0.9f);
 			}
         }
+        jg.inv.aoSoltar(telaX, y, p);
         if(p == pontoDir) pontoDir = -1;
         return true;
     }
@@ -766,7 +710,7 @@ public class UI implements InputProcessor {
         if(modoTexto) return true;
         final int y = telaH - telaY;
 
-        jg.inv.aoArrastar(telaX, y);
+        if(jg.inv.aberto) jg.inv.aoArrastar(telaX, y);
 
         if(MenuPause.menuAberto) {
             MenuPause.processarArraste(telaX, y);
