@@ -11,7 +11,7 @@ public class TarefasUtil {
 	public static ThreadFactory fabrica = new ThreadFactory() {
 		@Override
 		public Thread newThread(Runnable r) {
-			Thread t = new Thread(r);
+			final Thread t = new Thread(r);
 			t.setDaemon(true);
 			return t;
 		}

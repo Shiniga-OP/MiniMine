@@ -100,7 +100,7 @@ public class ItemMundo extends Entidade {
     }
 
     @Override
-    public void render(ModelBatch mb) {
+    public void render(ModelBatch mb, float delta) {
         if(modelo != null) mb.render(modelo);
     }
 }

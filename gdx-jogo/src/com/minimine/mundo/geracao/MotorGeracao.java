@@ -254,8 +254,8 @@ public final class MotorGeracao {
                 vizinhoMod[idc] = Mundo.chunksMod.containsKey(chave);
                 if(!vizinhoMod[idc]) {
                     final Chunk c  = Mundo.obterChunk(chave);
-                    final int estado = Mundo.estados.getOrDefault(chave, 0);
-                    if(c != null && estado == 1) {
+                    
+                    if(c != null && c.estado == 1) {
                         // vizinha ainda na janela de dados: escreve direto
                         vizinhos[idc] = c;
                         ehFila[idc] = false;

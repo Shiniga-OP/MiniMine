@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import com.minimine.cenas.Jogo;
+import com.minimine.mundo.chunks.Chunk;
 
 public class GerenciadorEntidades {
 	public static final Random aleatorio = new Random();
@@ -33,16 +34,6 @@ public class GerenciadorEntidades {
 				e.liberar();
 				mundo.entidades.remove(i);
 			}
-		}
-		if(mundo.carregado) {
-			tempo += delta;
-			if(tempo >= INTERVALO && mundo.entidades.size() < MAX_ENTIDADES) {
-				tempo = 0f;
-				tentarNascerEntidade(jg, mundo);
-			}
-		}
-		for(int i = 0; i < mundo.entidades.size(); i++) {
-			final Entidade e = mundo.entidades.get(i);
 			e.att(delta);
 
 			if(e.naAgua) {
@@ -56,13 +47,20 @@ public class GerenciadorEntidades {
 			}
 			if(e.velocidade.y < e.VELO_MAX_QUEDA) e.velocidade.y = e.VELO_MAX_QUEDA;
 		}
+		if(mundo.carregado) {
+			tempo += delta;
+			if(tempo >= INTERVALO && mundo.entidades.size() < MAX_ENTIDADES) {
+				tempo = 0f;
+				tentarNascerEntidade(jg, mundo);
+			}
+		}
 	}
 
 	public static void tentarNascerEntidade(Jogador jogador, Mundo mundo) {
 		// pega um chunk carregado aleatório(estado 2 = malha pronta)
 		final List<Long> disponiveis = new ArrayList<>();
-		for(Map.Entry<Long, Integer> e : mundo.estados.entrySet()) {
-			if(e.getValue() == 4) disponiveis.add(e.getKey());
+		for(Chunk e : mundo.chunks.values()) {
+			if(e.estado == 4) disponiveis.add(e.chave);
 		}
 		if(disponiveis.isEmpty()) return;
 

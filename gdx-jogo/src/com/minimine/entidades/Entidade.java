@@ -276,7 +276,7 @@ public class Entidade {
 		}
 	}
 
-	public void render(ModelBatch mb) {}
+	public void render(ModelBatch mb, float delta) {}
 	public void liberar() {}
 	
 	public void salvar(DataOutputStream dos) throws IOException {

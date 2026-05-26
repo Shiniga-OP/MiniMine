@@ -193,15 +193,15 @@ public class Render extends Renderizador {
 			mb.begin(ui.jg.camera);
 			for(int i = 0; i < mundo.entidades.size(); i++) {
 				final Entidade e = mundo.entidades.get(i);
-				if(e != ui.jg) e.render(mb);
+				if(e != ui.jg) e.render(mb, delta);
 			}
 			if(jogadores.size() != 1) {
 				for(int i = 1; i < jogadores.size(); i++) {
 					final Jogador jg = jogadores.get(i);
-					jg.render(mb);
+					jg.render(mb, delta);
 				}
 			}
-			if(ui.gui && ui.jg.pessoa != 0) ui.jg.render(mb);
+			if(ui.gui && ui.jg.pessoa != 0) ui.jg.render(mb, delta);
 			mb.render(gp);
 			mb.end();
 			
@@ -248,7 +248,7 @@ public class Render extends Renderizador {
 			// 4. jogador principal
 			if(ui.jg.pessoa == 0) {
 				mb.begin(ui.jg.camera);
-				if(ui.gui) ui.jg.render(mb);
+				if(ui.gui) ui.jg.render(mb, delta);
 				mb.end();
 			}
 			// renderiza os nomes

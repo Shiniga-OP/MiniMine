@@ -1,6 +1,7 @@
 package com.minimine.mundo.chunks;
 
 import com.minimine.mundo.Mundo;
+import java.util.Arrays;
 
 public final class Chunk {
     public volatile int bitsPorBloco = 4; // 1..8(modo direto)
@@ -13,7 +14,7 @@ public final class Chunk {
     public volatile int iboId = 0; // IBO de indices na GPU
 	public volatile int iboTranspId = 0;
     public volatile boolean gpuPronta = false; // true quando vboId/iboId são validos
-    public volatile int x, z, maxIds = 8;
+    public volatile int x, z, estado = 0, maxIds = 8;
 	public volatile long chave;
     public volatile int paletaTam = 0; // quantas entradas existem
     public volatile int paletaBits = 1; // bits para indice da paleta(1..8)
@@ -26,5 +27,32 @@ public final class Chunk {
 	public volatile boolean dadosProntos = false;
 	public volatile int contaSolida = 0;
     public volatile int contaTransp = 0;
-}
 
+	public static void zerar(Chunk c) {
+		c.bitsPorBloco = 4;
+		c.blocosPorInt = 32 / c.bitsPorBloco;
+		if(c.blocos != null) Arrays.fill(c.blocos, 0);
+		Arrays.fill(c.luz, (byte)0);
+		Arrays.fill(c.meta, (short)0);
+		c.vboId = 0;
+		c.iboId = 0;
+		c.iboTranspId = 0;
+		c.gpuPronta = false;
+		c.x = 0;
+		c.z = 0;
+		c.maxIds = 8;
+		c.chave = 0;
+		c.paletaTam = 0;
+		c.paletaBits = 1;
+		if(c.paleta != null) Arrays.fill(c.paleta, 0);
+		c.usaPaleta = true;
+		c.fazendo = false;
+		c.att = false;
+		c.luzFazendo = false;
+		c.luzSuja = true;
+		c.dadosProntos = false;
+		c.contaSolida = 0;
+		c.contaTransp = 0;
+		c.estado = 0;
+	}
+}

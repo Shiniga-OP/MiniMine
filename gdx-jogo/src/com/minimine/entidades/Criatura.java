@@ -173,17 +173,20 @@ public class Criatura extends Entidade {
         float dx = destino.x - posicao.x;
         float dz = destino.z - posicao.z;
         float dist2 = dx * dx + dz * dz;
-        if(dist2 < 1f) { temDestino = false; return; }
-        float len = (float)Math.sqrt(dist2);
-        frenteV.x = dx / len;
-        frenteV.z = dz / len;
-        direitaV.x =  frenteV.z;
+        if(dist2 < 1f) {
+			temDestino = false;
+			return;
+		}
+        float tam = (float)Math.sqrt(dist2);
+        frenteV.x = dx / tam;
+        frenteV.z = dz / tam;
+        direitaV.x = frenteV.z;
         direitaV.z = -frenteV.x;
         frente = true;
     }
 
     // chamado pelo InterpretadorMob quando uma regra tem "procurarBloco"
-    public void definirDestino(String[] blocoAlvo) {
+    public void defDestino(String[] blocoAlvo) {
         int raio = 20;
         float melhorDist = Float.MAX_VALUE;
         for(int dx = -raio; dx <= raio; dx++) {
@@ -248,7 +251,7 @@ public class Criatura extends Entidade {
     }
 
     @Override
-    public void render(ModelBatch mb) {
+    public void render(ModelBatch mb, float delta) {
         if(instancia == null) return;
         if(direcaoSuave.len2() > 0.01f) {
             instancia.transform.setToRotation(

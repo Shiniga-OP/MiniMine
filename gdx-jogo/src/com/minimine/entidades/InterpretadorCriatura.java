@@ -128,7 +128,7 @@ public final class InterpretadorCriatura {
             List<Object> lista = MJson.praArray(procObj);
             String[] alvos = new String[lista.size()];
             for(int i = 0; i < lista.size(); i++) alvos[i] = String.valueOf(lista.get(i));
-            criatura.definirDestino(alvos);
+            criatura.defDestino(alvos);
         }
         // operacao sobre variavel
         Object opObj = exec.get("operacao");

@@ -268,7 +268,14 @@ public class Jogador extends Entidade {
 			attHitbox();
 		}
 		if(posicao.y < -100f) posicao.y = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
-
+	}
+	
+	@Override
+	public void render(ModelBatch mb, float delta) {
+		if(!item.equals(itemCache)) {
+			itemCache = item;
+			modeloItem = Modelos.modeloItem(item);
+		}
 		final boolean temMovi = frente || tras || esquerda || direita;
 		if(temMovi) {
 			final float veloHoriz = (float)Math.sqrt(velocidade.x * velocidade.x + velocidade.z * velocidade.z);
@@ -314,14 +321,6 @@ public class Jogador extends Entidade {
 		} else {
 			if(diffYaw > 60f) yawTronco = yaw - 60f;
 			else if(diffYaw < -60f) yawTronco = yaw + 60f;
-		}
-	}
-	
-	@Override
-	public void render(ModelBatch mb) {
-		if(!item.equals(itemCache)) {
-			itemCache = item;
-			modeloItem = Modelos.modeloItem(item);
 		}
 		if(pessoa == 0) {
 			// primeira pessoa: renderiza braço no espaço da camera(sem profundidade)

@@ -44,21 +44,22 @@ import com.minimine.utils.TarefasUtil;
  *   - ser a fonte de verdade do Mundo(estado, chunks, blocos)
 
  * O cliente local recebe tudo via protocolo, igual a um cliente remoto
- */
+*/
 public class ServidorInterno {
 	public Net netServidor = null;
 	public Net netCliente = null;
 	public boolean rodando = false;
 	public List<Jogador> jogadores;
-	public Map<Integer, Jogador> jogadoresRede = new HashMap<>();
+	public final Map<Integer, Jogador> jogadoresRede = new HashMap<>();
 	public Mundo mundo;
 	public Thread threadTick;
-	public static int tick = 0;
+	public int tick = 0;
 	public static final long MS_POR_TICK = 50; // 20 TPS
-	public Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
+	public final Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 	public final List<TarefaTick> tarefasLoop = new ArrayList<>();
 	public final List<Runnable> tarefas = new ArrayList<>();
-	public static Jogador jgUi;
+	public Jogador jgUi;
+	
 	public Runnable attMundo = new Runnable() {
 		@Override
 		public void run() {
