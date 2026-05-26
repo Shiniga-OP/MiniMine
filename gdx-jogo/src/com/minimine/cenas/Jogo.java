@@ -56,10 +56,32 @@ public class Jogo implements Screen {
 			servidor.iniciar(mundo, jogadores);
 		} else {
 			servidor.jgUi = jogador;
+			servidor.jogadores = jogadores;
 			servidor.mundo = mundo;
 			if(mundo.ciclo) mundo.diaNoite.iniciar();
 			mundo.iniciar(false);
 			servidor.rodando = true;
+			servidor.threadTick = new Thread(new Runnable() {
+					public void run() {
+						int numTick = 0;
+						while(servidor.rodando) {
+							final long inicio = System.currentTimeMillis();
+							servidor.tick(numTick++);
+							final long gasto = System.currentTimeMillis() - inicio;
+							final long espera = servidor.MS_POR_TICK - gasto;
+							if(espera > 0) {
+								try {
+									Thread.sleep(espera);
+								} catch(InterruptedException e) {
+									Thread.currentThread().interrupt();
+								}
+							}
+						}
+					}
+				});
+			servidor.threadTick.setName("servidor-tick");
+			servidor.threadTick.setDaemon(true);
+			servidor.threadTick.start();
 		}
 		if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
 			servidor.netCliente = new Net(Net.CLIENTE_MODO, "127.0.0.1");
