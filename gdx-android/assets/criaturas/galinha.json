@@ -1,5 +1,6 @@
 {
     "nome": "galinha",
+    "vida": 3,
     "raridade": 0.3,
     "modelo": "modelos/galinha.gltf",
 

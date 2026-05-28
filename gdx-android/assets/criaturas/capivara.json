@@ -1,5 +1,6 @@
 {
     "nome": "capivara",
+    "vida": 10,
     "raridade": 0.3,
     "modelo": "modelos/capivara.gltf",
 

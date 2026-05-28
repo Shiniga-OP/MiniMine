@@ -56,6 +56,7 @@ refeito com LibGDX.
 * Itens flutuantes.
 * Pontos de vista (primeira pessoa, segunda pessoa).
 * Modo Multijogador local (beta).
+* Sistema de combate.
 
 ## Modos de mundo:
 * Mundo Normal: biomas, estruturas, e formações naturais.
@@ -95,10 +96,13 @@ refeito com LibGDX.
 * Tulipa luminosa.
 
 ## Itens:
+### Receitas:
 * Palito.
-* Espada de madeira.
-* Picareta de madeira.
-* Machado de madeira.
+
+### Ferramentas:
+* Espada de madeira: dano: 3, mineração: 0.1.
+* Picareta de madeira: dano: 1, mineração: 0.2.
+* Machado de madeira: dano: 2, mineração: 0.15.
 
 ## Geração feita:
 
@@ -109,7 +113,7 @@ refeito com LibGDX.
 * Tuneis para cavernas.
 * Vegetação/estruturas com JSON.
 
-## Entidades:
+## Entidades e seus biomas:
 * Foca: Tundra.
 * Capivara: Costa/Rio.
 * Galinha: Floresta/Planicie/Selva.

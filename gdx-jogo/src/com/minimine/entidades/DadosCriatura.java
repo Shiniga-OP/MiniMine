@@ -5,10 +5,11 @@ import com.badlogic.gdx.Gdx;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 /*
  * dados imutaveis de um tipo de criatura, compilados de JSON
  * sem logica de comportamento, so estrutura de dados
-*/
+ */
 public final class DadosCriatura {
     public final String nome;
     public final float raridade;
@@ -19,6 +20,8 @@ public final class DadosCriatura {
 
     // movimento base
     public final float velo, peso, pulo;
+
+    public final int vida;
 
     // variáveis internas, nome -> {valor, min, max}
     public final Map<String, float[]> variaveis; // float[]{valorInicial, min, max}
@@ -45,10 +48,10 @@ public final class DadosCriatura {
     }
 
     public DadosCriatura(String nome, float raridade, String modelo,
-	float largura, float altura, float profundidade,
-	float velo, float peso, float pulo,
-	Map<String, float[]> variaveis, String[] animacoes,
-	List<Regra> comportamento, String[] biomasOrigens, float chanceNascimento, int maxNascimento) {
+						 float largura, float altura, float profundidade,
+						 float velo, float peso, float pulo, int vida,
+						 Map<String, float[]> variaveis, String[] animacoes,
+						 List<Regra> comportamento, String[] biomasOrigens, float chanceNascimento, int maxNascimento) {
         this.nome = nome;
         this.raridade = raridade;
         this.modelo = modelo;
@@ -58,6 +61,7 @@ public final class DadosCriatura {
         this.velo = velo;
         this.peso = peso;
         this.pulo = pulo;
+        this.vida = vida;
         this.variaveis = variaveis;
         this.animacoes = animacoes;
         this.comportamento = comportamento;
@@ -72,6 +76,7 @@ public final class DadosCriatura {
         String nome = MJson.obterString(r, "nome", "desconhecido");
         float raridade = MJson.obterFloat(r, "raridade", 0.5f);
         String modelo = MJson.obterString(r, "modelo", "");
+		int vida = MJson.obterInt(r, "vida", 10);
 
         // hitbox
         Map<String, Object> hb = MJson.praObjeto(r.get("hitbox"));
@@ -107,7 +112,7 @@ public final class DadosCriatura {
             for(int i = 0; i < lista.size(); i++) animacoes[i] = MJson.praString(lista.get(i));
         }
         // comportamento
-        List<Regra> regras = new java.util.ArrayList<>();
+        List<Regra> regras = new ArrayList<>();
         Object compObj = r.get("comportamento");
         if(compObj != null) {
             for(Object item : MJson.praArray(compObj)) {
@@ -120,7 +125,7 @@ public final class DadosCriatura {
         // origem
         String[] biomasOrigens = new String[0];
         float chanceNascimento = 0f;
-        int   maxNascimento    = 1;
+        int maxNascimento = 1;
         Object origObj = r.get("origem");
         if(origObj != null) {
             Map<String, Object> orig = MJson.praObjeto(origObj);
@@ -130,11 +135,12 @@ public final class DadosCriatura {
             chanceNascimento = MJson.obterFloat(orig, "chance", 0f);
             maxNascimento = MJson.obterInt(orig, "max", 1);
         }
-        return new DadosCriatura(nome, raridade, modelo,
-		largura, altura, profundidade,
-		velo, peso, pulo,
-		variaveis, animacoes, regras,
-		biomasOrigens, chanceNascimento, maxNascimento);
+        return new DadosCriatura(
+			nome, raridade, modelo,
+			largura, altura, profundidade,
+			velo, peso, pulo, vida,
+			variaveis, animacoes, regras,
+			biomasOrigens, chanceNascimento, maxNascimento
+		);
     }
 }
-

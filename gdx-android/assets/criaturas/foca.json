@@ -1,5 +1,6 @@
 {
     "nome": "foca",
+    "vida": 100000,
     "raridade": 0.2,
     "modelo": "modelos/foca.gltf",
 

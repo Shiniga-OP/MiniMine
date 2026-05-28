@@ -392,7 +392,6 @@ public final class ArquivosUtil {
 			}
 		}
     }
-
     // svEstrutura: salva uma região do mundo como .minies
     /*
      * varre a bcaixa[baseX..baseX+larg-1, baseY..baseY+alt-1, baseZ..baseZ+prof-1],

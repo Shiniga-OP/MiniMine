@@ -50,7 +50,7 @@ public class Entidade {
 	public static final int BLOCOS_QUEDA_SEGURA = 3;   // blocos sem dano
 	public static final float TICK_REGEN = 5f;  // regenera 1 de vida a cada 5 segundos
 
-	public float alturaMaxQueda  = 0f; // Y mais alto registrado enquanto estava no ar
+	public float alturaMaxQueda = 0f; // Y mais alto registrado enquanto estava no ar
 	public boolean rastreandoQueda = false;
 
 	public float tempoInvulneravel = 0f; // segundos restantes de invulnerabilidade pós-dano
@@ -58,10 +58,18 @@ public class Entidade {
 
 	public float tempoRegen = 0f;
 
-	public float[] dadosLuz = new float[]{15f, 0f};
+	// === combate ===
+	public int danoAtaque = 1;
+	public float intervaloAtaque = 0.5f; // segundos entre ataques
+	public float tempoAtaque = 0f; // cooldown restante
+
+	public float tempoPiscando = 0f; // efeito visual de dano
+	public static final float DURACAO_PISCAR = 0.4f;
+
+	public float[] dadosLuz = {15f, 0f};
 
 	public Chunk chunkCache = null;
-	
+
 	public void attHitbox() {
 		final float x = posicao.x;
 		final float y = posicao.y;
@@ -169,6 +177,7 @@ public class Entidade {
 		vida -= dano;
 		if(vida < 0) vida = 0;
 		tempoInvulneravel = DURACAO_INVUL;
+		tempoPiscando = DURACAO_PISCAR;
 		if(vida == 0) morreu();
 		return true;
 	}
@@ -220,9 +229,9 @@ public class Entidade {
 		final int _bx = Mat.floor(posicao.x);
 		final int _by = Mat.floor(posicao.y + altura * 0.9f);
 		final int _bz = Mat.floor(posicao.z);
-		
+
 		final long chave = Chave.calcularChave(_bx >> 4, _bz >> 4);
-		
+
 		if(chunkCache == null || chave != chunkCache.chave) {
 			chunkCache = Mundo.chunks.get(chave);
 		}
@@ -235,6 +244,14 @@ public class Entidade {
 		}
 		// === ticks de dano ===
 
+		if(tempoAtaque > 0f) {
+			tempoAtaque -= delta;
+			if(tempoAtaque < 0f) tempoAtaque = 0f;
+		}
+		if(tempoPiscando > 0f) {
+			tempoPiscando -= delta;
+			if(tempoPiscando < 0f) tempoPiscando = 0f;
+		}
 		// invulnerabilidade
 		if(tempoInvulneravel > 0f) {
 			tempoInvulneravel -= delta;
@@ -278,7 +295,7 @@ public class Entidade {
 
 	public void render(ModelBatch mb, float delta) {}
 	public void liberar() {}
-	
+
 	public void salvar(DataOutputStream dos) throws IOException {
         dos.writeFloat(posicao.x);
         dos.writeFloat(posicao.y);
@@ -290,7 +307,7 @@ public class Entidade {
 		dos.writeBoolean(nasceu);
         dos.flush();
     }
-	
+
 	public void carregar(DataInputStream dis) throws IOException {
         posicao = new Vector3(dis.readFloat(), dis.readFloat(), dis.readFloat());
         yaw = dis.readFloat();

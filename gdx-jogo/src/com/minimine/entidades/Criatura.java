@@ -46,7 +46,7 @@ public class Criatura extends Entidade {
     public float ultimoPosX = 0f;
     public float ultimoPosZ = 0f;
     public static final float TEMPO_PRESO = 1.2f;
-	
+
 	public float[] obs;
 
     public Criatura(final DadosCriatura dados, float x, float y, float z) {
@@ -61,6 +61,8 @@ public class Criatura extends Entidade {
         this.peso = dados.peso;
         this.pulo = dados.pulo;
         this.posicao.set(x, y, z);
+        this.vidaMax = dados.vida;
+        this.vida = dados.vida;
 
         // inicializa variaveis com valor e faixa do JSON
         for(Map.Entry<String, float[]> e : dados.variaveis.entrySet()) {
@@ -71,16 +73,21 @@ public class Criatura extends Entidade {
         ia = new IA(dados.variaveis.size());
 		obs = new float[ia.ENTRADAS];
 		Gdx.app.postRunnable(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					instancia = new ModelInstance(Modelos.obterModelo(dados.modelo));
-					animCtr = new AnimationController(instancia);
-				} catch(Exception e) {
-					Gdx.app.error("[Criatura]", "Erro no modelo " + dados.modelo + ": " + e.getMessage());
+				@Override
+				public void run() {
+					try {
+						instancia = new ModelInstance(Modelos.obterModelo(dados.modelo));
+						animCtr = new AnimationController(instancia);
+					} catch(Exception e) {
+						Gdx.app.error("[Criatura]", "Erro no modelo " + dados.modelo + ": " + e.getMessage());
+					}
 				}
-			}
-		});
+			});
+    }
+
+    @Override
+    public void morreu() {
+        Mundo.entidades.remove(this);
     }
 
     @Override
@@ -258,10 +265,15 @@ public class Criatura extends Entidade {
     @Override
     public void render(ModelBatch mb, float delta) {
 		if(instancia == null) return;
-		// 5. animação
+		// efeito de dano: pisca vermelho
+		if(tempoPiscando > 0f) {
+			// pisca: alterna visibilidade a cada 50ms (efeito clássico de dano)
+			if((tempoPiscando % 0.1f) < 0.05f) return;
+		}
+		// animação
 		if(!animAtual.isEmpty()) animCtr.setAnimation(animAtual, -1);
 		animCtr.update(delta);
-		
+
         if(direcaoSuave.len2() > 0.01f) {
             instancia.transform.setToRotation(
                 Vector3.Y,

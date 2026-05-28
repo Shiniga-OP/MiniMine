@@ -34,6 +34,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Matrix4;
 import com.minimine.mundo.Chave;
 import com.minimine.entidades.ItemMundo;
+import com.minimine.entidades.Criatura;
 import com.minimine.inventario.Item;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -66,11 +67,11 @@ public class Jogador extends Entidade {
 	public float tempoDuploPulo = 0f;
 	public static final float JANELA_DUPLO_PULO = 0.3f;
 
-	// yaw do corpo, separado da câmera — atualiza com delay pra não ficar rígido
+	// yaw do corpo, separado da camera, atualiza com delay pra não ficar rigido
 	public float yawTronco = 180f;
 
 	public final Quaternion rotTemp = new Quaternion();
-	public final Vector3 eulerTemp = new Vector3();
+	public final Vector3 eulerTemp = new Vector3(), raioTemp = new Vector3();
 
 	public Node cabeca, tronco, bracoDir, bracoEsq, pernaDir, pernaEsq, itemPos;
 
@@ -129,6 +130,42 @@ public class Jogador extends Entidade {
 		final float dirY = raio.direction.y;
 		final float dirZ = raio.direction.z;
 
+		// tenta atacar criatura se quebrar == true e cooldown zerado
+		if(quebrar && tempoAtaque <= 0f) {
+			Criatura alvo = null;
+			float menorDist = Float.MAX_VALUE;
+			for(int i = 0; i < Mundo.entidades.size(); i++) {
+				final Entidade e = Mundo.entidades.get(i);
+				if(!(e instanceof Criatura)) continue;
+				// testa intersecção do raio com a hitbox da criatura
+				e.attHitbox();
+				boolean achou = false;
+				for(float t = 0.3f; t <= ALCANCE; t += 0.15f) {
+					raioTemp.set(olhoX + dirX * t, olhoY + dirY * t, olhoZ + dirZ * t);
+					if(e.hitbox.contains(raioTemp)) {
+						achou = true;
+						break;
+					}
+				}
+				if(!achou) continue;
+				final float dist = posicao.dst(e.posicao);
+				if(dist < menorDist) {
+					menorDist = dist;
+					alvo = (Criatura)e;
+				}
+			}
+			if(alvo != null && menorDist <= ALCANCE) {
+				if(item.equals("ar")) alvo.tomarDano(danoAtaque);
+				else alvo.tomarDano(inv.itens[inv.slotSelecionado].dano);
+				// repulsão: empurra a criatura na direção do raio + leve impulso pra cima
+				final float forca = 8f;
+				alvo.velocidade.x = dirX * forca;
+				alvo.velocidade.z = dirZ * forca;
+				alvo.velocidade.y = 4f;
+				tempoAtaque = intervaloAtaque;
+				return;
+			}
+		}
 		for(float t = 0; t < ALCANCE; t += 0.10f) {
 			final int x = Mat.floor(olhoX + dirX * t);
 			final int y = Mat.floor(olhoY + dirY * t);
@@ -155,6 +192,7 @@ public class Jogador extends Entidade {
 						}
 						if(item.equals("ar")) tempoDano += mineracao;
 						else tempoDano += inv.itens[inv.slotSelecionado].mineracao;
+						
 						if(tempoDano >= bloco.durabilidade) {
 							if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
 							Bloco.tocarSom(bloco.nome);
@@ -217,7 +255,7 @@ public class Jogador extends Entidade {
 
 		if(modo == 0) voando = true;
 		if(tempoDuploPulo > 0f) tempoDuploPulo -= delta;
-		
+
 		if(atacar) interagirBloco(true);
 		else {
 			xAlvo = Integer.MIN_VALUE;
