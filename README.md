@@ -2,18 +2,19 @@
 refeito com LibGDX.
 
 ## Requisitos mínimos(testados):
-
-## PC/Notebook:
+### PC/Notebook:
 * Sistema Operacional: Windows/Linux
 * Java: 7.
 * RAM: 350 MBs.
-* OpenGL: 2.
+* OpenGL: 2.0.
+* Armazenamento: 50 MBs livres.
 
-## Celular:
+### Celular:
 * Sistema Operacional: Android.
 * Java: 7.
 * RAM: 200 MBs.
-* OpenGL: 2.
+* OpenGL: 2.0.
+* Armazenamento: 50 MBs livres.
 
 ## Já feito:
 * Gerenciamento de chunks dinâmico.
@@ -111,7 +112,7 @@ refeito com LibGDX.
 ## Entidades:
 * Foca: Tundra.
 * Capivara: Costa/Rio.
-* Galinha: Floresta/Planicie.
+* Galinha: Floresta/Planicie/Selva.
 
 ## Biomas:
 ```
@@ -124,11 +125,14 @@ refeito com LibGDX.
 [DadosBioma]: carregado: planicie
 [DadosBioma]: carregado: rio
 [DadosBioma]: carregado: selva
+[DadosBioma]: carregado: tundra
+[DadosBioma]: carregado: taiga
 ```
 em log mesmo porque eu to com preguiça de ficar listando.
 
 ## Otimizações:
-* Geração em Thread separada com ExecutorService.
+* Geração em Thread separada.
+* IA e atualização de entidades em Thread separada.
 * Chaves do tipo *long* para obtenção de chunks.
 * Descarte de faces sobrepostas.
 * Não renderizar chunks fora do raio de visão.
@@ -137,7 +141,7 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Cache de chunks modificadas sem Malha.
 * O Guloso(Malha Gulosa).
 * Pré-computação de erosão.
-* Reuso de Arrays utilizados na geração de dados das chunks.
+* Reuso de Arrays de vértices/índices na geração das chunks.
 * Iluminação feita por vértices, com niveis por blocos (0-15).
 * Sistema hibrido de iluminação e ciclos diários com vértices e shader.
 * Compactação de dados de luz em 1 único atributo de vértice.
@@ -151,12 +155,11 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Reutilização de texturas 2D para criação de menus e botões via fatiação.
 * Geração inteligente que econimiza cálculos com base em uma variavel previsivel.
 * Cache de tipos de biomas(também ajuda na transição mais caotica de biomas com neve e areia).
-* Operações bit a bit.
+* Operações bit a bit com potência de 2.
 * Tabela de Log2 pra pacotes de chunks.
 * Cache de alturas para geração de biomas.
 * Travas de segurança para otimização de loops em caso de imutalidado do pacote.
 * Compilação de arquivos JSON em tempo de execução.
-* Cache de fluxo.
 * Cache de vértices nas nuvens.
 * Junção de quase todas as texturas do jogo em atlas.
 * Carregamento e descarregamento de músicas dinamico.
@@ -164,26 +167,32 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Cache de modelos de itens procedurais.
 * Descarte de pixels sobrepostos na criação de modelos dos itens.
 * Recorte de pixels por shader.
+* Cache de memória nativa pra chunks.
+* Cache de objetos chunks pra evitar GC na geração.
+* Renderização de entidades apenas no raio de visão do jogador.
+* Pré-computação de luz.
+* Economia de memória passando a semente do mundo como parâmetro para ruídos.
 
 ## Ruídos utilitários:
 * OpenSimplex2.java
 
-## compatibilidade:
-* Android 4 até Android 15.
+## compatibilidade (testada):
+* Android 7.1 até Android 15.
 * Linux 32-bit e 64-bit.
-* Windows XP até Windows 11.
+* Windows 7 até Windows 11.
 
-## Desempenho:
-FPS de 40 a 60 padrão testado com até 121 chunks ativas (raio de 5).
+## compatibilidade (não testada, mas provável):
+* Android 5.
+* Windows XP.
 
 ## uso de mémoria testada:
-76 MBs do heap java & 16 MBs do heap nativo. (121 chunks ativas)
+100 MBs do heap java & 16 MBs do heap nativo. (121 chunks ativas)
 
 ## Adicionais:
 caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMine/debug/logs.txt*, onde logs são acumulados.
 
 ## Dispositivos usados para testes:
-## Celular:
+## Celulares:
 * Modelo: Motorola G41.
 * Memória RAM: 4 GB.
 * Armazenamento: 128 GB.
@@ -191,10 +200,10 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * OpenGL ES: 3.2.
 * JVM: Java VM ART 2.1.0.
 * Sistema Operacional: Android 12 64-bit.
-* FPS padrão: 40-60.
+* FPS padrão: 30-50.
 
 ## PCs:
-### Melhor condição
+### PC 1:
 * Placa Mãe: Dell OptiPlex 780.
 * Processador: Intel Core 2 Quad.
 * Memória RAM: 4GB(2x2GB DDR3).
@@ -202,9 +211,8 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * Video: Intel 4 Series(Integrada).
 * OpenGL: 2.1.
 * Sistema Operacional: Linux Mint XCFE 64-bit.
-* FPS padrão: 45-72.
 
-### Pior condição
+### PC 2:
 * Placa Mãe: PCWare IPX1800E2.
 * Processador: Intel Celeron CPU J1800.
 * Memória RAM: 2GB(DDR3).
@@ -212,9 +220,8 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * Video: Intel HD Bay Trail(Integrada)
 * OpenGL: 4.2.
 * Sistema Operacional: Debian GNU/Linux 12 (bookworm) i686.
-* FPS padrão: 83-142.
 
-## Notebook:
+## Notebooks:
 * Modelo: Aspire ES 15.
 * Processador: Intel Celeron Quad Core N3450.
 * Memória RAM: 4GB DDR3 L.
@@ -222,7 +229,6 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * Video: Intel HD Graphics.
 * OpenGL: 4.5.
 * Sistema Operacional: Windows 10.
-* FPS padrão: 100-255.
 
 # Comandos de teclado
 * **WASD**: controles de movimento.

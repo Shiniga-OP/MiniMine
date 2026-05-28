@@ -116,8 +116,8 @@
         }
     ],
     "origem": {
-        "biomas": ["floresta", "planicie"],
-        "chance": 0.8,
+        "biomas": ["floresta", "planicie", "selva"],
+        "chance": 0.5,
         "max": 10
     }
 }
