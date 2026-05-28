@@ -17,6 +17,13 @@ public final class ItemRegistro {
     public static final Item obter(String nome) {
         return itens.get(nome);
     }
+	
+	public static final Item clone(String nome, int quantidade) {
+		final Item item = itens.get(nome);
+		final Item itemClone = new Item(nome, item.textura, quantidade);
+		itemClone.mineracao = item.mineracao;
+        return itemClone;
+    }
 
     public static final Iterable<Item> todos() {
         return itens.values();

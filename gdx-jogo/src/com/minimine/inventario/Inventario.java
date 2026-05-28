@@ -156,15 +156,9 @@ public class Inventario {
         }
         for(int i = 0; i < itens.length; i++) {
             if(itens[i] == null) {
-                final TextureRegion textura;
-                final Item b = ItemRegistro.obter(nome);
-
-				if(b != null) textura = b.textura;
-                else {
-                    Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
-                    textura = Texturas.atlas.obter("terra");
-                }
-                itens[i] = new Item(nome, textura, quantidade);
+                final Item item = ItemRegistro.clone(nome, quantidade);
+				
+                itens[i] = item;
                 return;
             }
         }
@@ -184,14 +178,7 @@ public class Inventario {
         }
         for(int i = 0; i < quantSlots; i++) {
             if(itens[i] == null) {
-                final TextureRegion textura;
-                final Item b = ItemRegistro.obter(nome);
-                if(b != null) textura = b.textura;
-                else {
-                    Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
-                    textura = Texturas.atlas.obter("terra");
-                }
-                itens[i] = new Item(nome, textura, quantidade);
+                itens[i] = ItemRegistro.clone(nome, quantidade);
                 return;
             }
         }
@@ -216,12 +203,8 @@ public class Inventario {
             resultadoReceita = null;
             return;
         }
-		final TextureRegion tex;
-		final Item b = ItemRegistro.obter(r.resultado);
-		if(b != null) tex = b.textura;
-		else tex = Texturas.atlas.obter("terra");
 
-        resultadoReceita = new Item(r.resultado, tex, r.quantidade);
+        resultadoReceita = ItemRegistro.clone(r.resultado, r.quantidade);
     }
 
     public void aoTocar(int telaX, int telaY, int p) {
@@ -363,7 +346,7 @@ public class Inventario {
 		for(int i = 0; i < qtdSlotsDivisao; i++) {
 			final int s = slotsDivisao[i];
 			if(itens[s] == null)
-				itens[s] = new Item(itemFlutuante.nome, itemFlutuante.textura, porcao);
+				itens[s] = ItemRegistro.clone(itemFlutuante.nome, porcao);
 			else
 				itens[s].quantidade = porcao;
 			if(s >= quantSlots) tocouGrade = true;

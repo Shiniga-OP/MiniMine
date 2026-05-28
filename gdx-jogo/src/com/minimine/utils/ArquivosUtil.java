@@ -386,15 +386,7 @@ public final class ArquivosUtil {
 				final String nome = dis.readUTF();
 				final int quantidade = dis.readInt();
 
-				final TextureRegion textura;
-
-				final Item b = ItemRegistro.obter(nome);
-				if(b != null) textura = b.textura;		
-				else {
-					Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
-					textura = Texturas.atlas.obter("terra");
-				}
-				jogador.inv.itens[i] = new Item(nome, textura, quantidade);
+				jogador.inv.itens[i] = ItemRegistro.clone(nome, quantidade);
 			} else {
 				jogador.inv.itens[i] = null;
 			}

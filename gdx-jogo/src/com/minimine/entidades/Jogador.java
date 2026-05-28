@@ -49,6 +49,7 @@ public class Jogador extends Entidade {
 	public int modo = 2;
 	public int pessoa = 0;
 	public PerspectiveCamera camera;
+	public boolean atacar;
 	public float forcaMov = 0;
 
 	public String item = "ar";
@@ -83,8 +84,13 @@ public class Jogador extends Entidade {
 
 	public ModelInstance modeloItem;
 
+	// estado de mineração continua
+	public float tempoDano = 0f;
+	public float mineracao = 0.05f;
+	public int xAlvo = Integer.MIN_VALUE, yAlvo = Integer.MIN_VALUE, zAlvo = Integer.MIN_VALUE;
+
 	public static SpriteBatch sbNome;
-	private static final Vector3 posNome = new Vector3();
+	public static final Vector3 posNome = new Vector3();
 
 	public Jogador(String id) {
 		super();
@@ -111,7 +117,7 @@ public class Jogador extends Entidade {
 		tempoInvulneravel = 3f;
 	}
 
-	public void interagirBloco() {
+	public void interagirBloco(boolean quebrar) {
 		final Ray raio = camera.getPickRay(
 			Gdx.graphics.getWidth() >> 1,
 			Gdx.graphics.getHeight() >> 1
@@ -131,12 +137,34 @@ public class Jogador extends Entidade {
 			final Bloco bloco = Bloco.numIds.get(Mundo.obterBlocoMundo(x, y, z));
 
 			if(bloco != null) {
-				if(item.equals("ar") || bloco.render == TipoRender.LIQUIDO) {
-					// servidor aplica e faz echo de volta, não aplica local
-					if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
-					Bloco.tocarSom(bloco.nome);
-					if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
+				if(bloco.render == TipoRender.LIQUIDO || quebrar) {
+					// blocos instantaneos ou mão vazia: durabilidade 0 ou 1
+					if(bloco.durabilidade <= 1) {
+						if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
+						Bloco.tocarSom(bloco.nome);
+						if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
+						xAlvo = Integer.MIN_VALUE;
+						tempoDano = 0f;
+					} else {
+						// alvo mudou? reinicia progresso
+						if(x != xAlvo || y != yAlvo || z != zAlvo) {
+							xAlvo = x;
+							yAlvo = y;
+							zAlvo = z;
+							tempoDano = 0f;
+						}
+						if(item.equals("ar")) tempoDano += mineracao;
+						else tempoDano += inv.itens[inv.slotSelecionado].mineracao;
+						if(tempoDano >= bloco.durabilidade) {
+							if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
+							Bloco.tocarSom(bloco.nome);
+							if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
+							xAlvo = Integer.MIN_VALUE;
+							tempoDano = 0f;
+						}
+					}
 				} else {
+					xAlvo = Integer.MIN_VALUE; tempoDano = 0f;
 					if(bloco.ui != null) {
 						bloco.ui.abrir(x, y, z);
 						return;
@@ -152,7 +180,6 @@ public class Jogador extends Entidade {
 
 						final Bloco blocoColocar = Bloco.texIds.get(item);
 						final int idColocar = blocoColocar != null ? blocoColocar.tipo : 0;
-						// servidor aplica e faz echo de volta, não aplica local
 						if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(xAnt, yAnt, zAnt, idColocar, "ar");
 						Bloco.tocarSom(item);
 						if(blocoColocar != null && blocoColocar.evento != null) {
@@ -164,6 +191,17 @@ public class Jogador extends Entidade {
 				return;
 			}
 		}
+		// nada mira: reinicia progresso
+		xAlvo = Integer.MIN_VALUE;
+		tempoDano = 0f;
+	}
+
+	// retorna progresso de 0.0 a 1.0 do bloco sendo minerado (ou -1 se nenhum)
+	public float progressoMineracao() {
+		if(xAlvo == Integer.MIN_VALUE) return -1f;
+		final Bloco bloco = Bloco.numIds.get(Mundo.obterBlocoMundo(xAlvo, yAlvo, zAlvo));
+		if(bloco == null || bloco.durabilidade <= 0) return -1f;
+		return Math.min(1f, tempoDano / bloco.durabilidade);
 	}
 
 	@Override
@@ -179,6 +217,12 @@ public class Jogador extends Entidade {
 
 		if(modo == 0) voando = true;
 		if(tempoDuploPulo > 0f) tempoDuploPulo -= delta;
+		
+		if(atacar) interagirBloco(true);
+		else {
+			xAlvo = Integer.MIN_VALUE;
+			tempoDano = 0f;
+		}
 
 		super.att(delta);
 
@@ -269,7 +313,7 @@ public class Jogador extends Entidade {
 		}
 		if(posicao.y < -100f) posicao.y = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
 	}
-	
+
 	@Override
 	public void render(ModelBatch mb, float delta) {
 		if(!item.equals(itemCache)) {
@@ -361,7 +405,7 @@ public class Jogador extends Entidade {
 			mb.render(modeloItem);
 		}
 	}
-	
+
 	public void renderNome(PerspectiveCamera camera) {
 		if(pessoa == 3 && nome != null) {
 			posNome.set(posicao.x, posicao.y + altura + 0.3f, posicao.z);
@@ -489,4 +533,3 @@ public class Jogador extends Entidade {
         inv.slotSelecionado = dis.readInt();
     }
 }
-

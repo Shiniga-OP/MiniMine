@@ -81,7 +81,7 @@ public class UI implements InputProcessor {
     public static Jogador jg;
     public static boolean debug = false;
     public static boolean modoTexto = false;
-    
+
     public boolean chatAberto = false;
     public String ultimaMensagem = "";
     public List<String> msgs = new ArrayList<>();
@@ -273,13 +273,18 @@ public class UI implements InputProcessor {
 					if(jg.inv.itens[jg.inv.slotSelecionado] != null) jg.item = jg.inv.itens[jg.inv.slotSelecionado].nome;
 					else jg.item = "ar";
 					jg.acao = true;
-					jg.interagirBloco();
+					jg.interagirBloco(false);
 				}
 				public void aoSoltar() { jg.acao = false; }
 			});
         botoesDpad.put("ataque", new BotaoDpad(Texturas.atlas.get("ataque"), 0) {
-				public void aoTocar() { jg.item = "ar"; jg.interagirBloco(); }
-				public void aoSoltar() { jg.acao = false; }
+				public void aoTocar() {
+					jg.item = "ar";
+					jg.atacar = true;
+				}
+				public void aoSoltar() {
+					jg.atacar = false;
+				}
 			});
         botoesDpad.put("inv", new BotaoDpad(Texturas.atlas.get("clique"), jg.inv.tamSlot) {
 				public void aoTocar() {
@@ -402,6 +407,27 @@ public class UI implements InputProcessor {
         // mira
         if(spriteMira != null) spriteMira.draw(sb);
 
+        // barra de progresso de mineração
+        final float progresso = jg.progressoMineracao();
+        if(progresso >= 0f) {
+            sb.end();
+            final ShapeRenderer sr = MenuPause.sr;
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            sr.setProjectionMatrix(sb.getProjectionMatrix());
+            final int barLargura = 80;
+            final int barAltura  = 8;
+            final float barX = telaV / 2f - barLargura / 2f;
+            final float barY = telaH / 2f - 40f;
+            sr.begin(ShapeRenderer.ShapeType.Filled);
+            sr.setColor(0f, 0f, 0f, 0.6f);
+            sr.rect(barX - 1, barY - 1, barLargura + 2, barAltura + 2);
+            sr.setColor(0.9f, 0.6f, 0.1f, 1f);
+            sr.rect(barX, barY, barLargura * progresso, barAltura);
+            sr.end();
+            sb.begin();
+        }
+
         // dpad
         for(BotaoDpad b : botoesDpad.values()) b.desenhar(sb);
 
@@ -523,7 +549,7 @@ public class UI implements InputProcessor {
 						ultimoSlot.x,
 						ultimoSlot.y + inv.tamSlot + 4,
 						inv.tamSlot, inv.tamSlot
-						);
+				);
             }
         }
     }
@@ -640,7 +666,7 @@ public class UI implements InputProcessor {
         if(Gdx.app.getType() == com.badlogic.gdx.Application.ApplicationType.Desktop && !jg.inv.aberto) {
             if(b == Input.Buttons.LEFT) {
                 jg.item = "ar";
-                jg.interagirBloco();
+				jg.atacar = true;
                 jg.item = jg.inv.itens[jg.inv.slotSelecionado] != null
 					? jg.inv.itens[jg.inv.slotSelecionado].nome : "ar";
                 return true;
@@ -648,7 +674,7 @@ public class UI implements InputProcessor {
             if(b == Input.Buttons.RIGHT) {
                 jg.item = jg.inv.itens[jg.inv.slotSelecionado] != null ? jg.inv.itens[jg.inv.slotSelecionado].nome : "ar";
                 jg.acao = true;
-                jg.interagirBloco();
+				jg.interagirBloco(false);
                 return true;
             }
         }
@@ -772,6 +798,8 @@ public class UI implements InputProcessor {
         if(p == Input.Keys.S) jg.tras = true;
         if(p == Input.Keys.A) jg.esquerda = true;
         if(p == Input.Keys.D) jg.direita = true;
+		if(p == Input.Buttons.LEFT) jg.atacar = false;
+		if(p == Input.Buttons.RIGHT) jg.acao = false;
         if(p == Input.Keys.SPACE) {
 			jg.cima = true;
 			if(jg.modo == 1) { // so conta pulo se estava no chão
@@ -879,3 +907,4 @@ public class UI implements InputProcessor {
         public void desenhar(SpriteBatch sb) { sprite.draw(sb); }
     }
 }
+

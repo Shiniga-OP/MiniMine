@@ -6,6 +6,7 @@ public class Item {
 	public String nome;
 	public TextureRegion textura;
 	public int quantidade;
+	public float mineracao = 0.1f;
 
 	public Item(String nome, TextureRegion textura) {
 		this.nome = nome;
@@ -21,7 +22,7 @@ public class Item {
 	public static void iniciar() {
 		ItemRegistro.registrar("palito", "palito");
 		ItemRegistro.registrar("espada_madeira", "espada_madeira");
-		ItemRegistro.registrar("picareta_madeira", "picareta_madeira");
-		ItemRegistro.registrar("machado_madeira", "machado_madeira");
+		ItemRegistro.registrar("picareta_madeira", "picareta_madeira").mineracao = 0.15f;
+		ItemRegistro.registrar("machado_madeira", "machado_madeira").mineracao = 0.1f;
 	}
 }

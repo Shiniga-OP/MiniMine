@@ -23,12 +23,13 @@ public class Bloco {
 	public final int luz;
 	public final TipoRender render;
 	public boolean solido, culling, modeloX, colisao = true;
+	public int durabilidade = 3; // ticks para quebrar (0 = instantaneo)
 	public static boolean ABERTO = false;
 	/*
 	 * interface de UI associada a este bloco
 	 * null = bloco sem interface(comportamento padrão: colocar/quebrar)
 	 * atribuida em Bloco.iniciar() para os blocos que precisarem
-	*/
+	 */
 	public InterfaceBloco ui = null;
 	public EventoBloco evento = null;
 
@@ -84,6 +85,34 @@ public class Bloco {
 		Bloco.add(new Bloco("bloco_nulo", "nulo", TipoRender.AR, false, false)).colisao = false;
 		Bloco.add(new Bloco("bloco_estrutura", "bloco_estrutura"));
 
+		// durabilidade: segundos para quebrar
+		texIds.get("grama").durabilidade = 2;
+		texIds.get("terra").durabilidade = 2;
+		texIds.get("pedra").durabilidade = 7;
+		texIds.get("agua").durabilidade = 0;
+		texIds.get("areia").durabilidade = 2;
+		texIds.get("tronco").durabilidade = 5;
+		texIds.get("folha").durabilidade = 1;
+		texIds.get("tabua_madeira").durabilidade = 4;
+		texIds.get("cacto").durabilidade = 1;
+		texIds.get("vidro").durabilidade = 1;
+		texIds.get("tocha").durabilidade = 1;
+		texIds.get("pedregulho").durabilidade = 6;
+		texIds.get("cascalho").durabilidade = 2;
+		texIds.get("gelo").durabilidade = 2;
+		texIds.get("neve").durabilidade = 1;
+		texIds.get("coral_rosa").durabilidade = 2;
+		texIds.get("coral_azul").durabilidade = 2;
+		texIds.get("coral_amarelo").durabilidade = 2;
+		texIds.get("capim").durabilidade = 0;
+		texIds.get("tulipa").durabilidade = 0;
+		texIds.get("tulipa_luminosa").durabilidade = 0;
+		texIds.get("iris_azul").durabilidade = 0;
+		texIds.get("arenito").durabilidade = 7;
+		texIds.get("pilar_arenito").durabilidade = 4;
+		texIds.get("bloco_nulo").durabilidade = 0;
+		texIds.get("bloco_estrutura").durabilidade = 0;
+
 		Bloco.addSom("grama", "grama_1", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("terra", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("areia", "terra_1", "terra_2", "terra_3");
@@ -92,7 +121,7 @@ public class Bloco {
 		Bloco.addSom("folha", "terra_1", "terra_2", "terra_3");
 		Bloco.addSom("tabua_madeira", "madeira_1", "madeira_2", "madeira_3");
 		Bloco.addSom("tocha", "madeira_1", "madeira_2", "madeira_3");
-		
+
 		AGUA = texIds.get("agua").tipo;
 	}
 	/*
@@ -108,7 +137,7 @@ public class Bloco {
 	public static void addSom(String bloco, String... sonoros) {
 		sons.put(bloco, sonoros);
 	}
-	
+
 	public static Bloco add(Bloco b) {
 		blocos.add(b);
 		return b;
@@ -143,7 +172,7 @@ public class Bloco {
 		Bloco.texIds.clear();
 		Bloco.sons.clear();
 	}
-	
+
 	public final String texturaId(int faceId) {
         switch(faceId) {
             case 0: return topo;
