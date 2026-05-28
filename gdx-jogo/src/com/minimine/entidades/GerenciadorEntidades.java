@@ -17,15 +17,27 @@ public class GerenciadorEntidades {
     public static final int MAX_ENTIDADES = 20;
     public static final float DIST_MIN_NASCER = 10f;
 
-	public static void att(float delta, Mundo mundo, Jogador jg) {
+	public static void att(float delta, Mundo mundo, List<Jogador> jogadores) {
+		// tick de nascimdnto: independente de ter entidades visiveis
+		if(mundo.carregado) {
+			tempo += delta;
+			if(tempo >= INTERVALO && mundo.entidades.size() < MAX_ENTIDADES) {
+				tempo = 0f;
+				for(int k = 0; k < jogadores.size(); k++) {
+					tentarNascerEntidade(jogadores.get(k), mundo);
+				}
+			}
+		}
+
 		// remove entidades se saiu da area visivel
 		for(int i = 0; i < mundo.entidades.size(); i++) {
 			final Entidade e = mundo.entidades.get(i);
 
 			boolean ehVisivel = false;
 
-			for(Jogador jgR :Jogo.jogadores) {
-				if(mundo.noRaioVisivel(jgR, e.posicao.x, e.posicao.z)) {
+			for(int k = 0; k < jogadores.size(); k++) {
+				final Jogador jg = jogadores.get(k);
+				if(mundo.noRaioVisivel(jg, e.posicao.x, e.posicao.z)) {
 					ehVisivel = true;
 					break;
 				}
@@ -33,6 +45,8 @@ public class GerenciadorEntidades {
 			if(!ehVisivel) {
 				e.liberar();
 				mundo.entidades.remove(i);
+				i--;
+				continue;
 			}
 			e.att(delta);
 
@@ -46,13 +60,6 @@ public class GerenciadorEntidades {
 				e.velocidade.y += mundo.GRAVIDADE * delta;
 			}
 			if(e.velocidade.y < e.VELO_MAX_QUEDA) e.velocidade.y = e.VELO_MAX_QUEDA;
-		}
-		if(mundo.carregado) {
-			tempo += delta;
-			if(tempo >= INTERVALO && mundo.entidades.size() < MAX_ENTIDADES) {
-				tempo = 0f;
-				tentarNascerEntidade(jg, mundo);
-			}
 		}
 	}
 
@@ -70,7 +77,7 @@ public class GerenciadorEntidades {
 			final int cx = Chave.x(chave);
 			final int cz = Chave.z(chave);
 
-			// posição aleatória dentro da chunk
+			// posição aleatoria dentro da chunk
 			final int mx = cx * mundo.TAM_CHUNK + aleatorio.nextInt(mundo.TAM_CHUNK);
 			final int mz = cz * mundo.TAM_CHUNK + aleatorio.nextInt(mundo.TAM_CHUNK);
 
@@ -85,21 +92,29 @@ public class GerenciadorEntidades {
 			final String bioma = mundo.motor.obterBioma(mx, mz);
 
 			final List<DadosCriatura> candidatos = mundo.registroCriaturas.paraOBioma(bioma);
-			if(candidatos.isEmpty()) return;
+			if(candidatos.isEmpty()) continue;
 
 			final DadosCriatura escolhido = sortearPorRaridade(candidatos);
-			if(escolhido == null) return;
+			if(escolhido == null) continue;
+
+			// aplica chanceNascimento se definida no JSON
+			if(escolhido.chanceNascimento > 0f && aleatorio.nextFloat() > escolhido.chanceNascimento) continue;
 
 			mundo.entidades.add(new Criatura(escolhido, mx, vy, mz));
 			return;
 		}
 	}
+
 	public static DadosCriatura sortearPorRaridade(List<DadosCriatura> lista) {
 		float total = 0f;
-		for(DadosCriatura m : lista) total += m.raridade;
+		for(int i = 0; i < lista.size(); i++) {
+			final DadosCriatura m = lista.get(i);
+			total += m.raridade;
+		}
 		float sorteio = aleatorio.nextFloat() * total;
 		float acum = 0f;
-		for(DadosCriatura m : lista) {
+		for(int i = 0; i < lista.size(); i++) {
+			final DadosCriatura m = lista.get(i);
 			acum += m.raridade;
 			if(sorteio <= acum) return m;
 		}

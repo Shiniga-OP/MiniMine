@@ -17,7 +17,7 @@ public final class RegistroCriaturas {
     public void carregar(FileHandle pasta) {
 		final FileHandle[] arquivos = ArquivosUtil.listarAssets(pasta);
 		if(arquivos == null || arquivos.length == 0) {
-			throw new RuntimeException("nenhum mob encontrado em: " + pasta.path());
+			throw new RuntimeException("nenhuma criatura encontrada em: " + pasta.path());
 		}
 		for(FileHandle a : arquivos) {
 			final DadosCriatura dados = DadosCriatura.compilar(a.readString("UTF-8"));
@@ -41,7 +41,7 @@ public final class RegistroCriaturas {
 
     public final DadosCriatura obter(String nome) {
         final DadosCriatura m = criaturas.get(nome);
-        if(m == null) throw new RuntimeException("mob desconhecido: " + nome);
+        if(m == null) throw new RuntimeException("criatura desconhecida: " + nome);
         return m;
     }
 

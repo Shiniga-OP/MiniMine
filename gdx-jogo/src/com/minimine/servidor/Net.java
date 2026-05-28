@@ -306,7 +306,7 @@ public class Net {
 		}
 	}
 	/*
-	 * le um pacote completo do stream e retorna como byte[] com o byte de tipo incluído no inicio
+	 * le um pacote completo do stream e retorna como byte[] com o byte de tipo incluido no inicio
 	 * cada tipo tem tamanho fixo ou prefixado, sem delimitadores de texto
 	*/
 	public static byte[] lerPacoteBruto(byte tipo, DataInputStream dis) throws IOException {
@@ -315,73 +315,104 @@ public class Net {
 		tmp.writeByte(tipo);
 		switch(tipo) {
 			case PACOTE_POS: {
-					int id = dis.readInt(); float x = dis.readFloat(); float y = dis.readFloat();
-					float z = dis.readFloat(); float yaw = dis.readFloat(); float tom = dis.readFloat();
+					int id = dis.readInt();
+					float x = dis.readFloat();
+					float y = dis.readFloat();
+					float z = dis.readFloat();
+					float yaw = dis.readFloat();
+					float tom = dis.readFloat();
 					int marcas = dis.readInt();
-					int itemLen = dis.readShort() & 0xFFFF;
-					byte[] item = new byte[itemLen]; dis.readFully(item);
-					tmp.writeInt(id); tmp.writeFloat(x); tmp.writeFloat(y); tmp.writeFloat(z);
-					tmp.writeFloat(yaw); tmp.writeFloat(tom); tmp.writeInt(marcas);
-					tmp.writeShort(itemLen); tmp.write(item);
+					int itemTam = dis.readShort() & 0xFFFF;
+					byte[] item = new byte[itemTam];
+					dis.readFully(item);
+					tmp.writeInt(id);
+					tmp.writeFloat(x);
+					tmp.writeFloat(y);
+					tmp.writeFloat(z);
+					tmp.writeFloat(yaw);
+					tmp.writeFloat(tom);
+					tmp.writeInt(marcas);
+					tmp.writeShort(itemTam);
+					tmp.write(item);
 					break;
 				}
 			case PACOTE_MUNDO: {
 					float tempo = dis.readFloat();
-					int nomeLen = dis.readShort() & 0xFFFF; byte[] nome = new byte[nomeLen]; dis.readFully(nome);
+					int nomeTam = dis.readShort() & 0xFFFF;
+					byte[] nome = new byte[nomeTam];
+					dis.readFully(nome);
 					long semente = dis.readLong();
 					byte plano = dis.readByte();
-					tmp.writeFloat(tempo); tmp.writeShort(nomeLen); tmp.write(nome);
-					tmp.writeLong(semente); tmp.writeByte(plano);
+					tmp.writeFloat(tempo);
+					tmp.writeShort(nomeTam);
+					tmp.write(nome);
+					tmp.writeLong(semente);
+					tmp.writeByte(plano);
 					break;
 				}
 			case PACOTE_CHUNK: {
-					int cx = dis.readInt(); int cz = dis.readInt();
-					byte usaPaleta = dis.readByte(); int paletaBits = dis.readInt(); int paletaTam = dis.readInt();
+					int cx = dis.readInt();
+					int cz = dis.readInt();
+					byte usaPaleta = dis.readByte();
+					int paletaBits = dis.readInt();
+					int paletaTam = dis.readInt();
 					int[] paleta = new int[paletaTam];
 					for(int i = 0; i < paletaTam; i++) paleta[i] = dis.readInt();
 					int bitsPorBloco = dis.readInt(); int blocosPorInt = dis.readInt();
 					int tamBlocos = dis.readInt();
 					int[] blocos = new int[tamBlocos];
 					for(int i = 0; i < tamBlocos; i++) blocos[i] = dis.readInt();
-					int luzLen = dis.readInt();
-					byte[] luz = new byte[luzLen]; dis.readFully(luz);
-					int metaLen = dis.readInt();
-					short[] meta = new short[metaLen];
-					for(int i = 0; i < metaLen; i++) meta[i] = dis.readShort();
+					byte[] luz = new byte[16*256*16];
+					dis.readFully(luz);
+					short[] meta = new short[16*256*16];
+					for(int i = 0; i < meta.length; i++) meta[i] = dis.readShort();
 					tmp.writeInt(cx); tmp.writeInt(cz); tmp.writeByte(usaPaleta);
 					tmp.writeInt(paletaBits); tmp.writeInt(paletaTam);
 					for(int i = 0; i < paletaTam; i++) tmp.writeInt(paleta[i]);
 					tmp.writeInt(bitsPorBloco); tmp.writeInt(blocosPorInt);
 					tmp.writeInt(tamBlocos);
 					for(int i = 0; i < tamBlocos; i++) tmp.writeInt(blocos[i]);
-					tmp.writeInt(luzLen); tmp.write(luz);
-					tmp.writeInt(metaLen);
-					for(int i = 0; i < metaLen; i++) tmp.writeShort(meta[i]);
+					tmp.write(luz);
+					for(int i = 0; i < meta.length; i++) tmp.writeShort(meta[i]);
 				break;
 			}
 			case PACOTE_MUNDO_FIM:
 			break;
 			case PACOTE_BLOCO: {
-					int x = dis.readInt(); int y = dis.readInt(); int z = dis.readInt(); int id = dis.readInt();
-					int itemLen = dis.readShort() & 0xFFFF;
-					byte[] item = new byte[itemLen]; dis.readFully(item);
+					int x = dis.readInt();
+					int y = dis.readInt();
+					int z = dis.readInt();
+					int id = dis.readInt();
+					int itemTam = dis.readShort() & 0xFFFF;
+					byte[] item = new byte[itemTam];
+					dis.readFully(item);
 					tmp.writeInt(x); tmp.writeInt(y); tmp.writeInt(z); tmp.writeInt(id);
-					tmp.writeShort(itemLen); tmp.write(item);
+					tmp.writeShort(itemTam); tmp.write(item);
 				break;
 			}
 			case PACOTE_ENTROU: {
 					int id = dis.readInt();
-					int iLen = dis.readShort() & 0xFFFF; byte[] ident = new byte[iLen]; dis.readFully(ident);
-					int nLen = dis.readShort() & 0xFFFF; byte[] nome = new byte[nLen]; dis.readFully(nome);
-					tmp.writeInt(id); tmp.writeShort(iLen); tmp.write(ident); tmp.writeShort(nLen); tmp.write(nome);
+					int iTam = dis.readShort() & 0xFFFF;
+					byte[] identidade = new byte[iTam];
+					dis.readFully(identidade);
+					int nTam = dis.readShort() & 0xFFFF;
+					byte[] nome = new byte[nTam];
+					dis.readFully(nome);
+					tmp.writeInt(id);
+					tmp.writeShort(iTam);
+					tmp.write(identidade);
+					tmp.writeShort(nTam);
+					tmp.write(nome);
 				break;
 			}
 			case PACOTE_SAIU: {
-					int id = dis.readInt(); tmp.writeInt(id);
+					int id = dis.readInt();
+					tmp.writeInt(id);
 				break;
 			}
 			case PACOTE_ID: {
-					int id = dis.readInt(); tmp.writeInt(id);
+					int id = dis.readInt();
+					tmp.writeInt(id);
 				break;
 			}
 			default:

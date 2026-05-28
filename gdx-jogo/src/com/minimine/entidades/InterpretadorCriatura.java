@@ -54,12 +54,12 @@ public final class InterpretadorCriatura {
         }
         // todas as marcações devem ser verdadeiras
         for(Object item : cond) {
-            if(!avaliarFlag(String.valueOf(item), criatura)) return false;
+            if(!avaliarMarca(String.valueOf(item), criatura)) return false;
         }
         return true;
     }
 
-    public static boolean avaliarFlag(String marca, Criatura criatura) {
+    public static boolean avaliarMarca(String marca, Criatura criatura) {
         boolean negado = marca.startsWith("!");
         String  chave = negado ? marca.substring(1) : marca;
         boolean valor;
@@ -112,10 +112,7 @@ public final class InterpretadorCriatura {
         Object anicriaturaj = exec.get("tocarAnim");
         if(anicriaturaj != null && criatura.animCtr != null) {
             String anim = String.valueOf(anicriaturaj);
-            if(!anim.equals(criatura.animAtual)) {
-                criatura.animCtr.setAnimation(anim, -1);
-                criatura.animAtual = anim;
-            }
+            criatura.animAtual = anim;
         }
         // recompensa
         Object recObj = exec.get("recompensa");

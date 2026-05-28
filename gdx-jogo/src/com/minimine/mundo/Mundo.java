@@ -47,6 +47,8 @@ import java.io.DataInputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.minimine.utils.DiaNoiteUtil;
 import java.util.ArrayDeque;
+import com.minimine.entidades.Criatura;
+import com.minimine.entidades.DadosCriatura;
 
 public class Mundo {
     public static String nome = "novo mundo";

@@ -31,6 +31,8 @@ import com.minimine.entidades.GerenciadorEntidades;
 import com.minimine.Logs;
 import com.badlogic.gdx.graphics.profiling.GLProfiler;
 import com.minimine.cenas.Jogo;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.BoundingBox;
 
 public class Render extends Renderizador {
     public static ShaderProgram shader;
@@ -110,8 +112,6 @@ public class Render extends Renderizador {
     "   vec3 corNevoa = u_corCeu;\n" + 
     "   gl_FragColor = vec4(mix(texCor.rgb * iluminacaoFinal, corNevoa, fator), texCor.a);\n" +
     "}";
-	public static String logs = "";
-	public static Runtime rt = Runtime.getRuntime();
 	public static GLProfiler gpu;
 
     public Render(List<Jogador> jogadores, Mundo mundo) {
@@ -161,9 +161,6 @@ public class Render extends Renderizador {
 
 			if(mundo.ciclo) mundo.diaNoite.att(ui.jg.camera, delta);
 			
-			if(mundo.carregado) {
-				GerenciadorEntidades.att(delta, mundo, ui.jg);
-			}
 			shader.begin();
 
 			shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);
@@ -193,11 +190,12 @@ public class Render extends Renderizador {
 			mb.begin(ui.jg.camera);
 			for(int i = 0; i < mundo.entidades.size(); i++) {
 				final Entidade e = mundo.entidades.get(i);
-				if(e != ui.jg) e.render(mb, delta);
+				if(e != ui.jg && frustrum(ui.jg, e.hitbox)) e.render(mb, delta);
 			}
 			if(jogadores.size() != 1) {
 				for(int i = 1; i < jogadores.size(); i++) {
 					final Jogador jg = jogadores.get(i);
+					if(!frustrum(ui.jg, jg.hitbox)) continue;
 					jg.render(mb, delta);
 				}
 			}
@@ -207,18 +205,6 @@ public class Render extends Renderizador {
 			
 			// restaura estado GL apos o mb
 			Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
-			
-			if(ui.debug) {
-				debugCaixas.setProjectionMatrix(ui.jg.camera.combined);
-				debugCaixas.begin(ShapeRenderer.ShapeType.Line);
-				debugCaixas.setColor(1, 1, 0, 1);
-				final int cxJg = Mat.floor(ui.jg.posicao.x / 16f);
-				final int czJg = Mat.floor(ui.jg.posicao.z / 16f);
-				final float ox = cxJg * 16f;
-				final float oz = czJg * 16f;
-				debugCaixas.box(ox, 0f, oz + 16f, 16f, 256f, 16f);
-				debugCaixas.end();
-			}
 			Gdx.gl.glEnable(GL20.GL_CULL_FACE);
 			Gdx.gl.glDepthMask(true);
 			shader.begin();
@@ -265,11 +251,13 @@ public class Render extends Renderizador {
 				
 				for(int i = 0; i < jogadores.size(); i++) {
 					final Jogador jg = jogadores.get(i);
+					if(!frustrum(ui.jg, jg.hitbox)) continue;
 					debugCaixas.box(jg.posicao.x - jg.largura/2, jg.posicao.y, jg.posicao.z + jg.largura/2, jg.largura, jg.altura, jg.largura);
 				}
 				debugCaixas.setColor(0, 1, 0, 1); // verde para as entidades
 				for(int i = 0; i < mundo.entidades.size(); i++) {
 					final Entidade e = mundo.entidades.get(i);
+					if(!frustrum(ui.jg, e.hitbox)) continue;
 					debugCaixas.box(
 						e.posicao.x - e.largura / 2, 
 						e.posicao.y, 
@@ -312,14 +300,8 @@ public class Render extends Renderizador {
 			else if(yawNorm < 292.5f) direcao = "Oeste";
 			else direcao = "Noroeste";
 
-			final float livre = rt.freeMemory() >> 20;
-			final float total = rt.totalMemory() >> 20;
-			final float nativa = Gdx.app.getNativeHeap() >> 20;
-
-			final String[] logsArr = Logs.logs.split("\n");
-			Logs.logs = "";
-			final int inicio = Math.max(0, logsArr.length - 15);
-			for(int i = inicio; i < logsArr.length; i++) logs += logsArr[i] + '\n';
+			final float java = Gdx.app.getJavaHeap() / 1048576f;
+			final float nativa = Gdx.app.getNativeHeap() / 1048576f;
 
 			String bioma = "";
 
@@ -328,31 +310,23 @@ public class Render extends Renderizador {
 			}
 			if(ui.debug) {
 				Jogo.debug1 = String.format(
-					"Jogador:\nX: %.1f, Y: %.1f, Z: %.1f\nDireção: %s (%.1f°)\nModo: %s\nSlot: %d\nItem: %s\n" +
-					"No chão: %b\nNa água: %b\nAgachado: %b\nVoando: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\n" +
-					"Controles:\nDireita: %b, Esquerda: %b\nFrente: %b, Trás: %b\nCima: %b\nBaixo: %b\nAção: %b\n\n" +
-					"Mundo:\nNome: %s\nBioma atual: %s\nRaio Chunks: %d\nChunks: %d\n" +
-					"Chunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nVelocidade do tempo: %.5f",
+					"Jogador:\nX: %.1f, Y: %.1f, Z: %.1f\nDireção: %s (%.1f°)\nModo: %s\nSlot: %d\nItem: %s\nNo chão: %b\nNa água: %b\nAgachado: %b\nVoando: %b\n\nStatus:\nVelocidade: %.2f\nAltura: %.2f\n\nControles:\nDireita: %b, Esquerda: %b\nFrente: %b, Trás: %b\nCima: %b\nBaixo: %b\nAção: %b\n\nMundo:\nNome: %s\nBioma atual: %s\nRaio Chunks: %d\nChunks: %d\nChunks Alteradas: %d\nSemente: %d\nTempo: %.2f\nVelocidade do tempo: %.5f\nEntidades: %d",
 					ui.jg.posicao.x, ui.jg.posicao.y, ui.jg.posicao.z, direcao, yawNorm,
 					(ui.jg.modo == 0 ? "espectador" : ui.jg.modo == 1 ? "criativo" : "sobrevivencia"),
 					ui.jg.inv.slotSelecionado, ui.jg.item, ui.jg.noChao, ui.jg.naAgua, ui.jg.agachado, ui.jg.voando,
 					ui.jg.velo, ui.jg.altura,
 					ui.jg.direita, ui.jg.esquerda, ui.jg.frente, ui.jg.tras, ui.jg.cima, ui.jg.baixo, ui.jg.acao,
 					mundo.nome, bioma, mundo.RAIO_CHUNKS, mundo.chunks.size(),
-					mundo.chunksMod.size(), mundo.semente, mundo.diaNoite.tempo, mundo.diaNoite.tempo_velo);
+					mundo.chunksMod.size(), mundo.semente, mundo.diaNoite.tempo, mundo.diaNoite.tempo_velo, mundo.entidades.size());
 
 				Jogo.debug2 = String.format(
-					"FPS: %d\nGPU:\nDesenhos: %d\nVértices: %.0f\nTrocas de Shader: %d\nLinks de textura: %d\n" +
-					"Threads ativas: %d\nMemória livre: %.1f MB\nMemória total: %.1f MB\n" +
-					"Memória usada: %.1f MB\nMemória nativa: %.1f MB\n\nLogs:\n%s",
+					"FPS: %d\nGPU:\nDesenhos: %d\nVértices: %.0f\nTrocas de Shader: %d\nLinks de textura: %d\nThreads ativas: %d\nMemória Java: %.1f MB\nMemória Nativa: %.1f MB\n\nLogs:\n%s",
 					fps,
 					gpu.getDrawCalls(),
 					gpu.getVertexCount().total,
 					gpu.getShaderSwitches(),
 					gpu.getTextureBindings(),
-					Thread.activeCount(), livre, total, total - livre,
-					nativa,
-					logs);
+					Thread.activeCount(), java, nativa, Logs.logs);
 				gpu.reset();
 			}
 		}
@@ -364,11 +338,53 @@ public class Render extends Renderizador {
 		final float cx = (chunk.x << 4) + 8f;
 		final float cz = (chunk.z << 4) + 8f;
 
-		final float raioBlocos = (Mundo.RAIO_CHUNKS << 4) + 16f;
+		final float raioBlocos = (mundo.RAIO_CHUNKS << 4) + 16f;
 		if(Vector2.dst2(cx, cz, jogador.posicao.x, jogador.posicao.z) >= raioBlocos * raioBlocos) return false;
 
 		return jogador.camera.frustum.boundsInFrustum(cx, 128f, cz, 16f, 256f, 16f);
 	}
+	
+	public static boolean frustrum(Jogador jg, BoundingBox caixa) {
+		return jg.camera.frustum.boundsInFrustum(caixa);
+	}
+	
+	public static void renderChunk(Chunk chunk, int iboId, int posIndices, int contaIndices, ShaderProgram shader) {
+        Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, chunk.vboId);
+        Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, iboId);
+
+        final int posLoc = shader.getAttributeLocation("a_pos");
+        final int texCoordLoc = shader.getAttributeLocation("a_texCoord");
+        final int texIdLoc = shader.getAttributeLocation("a_texId");
+        final int corLoc = shader.getAttributeLocation("a_cor");
+
+        if(posLoc >= 0) {
+            Gdx.gl.glEnableVertexAttribArray(posLoc);
+            Gdx.gl.glVertexAttribPointer(posLoc, 1, GL20.GL_FLOAT, false, PASSO, 0);
+        }
+        if(texCoordLoc >= 0) {
+            Gdx.gl.glEnableVertexAttribArray(texCoordLoc);
+            Gdx.gl.glVertexAttribPointer(texCoordLoc, 2, GL20.GL_FLOAT, false, PASSO, 4);
+        }
+        if(texIdLoc >= 0) {
+            Gdx.gl.glEnableVertexAttribArray(texIdLoc);
+            Gdx.gl.glVertexAttribPointer(texIdLoc, 1, GL20.GL_FLOAT, false, PASSO, 12);
+        }
+        if(corLoc >= 0) {
+            Gdx.gl.glEnableVertexAttribArray(corLoc);
+            // a_cor é 4 bytes sem sinal normalizados num float
+            Gdx.gl.glVertexAttribPointer(corLoc, 4, GL20.GL_UNSIGNED_BYTE, true, PASSO, 16);
+        }
+        // posição em bytes: cada indice é um short(2 bytes)
+        Gdx.gl20.glDrawElements(GL20.GL_TRIANGLES, contaIndices, GL20.GL_UNSIGNED_SHORT, posIndices * 2);
+
+        if(posLoc >= 0) Gdx.gl.glDisableVertexAttribArray(posLoc);
+        if(texCoordLoc >= 0) Gdx.gl.glDisableVertexAttribArray(texCoordLoc);
+        if(texIdLoc >= 0) Gdx.gl.glDisableVertexAttribArray(texIdLoc);
+        if(corLoc >= 0) Gdx.gl.glDisableVertexAttribArray(corLoc);
+
+        Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, 0);
+        Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
 	
 	@Override
     public void liberar() {

@@ -27,7 +27,7 @@ public class Criatura extends Entidade {
     public static final float INTERVALO_IA = 0.1f;
 
     // destino de busca(definido por procurarBloco)
-    public Vector3 destino = null;
+    public Vector3 destino = new Vector3();
     public boolean temDestino = false;
 
     // modelo e animação
@@ -46,8 +46,10 @@ public class Criatura extends Entidade {
     public float ultimoPosX = 0f;
     public float ultimoPosZ = 0f;
     public static final float TEMPO_PRESO = 1.2f;
+	
+	public float[] obs;
 
-    public Criatura(DadosCriatura dados, float x, float y, float z) {
+    public Criatura(final DadosCriatura dados, float x, float y, float z) {
         super();
 		this.nome = dados.nome;
         this.dados = dados;
@@ -67,13 +69,18 @@ public class Criatura extends Entidade {
             faixasVariaveis.put(e.getKey(), new float[]{faixa[1], faixa[2]});
         }
         ia = new IA(dados.variaveis.size());
-
-        try {
-            instancia = new ModelInstance(Modelos.obterModelo(dados.modelo));
-            animCtr = new AnimationController(instancia);
-        } catch(Exception e) {
-            Gdx.app.error("[Criatura]", "Erro no modelo " + dados.modelo + ": " + e.getMessage());
-        }
+		obs = new float[ia.ENTRADAS];
+		Gdx.app.postRunnable(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					instancia = new ModelInstance(Modelos.obterModelo(dados.modelo));
+					animCtr = new AnimationController(instancia);
+				} catch(Exception e) {
+					Gdx.app.error("[Criatura]", "Erro no modelo " + dados.modelo + ": " + e.getMessage());
+				}
+			}
+		});
     }
 
     @Override
@@ -95,7 +102,7 @@ public class Criatura extends Entidade {
             frenteV.x = direcaoVadiar.x;
             frenteV.z = direcaoVadiar.z;
             if(frenteV.len2() > 0.001f) frenteV.nor();
-            direitaV.x =  frenteV.z;
+            direitaV.x = frenteV.z;
             direitaV.z = -frenteV.x;
             frente = true;
         }
@@ -122,25 +129,22 @@ public class Criatura extends Entidade {
         if(cronometroIA <= 0f) {
             ia.aprender(recompensaPendente);
             recompensaPendente = 0f;
-            float[] acao = ia.pensar(montarObservacao());
+			montarObservacao();
+            float[] acao = ia.pensar(obs);
             aplicarAcaoIA(acao);
             cronometroIA = INTERVALO_IA;
         }
-        // 4. física
+        // 4. fisica
         super.att(delta);
         processarColisao(delta);
 
-        // 5. animação
-        if(animCtr != null) animCtr.update(delta);
-
-        // 6. suaviza direção visual
+        // 5. suaviza direção visual
         float fs = naAgua ? 0.08f : 0.15f;
         direcaoSuave.x = MathUtils.lerp(direcaoSuave.x, frenteV.x, fs);
         direcaoSuave.z = MathUtils.lerp(direcaoSuave.z, frenteV.z, fs);
     }
 
-    public float[] montarObservacao() {
-        float[] obs = new float[ia.ENTRADAS];
+    public void montarObservacao() {
         // entradas fixas
         obs[0] = naAgua  ? 1f : 0f;
         obs[1] = noChao  ? 1f : 0f;
@@ -153,7 +157,6 @@ public class Criatura extends Entidade {
             float span = max - min;
             obs[i++] = span > 0f ? MathUtils.clamp((e.getValue() - min) / span, 0f, 1f) : 0f;
         }
-        return obs;
     }
 
     public void aplicarAcaoIA(float[] acao) {
@@ -164,7 +167,9 @@ public class Criatura extends Entidade {
         direitaV.z = -frenteV.x;
 
         frente = (acao[0] != 0 || acao[1] != 0);
-        tras = false; esquerda = false; direita = false;
+        tras = false;
+		esquerda = false;
+		direita = false;
         cima = acao[2] > 0.5f && noChao && !naAgua;
         baixo = acao[3] < -0.5f && naAgua;
     }
@@ -204,7 +209,7 @@ public class Criatura extends Entidade {
                             float dist = dx * dx + dz * dz;
                             if(dist < melhorDist) {
                                 melhorDist = dist;
-                                destino = new Vector3(bx, by + dy, bz);
+                                destino.set(bx, by + dy, bz);
                                 temDestino = true;
                             }
                         }
@@ -252,7 +257,11 @@ public class Criatura extends Entidade {
 
     @Override
     public void render(ModelBatch mb, float delta) {
-        if(instancia == null) return;
+		if(instancia == null) return;
+		// 5. animação
+		if(!animAtual.isEmpty()) animCtr.setAnimation(animAtual, -1);
+		animCtr.update(delta);
+		
         if(direcaoSuave.len2() > 0.01f) {
             instancia.transform.setToRotation(
                 Vector3.Y,

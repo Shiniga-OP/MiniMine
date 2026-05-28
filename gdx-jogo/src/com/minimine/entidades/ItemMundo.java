@@ -86,7 +86,11 @@ public class ItemMundo extends Entidade {
             velocidade.z = 0f;
             attHitbox();
         }
-        // === animação ===
+    }
+
+    @Override
+    public void render(ModelBatch mb, float delta) {
+		// === animação ===
         anguloRotacao = (anguloRotacao + VELO_ROTACAO * delta) % 360f;
         if(noChao) tempoFlutuacao += delta;
 
@@ -96,12 +100,8 @@ public class ItemMundo extends Entidade {
             modelo.transform.scale(1.5f, 1.5f, 1.5f);
             modelo.calculateTransforms();
             modelo.userData = dadosLuz;
+			mb.render(modelo);
         }
-    }
-
-    @Override
-    public void render(ModelBatch mb, float delta) {
-        if(modelo != null) mb.render(modelo);
     }
 }
 

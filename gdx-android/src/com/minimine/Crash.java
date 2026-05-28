@@ -28,9 +28,19 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import dalvik.system.DexFile;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -38,9 +48,148 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import android.os.Environment;
+import androidx.multidex.MultiDex;
+import androidx.multidex.MultiDexApplication;
 
-public class Crash extends Application {
+public class Crash extends MultiDexApplication {
     public static Handler loop = new Handler(Looper.getMainLooper());
+    public static File LOG_ARQUIVO;
+	public static Context ctx;
+
+    public static void log(String tag, String msg) {
+        android.util.Log.d(tag, msg);
+        gravarLog("[" + tag + "] " + msg);
+    }
+    public static void log(String tag, Throwable e) {
+        e.printStackTrace();
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        gravarLog("[" + tag + "] " + sw.toString());
+    }
+    private static void gravarLog(String linha) {
+        if(LOG_ARQUIVO == null) return;
+        try {
+            File p = LOG_ARQUIVO.getParentFile();
+            if(p != null && !p.exists()) p.mkdirs();
+            FileWriter ae = new FileWriter(LOG_ARQUIVO, true);
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                ae.write(sdf.format(new Date()) + " " + linha + "\n");
+            } finally {
+                ae.close();
+            }
+        } catch(Throwable e) {}
+    }
+
+    @Override
+	protected void attachBaseContext(Context base) {
+		LOG_ARQUIVO = new File(base.getExternalFilesDir(null), "logs/logs.txt");
+		ctx = base;
+		try {
+			super.attachBaseContext(base);
+			if(Build.VERSION.SDK_INT < 21) {
+				MultiDex.install(base);
+			}
+		} catch(Throwable e) {
+			log("attachBaseContext", e);
+		}
+	}
+    public static void instalarDexExtras(Context ctx) throws Exception {
+        StringBuilder log = new StringBuilder();
+        
+        try {
+            File apk = new File(ctx.getApplicationInfo().sourceDir);
+            log.append("APK: " + apk.getAbsolutePath() + "\n");
+            File dexDir = ctx.getDir("dex_extra", Context.MODE_PRIVATE);
+            log.append("dexDir: " + dexDir.getAbsolutePath() + "\n");
+            ZipFile zip = new ZipFile(apk);
+            List<DexFile> dexArquivos = new ArrayList<DexFile>();
+            try {
+                int n = 2;
+                while(true) {
+                    ZipEntry e = zip.getEntry("classes" + n + ".dex");
+                    if(e == null) { log.append("Parou em classes" + n + ".dex\n"); break; }
+                    log.append("Encontrou classes" + n + ".dex\n");
+                    File saida = new File(dexDir, "classes" + n + ".dex");
+                    if(!saida.exists() || saida.length() != e.getSize()) {
+                        log.append("Extraindo classes" + n + ".dex\n");
+                        InputStream in = zip.getInputStream(e);
+                        FileOutputStream fos = new FileOutputStream(saida);
+                        try {
+                            gravar(in, fos);
+                        } finally {
+                            fecharES(in, fos);
+                        }
+                    }
+                    File opt = new File(dexDir, "classes" + n + ".odex");
+                    log.append("Carregando DEX: " + saida.getAbsolutePath() + "\n");
+                    dexArquivos.add(DexFile.loadDex(saida.getAbsolutePath(), opt.getAbsolutePath(), 0));
+                    log.append("DEX carregado com sucesso\n");
+                    n++;
+                }
+            } finally {
+                zip.close();
+            }
+            log.append("Total DEX arquivos: " + dexArquivos.size() + "\n");
+            if(dexArquivos.isEmpty()) {
+				log("InstalarDexExtras", log.toString());
+				return;
+			}
+            ClassLoader cl = ctx.getClassLoader();
+            log.append("ClassLoader: " + cl.getClass().getName() + "\n");
+            Field lista_caminhoCampo = encontrarCampo(cl.getClass(), "pathList");
+            lista_caminhoCampo.setAccessible(true);
+            Object lista_caminho = lista_caminhoCampo.get(cl);
+            log.append("caminho lista: " + lista_caminho.getClass().getName() + "\n");
+            Field dexElementosCampos = encontrarCampo(lista_caminho.getClass(), "dexElements");
+            dexElementosCampos.setAccessible(true);
+            Object[] dexElementos = (Object[]) dexElementosCampos.get(lista_caminho);
+            log.append("dexElementos.length: " + dexElementos.length + "\n");
+            Class<?> elementoClasse = dexElementos.getClass().getComponentType();
+            log.append("elementoClasse: " + elementoClasse.getName() + "\n");
+            Object[] extras = (Object[]) Array.newInstance(elementoClasse, dexArquivos.size());
+            for(int i = 0; i < dexArquivos.size(); i++) {
+                try {
+                    extras[i] = elementoClasse.getConstructor(File.class, String.class, File.class, DexFile.class)
+                        .newInstance(apk, null, dexDir, dexArquivos.get(i));
+                    log.append("Construtor 4-args OK\n");
+                } catch(Exception e1) {
+                    log.append("Construtor 4-args falhou: " + e1 + "\n");
+                    try {
+                        extras[i] = elementoClasse.getConstructor(File.class, DexFile.class)
+                            .newInstance(apk, dexArquivos.get(i));
+                        log.append("Construtor 2-args OK\n");
+                    } catch(Exception e2) {
+                        log.append("Construtor 2-args falhou: " + e2 + "\n");
+                    }
+                }
+            }
+            Object[] combinado = (Object[]) Array.newInstance(elementoClasse, dexElementos.length + extras.length);
+            System.arraycopy(dexElementos, 0, combinado, 0, dexElementos.length);
+            System.arraycopy(extras, 0, combinado, dexElementos.length, extras.length);
+            dexElementosCampos.set(lista_caminho, combinado);
+            log.append("Injecao concluida\n");
+        } catch(Exception e) {
+            log.append("EXCEÇÃO: " + e + "\n");
+            throw e;
+        } finally {
+            try {
+				log("instalarDexExtras", log.toString());
+			} catch(Exception e) {}
+        }
+    }
+
+    public static Field encontrarCampo(Class<?> cls, String nome) throws NoSuchFieldException {
+        while(cls != null) {
+            try {
+                return cls.getDeclaredField(nome);
+            } catch(NoSuchFieldException e) {
+                cls = cls.getSuperclass();
+            }
+        }
+        throw new NoSuchFieldException(nome);
+    }
 
     @Override
     public void onCreate() {
@@ -64,7 +213,7 @@ public class Crash extends Application {
         try {
             gravar(e, s);
         } finally {
-            fecharIO(e, s);
+            fecharES(e, s);
         }
     }
     public static String praString(InputStream e) throws IOException {
@@ -73,10 +222,10 @@ public class Crash extends Application {
         try {
             return s.toString("UTF-8");
         } finally {
-            fecharIO(e, s);
+            fecharES(e, s);
         }
     }
-    public static void fecharIO(Closeable... cs) {
+    public static void fecharES(Closeable... cs) {
         for(Closeable c : cs) {
             try {
                 if(c != null) c.close();
@@ -114,8 +263,8 @@ public class Crash extends Application {
             }
         }
         public static class Util implements Runnable {
-            private final Context mCtx;
-            public AtomicBoolean rodando = new AtomicBoolean(true);
+            public final Context mCtx;
+            public final AtomicBoolean rodando = new AtomicBoolean(true);
 
             public Util(Context context) {
                 this.mCtx = context;
@@ -126,7 +275,7 @@ public class Crash extends Application {
                     try {
                         Looper.loop();
                     } catch(final Throwable e) {
-                        e.printStackTrace();
+                        log("CrashUtil.Util", e);
                         if(rodando.get()) {
                             loop.post(new Runnable(){
                                     @Override
@@ -164,11 +313,11 @@ public class Crash extends Application {
                         t.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         t.putExtra(Intent.EXTRA_TEXT, log);
                         mCtx.startActivity(t);
-                    } catch (Throwable e) {
-                        e.printStackTrace();
-                        log(e.toString());
+                    } catch(Throwable e) {
+                        Crash.log("CrashUtil.Excecao", e);
+                        Crash.log("CrashUtil.Excecao", e.toString());
                     }
-                    ex.printStackTrace();
+                    Crash.log("CrashUtil.Excecao", ex);
                     android.os.Process.killProcess(android.os.Process.myPid());
                     System.exit(0);
                 } catch (Throwable e) {
@@ -277,7 +426,7 @@ public class Crash extends Application {
         public boolean onOptionsItemSelected(MenuItem item) {
             switch(item.getItemId()) {
                 case android.R.id.copy:
-                    ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipboardManager cm = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
                     cm.setPrimaryClip(ClipData.newPlainText(getPackageName(), mLog));
                     return true;
             }
@@ -289,3 +438,4 @@ public class Crash extends Application {
         }
     }
 }
+

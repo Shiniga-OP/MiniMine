@@ -33,6 +33,7 @@ import com.badlogic.gdx.graphics.profiling.GLProfiler;
 import com.minimine.ui.UI;
 import com.minimine.Logs;
 import com.minimine.utils.TarefasUtil;
+import com.minimine.entidades.GerenciadorEntidades;
 /*
  * em solo, sobe um Net(SERVIDOR_MODO) local e conecta o cliente
  * via Net(CLIENTE_MODO, "127.0.0.1")
@@ -55,15 +56,21 @@ public class ServidorInterno {
 	public Thread threadTick;
 	public int tick = 0;
 	public static final long MS_POR_TICK = 50; // 20 TPS
+	public static float delta;
 	public final Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 	public final List<TarefaTick> tarefasLoop = new ArrayList<>();
-	public final List<Runnable> tarefas = new ArrayList<>();
 	public Jogador jgUi;
 	
 	public Runnable attMundo = new Runnable() {
 		@Override
 		public void run() {
 			mundo.att(jgUi);
+		}
+	};
+	public Runnable attEntidade = new Runnable() {
+		@Override
+		public void run() {
+			if(mundo.carregado) GerenciadorEntidades.att(delta, mundo, jogadores);
 		}
 	};
 
@@ -81,7 +88,7 @@ public class ServidorInterno {
 			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado, criando novo");
 		}
 		if(mundo.ciclo) mundo.diaNoite.iniciar();
-
+		
 		netServidor = new Net(Net.SERVIDOR_MODO);
 		netServidor.ouvinte = new Net.OuvintePacote() {
 			public void aoReceber(byte tipo, DataInputStream dados) throws IOException {
@@ -163,7 +170,7 @@ public class ServidorInterno {
 	public void tick(int numTick) {
 		if(mundo == null) return;
 		tick = numTick;
-		final float delta = MS_POR_TICK / 1000f;
+		delta = MS_POR_TICK / 1000f;
 
 		// ciclo dia/noite: DiaNoiteUtil não tem thread propria, avança aqui
 		if(mundo.diaNoite != null && mundo.ciclo) {
@@ -171,7 +178,8 @@ public class ServidorInterno {
 			if(mundo.diaNoite.tempo > MathUtils.PI2)
 				mundo.diaNoite.tempo -= MathUtils.PI2;
 		}
-		TarefasUtil.exec.execute(attMundo);
+		TarefasUtil.mundo.execute(attMundo);
+		TarefasUtil.entidades.execute(attEntidade);
 		
 		for(int i = 0; i < jogadores.size(); i++) {
 			final Jogador jg = jogadores.get(i);
@@ -220,17 +228,9 @@ public class ServidorInterno {
 			}
 		}
 		// tarefas externas registradas
-		for(int i = 0; i < tarefas.size(); i++) {
-			tarefas.get(i).run();
-			tarefas.remove(i);
-		}
 		for(int i = 0; i < tarefasLoop.size(); i++) tarefasLoop.get(i).executar(numTick);
 	}
 	
-	public void addTarefa(Runnable tarefa) {
-		tarefas.add(tarefa);
-	}
-
 	// processa pacotes recebidos pelo cliente local
 	public void processarPacote(byte tipo, DataInputStream dis) throws IOException {
 		switch(tipo) {
@@ -400,9 +400,7 @@ public class ServidorInterno {
 		int tamBlocos = (chunk.blocos != null) ? chunk.blocos.length : 0;
 		dos.writeInt(tamBlocos);
 		for(int i = 0; i < tamBlocos; i++) dos.writeInt(chunk.blocos[i]);
-		dos.writeInt(chunk.luz.length);
 		dos.write(chunk.luz);
-		dos.writeInt(chunk.meta.length);
 		for(int i = 0; i < chunk.meta.length; i++) dos.writeShort(chunk.meta[i]);
 		dos.flush();
 		return baos.toByteArray();
@@ -430,12 +428,8 @@ public class ServidorInterno {
 			chunk.blocos = new int[tamBlocos];
 			for(int i = 0; i < tamBlocos; i++) chunk.blocos[i] = dis.readInt();
 		}
-		int luzLen = dis.readInt();
-		chunk.luz = new byte[luzLen];
 		dis.readFully(chunk.luz);
-		int metaLen = dis.readInt();
-		chunk.meta = new short[metaLen];
-		for(int i = 0; i < metaLen; i++) chunk.meta[i] = dis.readShort();
+		for(int i = 0; i < chunk.meta.length; i++) chunk.meta[i] = dis.readShort();
 		chunk.chave = Chave.calcularChave(cx, cz);
 		chunk.dadosProntos = true;
 		chunk.att = true;
