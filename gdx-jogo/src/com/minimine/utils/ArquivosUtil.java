@@ -53,6 +53,7 @@ import com.minimine.mundo.chunks.ChunkProcesso;
 import java.net.URI;
 import java.util.zip.ZipFile;
 import java.util.Enumeration;
+import com.minimine.entidades.DadosCriatura;
 
 public final class ArquivosUtil {
     public static final int[] VERSAO = { 0, 0, 1 };
@@ -244,14 +245,14 @@ public final class ArquivosUtil {
                 dos.writeInt(c.vida);
                 // variaveis internas(sede, fome, etc)
                 dos.writeInt(c.variaveis.size());
-                for(java.util.Map.Entry<String, Float> v : c.variaveis.entrySet()) {
+                for(Map.Entry<String, Float> v : c.variaveis.entrySet()) {
                     dos.writeUTF(v.getKey());
                     dos.writeFloat(v.getValue());
                 }
                 // pesos da IA(aprendizado acumulado)
                 gravarPesosIA(dos, c.ia);
             } else if(e instanceof ItemMundo) {
-                ItemMundo item = (ItemMundo) e;
+                ItemMundo item = (ItemMundo)e;
                 dos.writeByte(TIPO_ITEM);
                 dos.writeUTF(item.nome);
                 dos.writeInt(item.quantidade);
@@ -273,7 +274,7 @@ public final class ArquivosUtil {
                 float x = dis.readFloat(), y = dis.readFloat(), z = dis.readFloat();
                 float yaw = dis.readFloat();
                 int vida = dis.readInt();
-                com.minimine.entidades.DadosCriatura dados = Mundo.registroCriaturas != null ? Mundo.registroCriaturas.criaturas.get(nomeD) : null;
+                DadosCriatura dados = Mundo.registroCriaturas != null ? Mundo.registroCriaturas.criaturas.get(nomeD) : null;
                 if(dados != null) {
                     Criatura c = new Criatura(dados, x, y, z);
                     c.yaw = yaw;

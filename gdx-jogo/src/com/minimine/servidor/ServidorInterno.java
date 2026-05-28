@@ -45,7 +45,7 @@ import com.minimine.entidades.GerenciadorEntidades;
  *   - ser a fonte de verdade do Mundo(estado, chunks, blocos)
 
  * O cliente local recebe tudo via protocolo, igual a um cliente remoto
-*/
+ */
 public class ServidorInterno {
 	public Net netServidor = null;
 	public Net netCliente = null;
@@ -60,7 +60,7 @@ public class ServidorInterno {
 	public final Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 	public final List<TarefaTick> tarefasLoop = new ArrayList<>();
 	public Jogador jgUi;
-	
+
 	public Runnable attMundo = new Runnable() {
 		@Override
 		public void run() {
@@ -77,18 +77,18 @@ public class ServidorInterno {
 	public void iniciar(final Mundo mundo, final List<Jogador> jogadores) {
 		if(rodando) return;
 		rodando = true;
-		
+
 		this.jogadores = jogadores;
-		
+
 		jgUi = jogadores.get(0);
-		
+
 		if(ArquivosUtil.existe(Inicio.externo + "/MiniMine/mundos/" + URLEncoder.encode(mundo.nome) + ".mini")) {
 			ArquivosUtil.crMundo(mundo, jogadores.isEmpty() ? null : jogadores.get(0));
 		} else {
 			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado, criando novo");
 		}
 		if(mundo.ciclo) mundo.diaNoite.iniciar();
-		
+
 		netServidor = new Net(Net.SERVIDOR_MODO);
 		netServidor.ouvinte = new Net.OuvintePacote() {
 			public void aoReceber(byte tipo, DataInputStream dados) throws IOException {
@@ -180,7 +180,7 @@ public class ServidorInterno {
 		}
 		TarefasUtil.mundo.execute(attMundo);
 		TarefasUtil.entidades.execute(attEntidade);
-		
+
 		for(int i = 0; i < jogadores.size(); i++) {
 			final Jogador jg = jogadores.get(i);
 			if(mundo.carregado) {
@@ -191,7 +191,7 @@ public class ServidorInterno {
 						jg.nasceu = true;
 						final long chave = Chave.calcularChave(0, 0);
 						final Chunk chunk = mundo.obterChunk(chave);
-						mundo.chunksMod.put(chave, chunk);
+						if(chunk != null) mundo.chunksMod.put(chave, chunk);
 						Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
 					} else Gdx.app.log("[Jogo]", "não nasceu, altura recebida: "+yTeste);
 				}
@@ -230,7 +230,7 @@ public class ServidorInterno {
 		// tarefas externas registradas
 		for(int i = 0; i < tarefasLoop.size(); i++) tarefasLoop.get(i).executar(numTick);
 	}
-	
+
 	// processa pacotes recebidos pelo cliente local
 	public void processarPacote(byte tipo, DataInputStream dis) throws IOException {
 		switch(tipo) {

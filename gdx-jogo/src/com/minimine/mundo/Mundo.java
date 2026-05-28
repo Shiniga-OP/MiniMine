@@ -119,14 +119,6 @@ public class Mundo {
     public void iniciar(boolean gerarSemente) {
         if(gerarSemente) semente = semente == 0 ? (System.currentTimeMillis() ^ MathUtils.random(2, 10)) : semente;
 
-        registroCriaturas = new RegistroCriaturas();
-        registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
-
-        registroBiomas = new RegistroBiomas();
-        registroBiomas.carregarBiomas(Gdx.files.internal("biomas/"));
-
-		ReceitaRegistro.iniciar();
-
         motor = new MotorGeracao(semente, registroBiomas);
     }
 

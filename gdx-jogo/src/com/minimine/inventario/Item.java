@@ -17,4 +17,11 @@ public class Item {
 		this.textura = textura;
 		this.quantidade = quantidade;
 	}
+	
+	public static void iniciar() {
+		ItemRegistro.registrar("palito", "palito");
+		ItemRegistro.registrar("espada_madeira", "espada_madeira");
+		ItemRegistro.registrar("picareta_madeira", "picareta_madeira");
+		ItemRegistro.registrar("machado_madeira", "machado_madeira");
+	}
 }

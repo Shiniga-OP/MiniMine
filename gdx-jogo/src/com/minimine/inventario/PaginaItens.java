@@ -59,10 +59,6 @@ public class PaginaItens {
     public static final int ALTURA_PAINEL = 44 + 8 + ALTURA_GRADE + 8 + 36;
 
     public PaginaItens() {
-		ItemRegistro.registrar("palito", "palito");
-		ItemRegistro.registrar("espada_madeira", "espada_madeira");
-		ItemRegistro.registrar("picareta_madeira", "picareta_madeira");
-		ItemRegistro.registrar("machado_madeira", "machado_madeira");
         for(int i = 0; i < POR_PAGINA; i++) rects[i] = new Rectangle();
     }
 

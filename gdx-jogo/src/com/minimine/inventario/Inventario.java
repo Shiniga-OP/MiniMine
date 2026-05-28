@@ -27,13 +27,14 @@ public class Inventario {
     public int ponteiroArrastando = -1;
 
     // itens[0..quantSlots-1] = inventário normal, itens[quantSlots..quantSlots+SLOTS_GRADE-1] = grade de receita
-    public Item[] itens = new Item[quantSlots + SLOTS_GRADE];
+    public final Item[] itens = new Item[quantSlots + SLOTS_GRADE];
+	public final String[] nomesReceita = new String[SLOTS_GRADE];
     public int slotSelecionado = 0;
     public boolean aberto = false;
 
-    public int hotbarSlots = 5;
-    public Rectangle[] rectsHotbar;
-    public int hotbarY = 20;
+    public int barraSlots = 5;
+    public Rectangle[] barraRects;
+    public int barraY = 20;
 
     public Item itemFlutuante = null;
     public int slotOrigemFlutuante = -1;
@@ -71,10 +72,10 @@ public class Inventario {
                 i++;
             }
         }
-        rectsHotbar = new Rectangle[hotbarSlots];
-        final int hotbarX = (v >> 1) - ((hotbarSlots * tamSlot) >> 1);
-        for(int x = 0; x < hotbarSlots; x++) {
-            rectsHotbar[x] = new Rectangle(hotbarX + x * tamSlot, hotbarY, tamSlot, tamSlot);
+        barraRects = new Rectangle[barraSlots];
+        final int hotbarX = (v >> 1) - ((barraSlots * tamSlot) >> 1);
+        for(int x = 0; x < barraSlots; x++) {
+            barraRects[x] = new Rectangle(hotbarX + x * tamSlot, barraY, tamSlot, tamSlot);
         }
         // grade de receita: a direita do inventario, centralizada verticalmente
         final int gradeX = invX + slotsH * tamSlot + 40;
@@ -104,8 +105,8 @@ public class Inventario {
 		if(p != ponteiroArrastando || itemSendoArrastado == null) return;
 
 		int slotDestino = -1;
-		for(int i = 0; i < rectsHotbar.length; i++) {
-			if(rectsHotbar[i].contains(telaX, telaY)) {
+		for(int i = 0; i < barraRects.length; i++) {
+			if(barraRects[i].contains(telaX, telaY)) {
 				slotDestino = i;
 				break;
 			}
@@ -136,7 +137,7 @@ public class Inventario {
 		ponteiroArrastando = -1;
 	}
 
-    public void selecionarSlot(int slot, Jogador jogador) {
+    public void selecionarSlot(int slot) {
         slotSelecionado = slot;
         if(itens[slot] != null) jogador.item = itens[slot].nome;
         else jogador.item = "ar";
@@ -169,6 +170,33 @@ public class Inventario {
         }
     }
 
+    // igual a addItem mas so usa slots do inventario normal(não a grade de receita)
+    public void addItemInv(String nome, int quantidade) {
+        if(slotSelecionado < quantSlots && itens[slotSelecionado] != null && itens[slotSelecionado].nome.equals(nome)) {
+            itens[slotSelecionado].quantidade += quantidade;
+            return;
+        }
+        for(int i = 0; i < quantSlots; i++) {
+            if(itens[i] != null && itens[i].nome.equals(nome)) {
+                itens[i].quantidade += quantidade;
+                return;
+            }
+        }
+        for(int i = 0; i < quantSlots; i++) {
+            if(itens[i] == null) {
+                final TextureRegion textura;
+                final Item b = ItemRegistro.obter(nome);
+                if(b != null) textura = b.textura;
+                else {
+                    Gdx.app.log("[Inventario]", "textura não encontrada para: " + nome);
+                    textura = Texturas.atlas.obter("terra");
+                }
+                itens[i] = new Item(nome, textura, quantidade);
+                return;
+            }
+        }
+    }
+
     public void rmItem(int slot, int quantidade) {
         if(itens[slot] != null) {
             itens[slot].quantidade -= quantidade;
@@ -179,12 +207,11 @@ public class Inventario {
     }
 
     public void attReceita() {
-        String[] nomes = new String[SLOTS_GRADE];
         for(int i = 0; i < SLOTS_GRADE; i++) {
             final Item it = itens[quantSlots + i];
-            nomes[i] = (it != null) ? it.nome : null;
+            nomesReceita[i] = (it != null) ? it.nome : null;
         }
-        final ReceitaRegistro.Receita r = ReceitaRegistro.combinar(nomes);
+        final ReceitaRegistro.Receita r = ReceitaRegistro.combinar(nomesReceita);
         if(r == null) {
             resultadoReceita = null;
             return;
@@ -199,9 +226,9 @@ public class Inventario {
 
     public void aoTocar(int telaX, int telaY, int p) {
         if(!aberto) {
-            for(int i = 0; i < rectsHotbar.length; i++) {
-                if(rectsHotbar[i].contains(telaX, telaY)) {
-                    selecionarSlot(i, jogador);
+            for(int i = 0; i < barraRects.length; i++) {
+                if(barraRects[i].contains(telaX, telaY)) {
+                    selecionarSlot(i);
                     return;
                 }
             }
@@ -228,11 +255,10 @@ public class Inventario {
 			}
 			return;
 		}
-
         // === todos os slots (inventario, hotbar e grade) tratados igual ===
         int slotClicado = -1;
-        for(int i = 0; i < rectsHotbar.length; i++) {
-            if(rectsHotbar[i].contains(telaX, telaY)) {
+        for(int i = 0; i < barraRects.length; i++) {
+            if(barraRects[i].contains(telaX, telaY)) {
                 slotClicado = i;
                 break;
             }
@@ -288,6 +314,7 @@ public class Inventario {
 			}
 			if(ehGrade) attReceita();
 		}
+		attReceita();
     }
 
     public final void moverFlutuante(final int telaX, final int telaY) {
@@ -302,12 +329,18 @@ public class Inventario {
 		if(!modoDivisao) return;
 
 		int slotAtual = -1;
-		for(int i = 0; i < rectsHotbar.length; i++) {
-			if(rectsHotbar[i].contains(telaX, telaY)) { slotAtual = i; break; }
+		for(int i = 0; i < barraRects.length; i++) {
+			if(barraRects[i].contains(telaX, telaY)) {
+				slotAtual = i;
+				break;
+			}
 		}
 		if(slotAtual == -1 && aberto) {
 			for(int i = 0; i < rects.length; i++) {
-				if(rects[i].contains(telaX, telaY)) { slotAtual = i; break; }
+				if(rects[i].contains(telaX, telaY)) {
+					slotAtual = i;
+					break;
+				}
 			}
 		}
 		if(slotAtual == -1) return;
@@ -343,10 +376,11 @@ public class Inventario {
         if(aberto) {
             aberto = false;
             if(itemFlutuante != null) {
-                if(slotOrigemFlutuante >= 0 && itens[slotOrigemFlutuante] == null) {
+                // se origem era a grade, não devolve pra grade (vai ser limpa logo abaixo)
+                if(slotOrigemFlutuante >= 0 && slotOrigemFlutuante < quantSlots && itens[slotOrigemFlutuante] == null) {
                     itens[slotOrigemFlutuante] = itemFlutuante;
                 } else {
-                    addItem(itemFlutuante.nome, itemFlutuante.quantidade);
+                    addItemInv(itemFlutuante.nome, itemFlutuante.quantidade);
                 }
                 itemFlutuante = null;
                 slotOrigemFlutuante = -1;
@@ -355,7 +389,7 @@ public class Inventario {
             for(int i = 0; i < SLOTS_GRADE; i++) {
                 final Item it = itens[quantSlots + i];
                 if(it != null && it.nome.length() > 0) {
-                    addItem(it.nome, it.quantidade);
+                    addItemInv(it.nome, it.quantidade);
                     itens[quantSlots + i] = null;
                 }
             }

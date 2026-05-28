@@ -332,8 +332,8 @@ public class UI implements InputProcessor {
         defPosDpad("baixo", aX + passo, aY);
 
         // === inv e receita colados a hotbar ===
-        final int hotbarX = (v >> 1) - ((jg.inv.hotbarSlots * jg.inv.tamSlot) >> 1);
-        defPosDpad("inv", hotbarX + jg.inv.hotbarSlots * jg.inv.tamSlot, jg.inv.hotbarY);
+        final int hotbarX = (v >> 1) - ((jg.inv.barraSlots * jg.inv.tamSlot) >> 1);
+        defPosDpad("inv", hotbarX + jg.inv.barraSlots * jg.inv.tamSlot, jg.inv.barraY);
 
         // === menu pause canto superior direito ===
         defPosDpad("menu_principal", v - tam - marg, h - tam - marg);
@@ -437,14 +437,14 @@ public class UI implements InputProcessor {
     }
 
     public void renderizarInventario(SpriteBatch sb, BitmapFont fonte, Inventario inv) {
-        if(inv.rectsHotbar == null || inv.rectsHotbar.length == 0 ||
+        if(inv.barraRects == null || inv.barraRects.length == 0 ||
            inv.itens == null || inv.itens.length == 0) return;
 
         // hotbar
-        for(int i = 0; i < inv.rectsHotbar.length; i++) {
-            if(inv.rectsHotbar[i] == null) continue;
-            final float rx = inv.rectsHotbar[i].x, ry = inv.rectsHotbar[i].y;
-            final float rv = inv.rectsHotbar[i].width, rh = inv.rectsHotbar[i].height;
+        for(int i = 0; i < inv.barraRects.length; i++) {
+            if(inv.barraRects[i] == null) continue;
+            final float rx = inv.barraRects[i].x, ry = inv.barraRects[i].y;
+            final float rv = inv.barraRects[i].width, rh = inv.barraRects[i].height;
 
 			sb.draw(inv.texSlot, rx, ry, rv, rh);
             if(i == inv.slotSelecionado) {
@@ -538,16 +538,16 @@ public class UI implements InputProcessor {
         final float tamCoracao  = 30f;
         final float espCoracao  = 2f;
 
-        final float hotbarY = (jg.inv.rectsHotbar != null && jg.inv.rectsHotbar.length > 0 && jg.inv.rectsHotbar[0] != null)
-            ? jg.inv.rectsHotbar[0].y + jg.inv.tamSlot + 4f
+        final float barraY = (jg.inv.barraRects != null && jg.inv.barraRects.length > 0 && jg.inv.barraRects[0] != null)
+            ? jg.inv.barraRects[0].y + jg.inv.tamSlot + 4f
             : 30f;
-        final float inicioX = (jg.inv.rectsHotbar != null && jg.inv.rectsHotbar.length > 0 && jg.inv.rectsHotbar[0] != null)
-            ? jg.inv.rectsHotbar[0].x
+        final float inicioX = (jg.inv.barraRects != null && jg.inv.barraRects.length > 0 && jg.inv.barraRects[0] != null)
+            ? jg.inv.barraRects[0].x
             : 10f;
 
         for(int i = 0; i < totalCoracoes; i++) {
             final float x = inicioX + i * (tamCoracao + espCoracao);
-            final float y = hotbarY;
+            final float y = barraY;
 
             final int vidaEsseCoracao = jg.vida - i * 2;
 
@@ -851,8 +851,8 @@ public class UI implements InputProcessor {
 
     @Override
     public boolean scrolled(float x, float y) {
-        if(y > 0) jg.inv.slotSelecionado = (jg.inv.slotSelecionado + 1) % jg.inv.hotbarSlots;
-        else if(y < 0) jg.inv.slotSelecionado = (jg.inv.slotSelecionado - 1 + jg.inv.hotbarSlots) % jg.inv.hotbarSlots;
+        if(y > 0) jg.inv.slotSelecionado = (jg.inv.slotSelecionado + 1) % jg.inv.barraSlots;
+        else if(y < 0) jg.inv.slotSelecionado = (jg.inv.slotSelecionado - 1 + jg.inv.barraSlots) % jg.inv.barraSlots;
         return true;
     }
 

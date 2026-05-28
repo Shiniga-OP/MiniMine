@@ -24,6 +24,10 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import com.minimine.servidor.TarefaTick;
 import com.minimine.utils.TarefasUtil;
+import com.minimine.mundo.geracao.RegistroBiomas;
+import com.minimine.entidades.RegistroCriaturas;
+import com.minimine.inventario.ReceitaRegistro;
+import com.minimine.inventario.Item;
 
 public class Jogo implements Screen {
 	public static Mundo mundo;
@@ -51,6 +55,15 @@ public class Jogo implements Screen {
 		jogadores.add(jogador);
 
 		Bloco.iniciar();
+		Item.iniciar();
+		
+		mundo.registroCriaturas = new RegistroCriaturas();
+        mundo.registroCriaturas.carregar(Gdx.files.internal("criaturas/"));
+
+        mundo.registroBiomas = new RegistroBiomas();
+        mundo.registroBiomas.carregarBiomas(Gdx.files.internal("biomas/"));
+
+		ReceitaRegistro.iniciar();
 
 		if(!Net.CLIENTE_MODO.equals(MultiMenu.modoRede)) {
 			servidor.iniciar(mundo, jogadores);
