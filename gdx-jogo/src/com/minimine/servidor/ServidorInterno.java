@@ -34,6 +34,7 @@ import com.minimine.ui.UI;
 import com.minimine.Logs;
 import com.minimine.utils.TarefasUtil;
 import com.minimine.entidades.GerenciadorEntidades;
+import com.minimine.mundo.fluidos.FluxoFluido;
 /*
  * em solo, sobe um Net(SERVIDOR_MODO) local e conecta o cliente
  * via Net(CLIENTE_MODO, "127.0.0.1")
@@ -71,6 +72,12 @@ public class ServidorInterno {
 		@Override
 		public void run() {
 			if(mundo.carregado) GerenciadorEntidades.att(delta, mundo, jogadores);
+		}
+	};
+	public Runnable attFluxo = new Runnable() {
+		@Override
+		public void run() {
+			FluxoFluido.tick(tick);
 		}
 	};
 
@@ -179,8 +186,10 @@ public class ServidorInterno {
 				mundo.diaNoite.tempo -= MathUtils.PI2;
 		}
 		TarefasUtil.mundo.execute(attMundo);
-		TarefasUtil.entidades.execute(attEntidade);
-
+		if(mundo.carregado) {
+			TarefasUtil.entidades.execute(attEntidade);
+			TarefasUtil.fisica.execute(attFluxo);
+		}
 		for(int i = 0; i < jogadores.size(); i++) {
 			final Jogador jg = jogadores.get(i);
 			if(mundo.carregado) {

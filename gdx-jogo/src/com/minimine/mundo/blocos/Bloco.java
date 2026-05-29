@@ -24,6 +24,8 @@ public class Bloco {
 	public final TipoRender render;
 	public boolean solido, culling, modeloX, colisao = true;
 	public int durabilidade = 3; // ticks para quebrar (0 = instantaneo)
+	public int viscosidade = 1;  // ticks entre propagações (só fluídos)
+	public float densidade = 1f; // densidade do fluído (só fluídos)
 	public static boolean ABERTO = false;
 	/*
 	 * interface de UI associada a este bloco
@@ -90,6 +92,8 @@ public class Bloco {
 		texIds.get("terra").durabilidade = 2;
 		texIds.get("pedra").durabilidade = 7;
 		texIds.get("agua").durabilidade = 0;
+		texIds.get("agua").viscosidade = 1;
+		texIds.get("agua").densidade = 1f;
 		texIds.get("areia").durabilidade = 2;
 		texIds.get("tronco").durabilidade = 5;
 		texIds.get("folha").durabilidade = 1;

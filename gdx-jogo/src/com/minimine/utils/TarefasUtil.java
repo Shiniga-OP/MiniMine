@@ -7,7 +7,7 @@ import com.minimine.cenas.Jogo;
 import java.util.concurrent.ThreadFactory;
 
 public class TarefasUtil {
-    public static ExecutorService mundo, entidades;
+    public static ExecutorService mundo, entidades, fisica;
 	public static ThreadFactory fabrica = new ThreadFactory() {
 		@Override
 		public Thread newThread(Runnable r) {
@@ -20,10 +20,12 @@ public class TarefasUtil {
     public static void iniciar() {
 		mundo = Executors.newFixedThreadPool(1, fabrica);
 		entidades = Executors.newFixedThreadPool(1, fabrica);
+		fisica = Executors.newFixedThreadPool(1, fabrica);
     }
 
     public static void liberar() {
 		mundo.shutdown();
 		entidades.shutdown();
+		fisica.shutdown();
     }
 }

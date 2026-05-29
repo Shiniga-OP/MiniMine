@@ -49,6 +49,8 @@ import com.minimine.utils.DiaNoiteUtil;
 import java.util.ArrayDeque;
 import com.minimine.entidades.Criatura;
 import com.minimine.entidades.DadosCriatura;
+import com.minimine.graficos.TipoRender;
+import com.minimine.mundo.fluidos.FluxoFluido;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -225,16 +227,22 @@ public class Mundo {
         final int localZ = z & 0xF;
 
         final int blocoAntigoId = ChunkProcesso.util.obterBloco(localX, y, localZ, chunk);
+		final Bloco blocoObj = Bloco.numIds.get(blocoAntigoId);
 
-        final boolean eraEmissor = blocoAntigoId != 0 && Bloco.numIds.get(blocoAntigoId).luz > 0;
+        final boolean eraEmissor = blocoAntigoId != 0 && blocoObj.luz > 0;
 
+		final Bloco novoBlocoObj = Bloco.numIds.get(bloco);
+		if(novoBlocoObj != null && novoBlocoObj.render == TipoRender.LIQUIDO) {
+			FluxoFluido.colocarFonte(x, y, z, novoBlocoObj.nome);
+			return;
+		}
         if(blocoAntigoId != 0) {
-            Render.gp.criar(x, y, z, Texturas.atlas.get(Bloco.numIds.get(blocoAntigoId).lados));
+            Render.gp.criar(x, y, z, Texturas.atlas.get(blocoObj.lados));
         }
         ChunkProcesso.util.defBloco(localX, y, localZ, bloco, chunk);
         ChunkProcesso.util.defMeta(localX, y, localZ, (short)0, chunk);
 
-        final boolean novoEhEmissor = bloco != 0 && Bloco.numIds.get(bloco) != null && Bloco.numIds.get(bloco).luz > 0;
+        final boolean novoEhEmissor = bloco != 0 && blocoObj != null && blocoObj.luz > 0;
 
         if(eraEmissor || novoEhEmissor) ChunkProcesso.luz.recalcularLuz(chunk);
 
@@ -613,7 +621,6 @@ public class Mundo {
 								chunk.iboTranspId = GL_BUFFER.get(2);
 								chunk.gpuPronta = true;
 							}
-
 							Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, chunk.vboId);
 							Gdx.gl.glBufferData(GL20.GL_ARRAY_BUFFER, vertsGeral.tam * 4, vertsGeral.bufPronto(), GL20.GL_STATIC_DRAW);
 
