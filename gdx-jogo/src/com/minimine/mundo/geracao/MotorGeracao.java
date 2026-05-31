@@ -250,7 +250,7 @@ public final class MotorGeracao {
             for(int dcz = -1; dcz <= 1; dcz++) {
                 if(dcx == 0 && dcz == 0) continue;
                 final int idc = (dcx + 1) * 3 + (dcz + 1);
-                final long chave = Chave.calcularChave(chunk.x + dcx, chunk.z + dcz);
+                final long chave = Chave.gerar(chunk.x + dcx, chunk.z + dcz);
                 vizinhoMod[idc] = Mundo.chunksMod.containsKey(chave);
                 if(!vizinhoMod[idc]) {
                     final Chunk c  = Mundo.obterChunk(chave);
@@ -297,8 +297,8 @@ public final class MotorGeracao {
                 if(ehFila[idc]) {
                     // vizinha não está em estado 1: enfileira para aplicar depois
                     Mundo.enfileirarEstrutura(
-					Chave.calcularChave(chunk.x + dcx, chunk.z + dcz),
-					new EstruturaPendente(lx, by, lz, id, e.blocoMeta[i])
+						Chave.gerar(chunk.x + dcx, chunk.z + dcz),
+						new EstruturaPendente(lx, by, lz, id, e.blocoMeta[i])
 					);
                 } else {
                     // vizinha em estado 1: escreve direto

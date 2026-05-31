@@ -162,7 +162,7 @@ public class Entidade {
 				final int id = Mundo.obterBlocoMundo(x, y, z);
 				if(id != 0) {
 					final Bloco b = Bloco.numIds.get(id);
-					if(b != null && b.solido) {
+					if(b != null && b.colisao) {
 						return true;
 					}
 				}
@@ -230,7 +230,7 @@ public class Entidade {
 		final int _by = Mat.floor(posicao.y + altura * 0.9f);
 		final int _bz = Mat.floor(posicao.z);
 
-		final long chave = Chave.calcularChave(_bx >> 4, _bz >> 4);
+		final long chave = Chave.gerar(_bx >> 4, _bz >> 4);
 
 		if(chunkCache == null || chave != chunkCache.chave) {
 			chunkCache = Mundo.chunks.get(chave);

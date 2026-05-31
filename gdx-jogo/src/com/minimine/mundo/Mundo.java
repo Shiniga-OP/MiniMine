@@ -25,6 +25,7 @@ import com.badlogic.gdx.graphics.GL20;
 // blocos
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.mundo.blocos.BlocoModelo;
+import com.minimine.mundo.blocos.BlocoBau;
 // entidades
 import com.minimine.entidades.Jogador;
 import com.minimine.entidades.Entidade;
@@ -51,6 +52,8 @@ import com.minimine.entidades.Criatura;
 import com.minimine.entidades.DadosCriatura;
 import com.minimine.graficos.TipoRender;
 import com.minimine.mundo.fluidos.FluxoFluido;
+import com.minimine.inventario.Item;
+import com.minimine.inventario.ItemRegistro;
 
 public class Mundo {
     public static String nome = "novo mundo";
@@ -129,7 +132,7 @@ public class Mundo {
         attChunks((int)jg.posicao.x, (int)jg.posicao.z);
 
         if(!carregado && chunks.size() >= 1) {
-            Chunk c = chunks.get(Chave.calcularChave((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4));
+            Chunk c = chunks.get(Chave.gerar((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4));
             if(c != null && c.estado == 4) {
 				carregado = true;
 			}
@@ -219,7 +222,7 @@ public class Mundo {
 
         final int chunkX = x >> 4;
         final int chunkZ = z >> 4;
-        final long chave = Chave.calcularChave(chunkX, chunkZ);
+        final long chave = Chave.gerar(chunkX, chunkZ);
 
 		final Chunk chunk = obterChunk(chave);
 
@@ -237,7 +240,7 @@ public class Mundo {
 			return;
 		}
         if(blocoAntigoId != 0) {
-            Render.gp.criar(x, y, z, Texturas.atlas.get(blocoObj.lados));
+            Render.gp.criar(x, y, z, Texturas.atlas.get(blocoObj.textura.sul));
         }
         ChunkProcesso.util.defBloco(localX, y, localZ, bloco, chunk);
         ChunkProcesso.util.defMeta(localX, y, localZ, (short)0, chunk);
@@ -370,7 +373,7 @@ public class Mundo {
 	}
 
 	public static final Chunk obterChunk(int x, int z) {
-		return obterChunk(Chave.calcularChave(x, z));
+		return obterChunk(Chave.gerar(x, z));
 	}
 
     // === GERAÇÃO DE CHUNKS ===
@@ -436,7 +439,7 @@ public class Mundo {
 	}
 
     public void tentarGerarChunk(int x, int z) {
-        final long chave = Chave.calcularChave(x, z);
+        final long chave = Chave.gerar(x, z);
 		final Chunk c = chunks.get(chave);
         if(c != null) {
             if(c.estado == 1 && vizinhosCom(x, z, DADOS_PRONTOS)) {
@@ -461,7 +464,7 @@ public class Mundo {
         Chunk.zerar(novo);
         novo.x = x;
 		novo.z = z;
-		novo.chave = Chave.calcularChave(x, z);
+		novo.chave = Chave.gerar(x, z);
         ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(novo.maxIds), novo);
         chunks.put(chave, novo);
         gerarDados(chave);
@@ -470,13 +473,13 @@ public class Mundo {
     // === VERIFICAÇÕES DE ESTADO DE VIZINHOS ===
     // 4 vizinhos cardinais com estado >= 1(dados prontos)
     public static boolean vizinhosCom(int cx, int cz, int estado) {
-		final Chunk c1 = chunks.get(Chave.calcularChave(cx + 1, cz));
+		final Chunk c1 = chunks.get(Chave.gerar(cx + 1, cz));
 		final int e1 = c1 != null ? c1.estado : 0;
-		final Chunk c2= chunks.get(Chave.calcularChave(cx - 1, cz));
+		final Chunk c2= chunks.get(Chave.gerar(cx - 1, cz));
 		final int e2 = c2 != null ? c2.estado : 0;
-		final Chunk c3 = chunks.get(Chave.calcularChave(cx, cz + 1));
+		final Chunk c3 = chunks.get(Chave.gerar(cx, cz + 1));
 		final int e3 = c3 != null ? c3.estado : 0;
-		final Chunk c4 = chunks.get(Chave.calcularChave(cx, cz - 1)); 
+		final Chunk c4 = chunks.get(Chave.gerar(cx, cz - 1)); 
 		final int e4 = c4 != null ? c4.estado : 0;
 		return e1 >= estado &&
 			e2 >= estado &&
@@ -737,6 +740,22 @@ public class Mundo {
 			for(int i = 0; i < chunk.meta.length; i++) dos.writeShort(chunk.meta[i]);
         }
 		dos.writeBoolean(plano);
+		// baus
+		dos.writeInt(BlocoBau.dados.size());
+		for(Map.Entry<Long, Item[]> e : BlocoBau.dados.entrySet()) {
+			dos.writeLong(e.getKey());
+			final Item[] slots = e.getValue();
+			for(int i = 0; i < BlocoBau.SLOTS; i++) {
+				final Item it = slots[i];
+				if(it != null && it.quantidade > 0) {
+					dos.writeBoolean(true);
+					dos.writeUTF(it.nome);
+					dos.writeInt(it.quantidade);
+				} else {
+					dos.writeBoolean(false);
+				}
+			}
+		}
         dos.flush();
     }
 
@@ -763,11 +782,25 @@ public class Mundo {
 			for(int d = 0; d < chunk.meta.length; d++) chunk.meta[d] = dis.readShort();
 
             chunksMod.put(chave, chunk);
-
             chunk.att = true;
 			chunk.dadosProntos = true;
         }
 		plano = dis.readBoolean();
+		// baus
+		BlocoBau.dados.clear();
+		final int totalBaus = dis.readInt();
+		for(int i = 0; i < totalBaus; i++) {
+			final long chBau = dis.readLong();
+			final Item[] slots = new Item[BlocoBau.SLOTS];
+			for(int s = 0; s < BlocoBau.SLOTS; s++) {
+				if(dis.readBoolean()) {
+					final String nome = dis.readUTF();
+					final int qtd = dis.readInt();
+					slots[s] = ItemRegistro.clone(nome, qtd);
+				}
+			}
+			BlocoBau.dados.put(chBau, slots);
+		}
     }
 
 	// util:

@@ -6,6 +6,7 @@ import com.minimine.mundo.blocos.Bloco;
 import com.minimine.mundo.blocos.BlocoModelo;
 import com.minimine.graficos.TipoRender;
 import com.minimine.mundo.Mundo;
+import com.minimine.mundo.blocos.BlocoCubo;
 
 public class ChunkMalha implements GeradorMalha {
     // tamanho maximo de mascara necessaria(eixo X/Z: 16 * Y_CHUNK)
@@ -44,7 +45,7 @@ public class ChunkMalha implements GeradorMalha {
                         int val = 0;
                         if(id != 0) {
                             final Bloco b = Bloco.numIds.get(id);
-                            if(b != null && !b.modeloX) {
+                            if(b != null && b.modelo instanceof BlocoCubo) {
                                 final int ny = cima ? y + 1 : y - 1;
                                 int vizId = 0;
                                 if(ny >= 0 && ny < Mundo.Y_CHUNK) {
@@ -75,7 +76,7 @@ public class ChunkMalha implements GeradorMalha {
                         int val = 0;
                         if(id != 0) {
                             final Bloco b = Bloco.numIds.get(id);
-                            if(b != null && !b.modeloX) {
+                            if(b != null && b.modelo instanceof BlocoCubo) {
                                 final int nx = leste ? x + 1 : x - 1;
                                 int vizId = 0;
                                 Chunk tC = chunk;
@@ -117,7 +118,7 @@ public class ChunkMalha implements GeradorMalha {
                         int val = 0;
                         if(id != 0) {
                             final Bloco b = Bloco.numIds.get(id);
-                            if(b != null && !b.modeloX) {
+                            if(b != null && b.modelo instanceof BlocoCubo) {
                                 final int nz = sul ? z + 1 : z - 1;
                                 int vizId = 0;
                                 Chunk tC = chunk;
@@ -157,7 +158,7 @@ public class ChunkMalha implements GeradorMalha {
                     final int id = ChunkUtil.obterBloco(x, y, z, chunk);
                     if(id == 0) continue;
                     final Bloco b = Bloco.numIds.get(id);
-                    if(b == null || !b.modeloX) continue;
+                    if(b == null || b.modelo instanceof BlocoCubo) continue;
 
                     // pega a luz de cima pro X
                     final int ly = Math.min(y + 1, Mundo.Y_CHUNK - 1);
@@ -165,7 +166,7 @@ public class ChunkMalha implements GeradorMalha {
                     final float lb = (luz & 0x0F) / 15f;
                     final float ls = ((luz >> 4) & 0x0F) / 15f;
 
-                    BlocoModelo.addModeloX(b.topo, x, y, z, lb, ls, verts, idcTransp);
+                    b.modelo.addFace(0, b.textura.topo, x, y, z, 0, 0, lb, ls, verts, idcTransp);
                 }
             }
         }
@@ -231,7 +232,7 @@ public class ChunkMalha implements GeradorMalha {
 							break;
                     }
                     final ShortArrayUtil lista = (b.render == TipoRender.OPACO || b.render == TipoRender.RECORTE) ? idcSolidos : idcTransp;
-                    BlocoModelo.addFace(faceId, b.texturaId(faceId), x, y, z, fv, fh, lb, ls, verts, lista);
+                    b.modelo.addFace(faceId, b.texturaId(faceId), x, y, z, fv, fh, lb, ls, verts, lista);
 
                     i += v;
                     n += v;

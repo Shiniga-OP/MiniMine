@@ -586,11 +586,11 @@ public final class ArquivosUtil {
                 // chunk do bloco e vizinhos laterais(faces compartilhadas entre chunks)
                 int cx = Math.floorDiv(vx, Mundo.TAM_CHUNK);
                 int cz = Math.floorDiv(vz, Mundo.TAM_CHUNK);
-                afetados.add(Chave.calcularChave(cx, cz));
-                afetados.add(Chave.calcularChave(cx + 1, cz));
-                afetados.add(Chave.calcularChave(cx - 1, cz));
-                afetados.add(Chave.calcularChave(cx, cz + 1));
-                afetados.add(Chave.calcularChave(cx, cz - 1));
+                afetados.add(Chave.gerar(cx, cz));
+                afetados.add(Chave.gerar(cx + 1, cz));
+                afetados.add(Chave.gerar(cx - 1, cz));
+                afetados.add(Chave.gerar(cx, cz + 1));
+                afetados.add(Chave.gerar(cx, cz - 1));
             }
             for(long chave : afetados) {
                 Chunk c = Mundo.chunks.get(chave);

@@ -19,112 +19,166 @@ public class Bloco {
 
 	public final String nome;
 	public final int tipo;
-	public final String topo, lados, baixo;
+	public final Textura9 textura;
 	public final int luz;
 	public final TipoRender render;
-	public boolean solido, culling, modeloX, colisao = true;
-	public int durabilidade = 3; // ticks para quebrar (0 = instantaneo)
-	public int viscosidade = 1;  // ticks entre propagações (só fluídos)
-	public float densidade = 1f; // densidade do fluído (só fluídos)
+	public boolean colisao = true;
+	public BlocoModelo modelo;
+	public float dureza = 3f; // ticks para quebrar (0 = instantaneo)
+	public int viscosidade = 1;  // ticks entre propagações
+	public float densidade = 1f; // densidade do fluido
 	public static boolean ABERTO = false;
 	/*
 	 * interface de UI associada a este bloco
 	 * null = bloco sem interface(comportamento padrão: colocar/quebrar)
-	 * atribuida em Bloco.iniciar() para os blocos que precisarem
-	 */
+	 * atribuida em iniciar() para os blocos que precisarem
+	*/
 	public InterfaceBloco ui = null;
 	public EventoBloco evento = null;
 
-	public Bloco(String nome, String topo) {this(nome, topo, topo);}
-	public Bloco(String nome, String topo, String lados) {this(nome, topo, lados, topo);}
-	public Bloco(String nome, String topo, String lados, String baixo) {this(nome, topo, lados, baixo, TipoRender.OPACO, true, true, 0, false);}
-	public Bloco(String nome, String topo, TipoRender render) {this(nome, topo, topo, topo, render, true, true, 0, false);}
-	public Bloco(String nome, String topo, TipoRender render, boolean solido) {this(nome, topo, topo, topo, render, solido, true, 0, false);}
-	public Bloco(String nome, String topo, TipoRender render, boolean solido, boolean culling) {this(nome, topo, topo, topo, render, solido, culling, 0, false);}
-	public Bloco(String nome, String topo, TipoRender render, boolean solido, boolean culling, int luz) {this(nome, topo, topo, topo, render, solido, culling, luz, false);}
-	public Bloco(String nome, String topo, TipoRender render, boolean solido, boolean culling, int luz, boolean formaX) {this(nome, topo, topo, topo, render, solido, culling, luz, formaX);}
-
-	public Bloco(String nome, String topo, String lados, String baixo, TipoRender render, boolean solido, boolean culling, int luz, boolean formaX) {
+	public Bloco(String nome, Textura9 textura, Propriedade pro) {
 		this.nome = nome;
 		this.tipo = blocos.size();
-		this.topo = topo; this.lados = lados; this.baixo = baixo;
-		this.render = render;
-		this.solido = solido;
-		this.culling = culling;
-		this.luz = luz;
-		this.modeloX = formaX;
+		this.textura = textura;
+		this.render = pro.render;
+		this.colisao = pro.colide;
+		this.luz = pro.luz;
+		this.modelo = pro.modelo;
+		this.dureza = pro.dureza;
 		numIds.put(this.tipo, this);
 		texIds.put(this.nome, this);
-		ItemRegistro.registrar(this.nome, this.lados);
+		ItemRegistro.registrar(this.nome, textura.sul);
 	}
 
 	public static void iniciar() {
-		Bloco.add(null);
-        Bloco.add(new Bloco("grama", "grama_topo", "grama_lado", "terra"));
-        Bloco.add(new Bloco("terra", "terra"));
-        Bloco.add(new Bloco("pedra", "pedra"));
-        Bloco.add(new Bloco("agua", "agua", TipoRender.LIQUIDO, false, false)).solido = false;
-        Bloco.add(new Bloco("areia", "areia"));
-        Bloco.add(new Bloco("tronco", "tronco_topo", "tronco_lado"));
-        Bloco.add(new Bloco("folha", "folha", TipoRender.RECORTE));
-        Bloco.add(new Bloco("tabua_madeira", "tabua_madeira"));
-        Bloco.add(new Bloco("cacto", "cacto_topo", "cacto_lado"));
-        Bloco.add(new Bloco("vidro", "vidro", TipoRender.TRANSLUCIDO, true, false));
-        Bloco.add(new Bloco("tocha", "tocha", TipoRender.RECORTE, true, true, 13));
-		Bloco.add(new Bloco("pedregulho", "pedregulho"));
-		Bloco.add(new Bloco("cascalho", "cascalho"));
-		Bloco.add(new Bloco("gelo", "gelo"));
-		Bloco.add(new Bloco("neve", "neve"));
-		Bloco.add(new Bloco("coral_rosa", "coral_rosa"));
-		Bloco.add(new Bloco("coral_azul", "coral_azul"));
-		Bloco.add(new Bloco("coral_amarelo", "coral_amarelo"));
-		Bloco.add(new Bloco("capim", "capim", TipoRender.RECORTE, false, false, 0, true)).colisao = false;
-		Bloco.add(new Bloco("tulipa", "tulipa", TipoRender.RECORTE, false, false, 0, true)).colisao = false;
-		Bloco.add(new Bloco("tulipa_luminosa", "tulipa", TipoRender.RECORTE, false, false, 5, true)).colisao = false;
-		Bloco.add(new Bloco("iris_azul", "iris_azul", TipoRender.RECORTE, false, false, 1, true)).colisao = false;
-		Bloco.add(new Bloco("arenito", "arenito"));
-		Bloco.add(new Bloco("pilar_arenito", "pilar_arenito_topo", "pilar_arenito_lado"));
-		Bloco.add(new Bloco("bloco_nulo", "nulo", TipoRender.AR, false, false)).colisao = false;
-		Bloco.add(new Bloco("bloco_estrutura", "bloco_estrutura"));
-
-		// durabilidade: segundos para quebrar
-		texIds.get("grama").durabilidade = 2;
-		texIds.get("terra").durabilidade = 2;
-		texIds.get("pedra").durabilidade = 7;
-		texIds.get("agua").durabilidade = 0;
-		texIds.get("agua").viscosidade = 1;
-		texIds.get("agua").densidade = 1f;
-		texIds.get("areia").durabilidade = 2;
-		texIds.get("tronco").durabilidade = 5;
-		texIds.get("folha").durabilidade = 1;
-		texIds.get("tabua_madeira").durabilidade = 4;
-		texIds.get("cacto").durabilidade = 1;
-		texIds.get("vidro").durabilidade = 1;
-		texIds.get("tocha").durabilidade = 1;
-		texIds.get("pedregulho").durabilidade = 6;
-		texIds.get("cascalho").durabilidade = 2;
-		texIds.get("gelo").durabilidade = 2;
-		texIds.get("neve").durabilidade = 1;
-		texIds.get("coral_rosa").durabilidade = 2;
-		texIds.get("coral_azul").durabilidade = 2;
-		texIds.get("coral_amarelo").durabilidade = 2;
-		texIds.get("capim").durabilidade = 0;
-		texIds.get("tulipa").durabilidade = 0;
-		texIds.get("tulipa_luminosa").durabilidade = 0;
-		texIds.get("iris_azul").durabilidade = 0;
-		texIds.get("arenito").durabilidade = 7;
-		texIds.get("pilar_arenito").durabilidade = 4;
-		texIds.get("bloco_nulo").durabilidade = 0;
-		texIds.get("bloco_estrutura").durabilidade = 0;
-
-		Bloco.addSom("grama", "grama_1", "terra_1", "terra_2", "terra_3");
-		Bloco.addSom("terra", "terra_1", "terra_2", "terra_3");
-		Bloco.addSom("areia", "terra_1", "terra_2", "terra_3");
-		Bloco.addSom("cascalho", "terra_1", "terra_2", "terra_3");
-		Bloco.addSom("pedra", "pedra_1", "pedra_2");
-		Bloco.addSom("folha", "terra_1", "terra_2", "terra_3");
-		Bloco.addSom("tabua_madeira", "madeira_1", "madeira_2", "madeira_3");
-		Bloco.addSom("tocha", "madeira_1", "madeira_2", "madeira_3");
+		add(null);
+        add(new Bloco("grama",
+					  new Textura9().topo("grama_topo")
+					  .lados("grama_lado").base("terra"),
+					  new Propriedade().dureza(2)
+					  ));
+        add(new Bloco(
+				"terra", new Textura9().def("terra"),
+				new Propriedade().dureza(2)
+			));
+        add(new Bloco(
+				"pedra", new Textura9().def("pedra"),
+				new Propriedade().dureza(7)
+			));
+        add(new Bloco(
+				"agua", new Textura9().def("agua"),
+				new Propriedade().render(TipoRender.LIQUIDO)
+				.colisao(false)
+			));
+        add(new Bloco(
+				"areia", new Textura9().def("areia"),
+				new Propriedade().dureza(2)
+			));
+        add(new Bloco(
+				"tronco",
+				new Textura9().topo("tronco_topo").lados("tronco_lado"),
+				new Propriedade().dureza(5)
+			));
+        add(new Bloco(
+				"folha", new Textura9().def("folha"),
+				new Propriedade().render(TipoRender.RECORTE).dureza(1.5f)
+			));
+        add(new Bloco(
+				"tabua_madeira", new Textura9().def("tabua_madeira"),
+				new Propriedade().dureza(4)
+			));
+        add(new Bloco(
+				"cacto",
+				new Textura9().topo("cacto_topo").lados("cacto_lado"),
+				new Propriedade().dureza(1)
+			));
+        add(new Bloco(
+				"vidro", new Textura9().def("vidro"),
+				new Propriedade().render(TipoRender.TRANSLUCIDO).dureza(2)
+			));
+        add(new Bloco(
+				"tocha", new Textura9().def("tocha"),
+				new Propriedade().render(TipoRender.RECORTE).emiteLuz(13)
+			));
+		add(new Bloco(
+				"pedregulho", new Textura9().def("pedregulho"),
+				new Propriedade().dureza(6)
+			));
+		add(new Bloco(
+				"cascalho", new Textura9().def("cascalho"),
+				new Propriedade().dureza(2)
+			));
+		add(new Bloco(
+				"gelo", new Textura9().def("gelo"),
+				new Propriedade().dureza(2)
+			));
+		add(new Bloco(
+				"neve", new Textura9().def("neve"),
+				new Propriedade().dureza(1)
+			));
+		add(new Bloco(
+				"coral_rosa", new Textura9().def("coral_rosa"),
+				new Propriedade().dureza(1.5f)
+			));
+		add(new Bloco(
+				"coral_azul", new Textura9().def("coral_azul"),
+				new Propriedade().dureza(1.5f)
+			));
+		add(new Bloco(
+				"coral_amarelo", new Textura9().def("coral_amarelo"),
+				new Propriedade().dureza(1.5f)
+			));
+		add(new Bloco(
+				"capim", new Textura9().def("capim"),
+				new Propriedade().render(TipoRender.RECORTE)
+				.modeloX().colisao(false)
+			));
+		add(new Bloco(
+				"tulipa", new Textura9().def("tulipa"),
+				new Propriedade().render(TipoRender.RECORTE)
+				.modeloX().colisao(false)
+			));
+		add(new Bloco(
+				"tulipa_luminosa", new Textura9().def("tulipa"),
+				new Propriedade().render(TipoRender.RECORTE)
+				.modeloX().colisao(false).emiteLuz(5)
+			));
+		add(new Bloco(
+				"iris_azul", new Textura9().def("iris_azul"),
+				new Propriedade().render(TipoRender.RECORTE)
+				.modeloX().colisao(false).emiteLuz(1)
+			));
+		add(new Bloco(
+				"arenito", new Textura9().def("arenito"),
+				new Propriedade().dureza(7)
+			));
+		add(new Bloco(
+				"pilar_arenito",
+				new Textura9().topo("pilar_arenito_topo").lados("pilar_arenito_lado"),
+				new Propriedade().dureza(7)
+			));
+		add(new Bloco(
+				"bau",
+				new Textura9().topo("tabua_madeira").lados("bau_lado")
+				.frente("bau_frente"),
+				new Propriedade().dureza(3)
+			));
+		add(new Bloco(
+				"bloco_nulo", new Textura9().def("nulo"),
+				new Propriedade().render(TipoRender.AR).colisao(false)
+			));
+		add(new Bloco(
+				"bloco_estrutura", new Textura9().def("bloco_estrutura"),
+				new Propriedade()
+			));
+		addSom("grama", "grama_1", "terra_1", "terra_2", "terra_3");
+		addSom("terra", "terra_1", "terra_2", "terra_3");
+		addSom("areia", "terra_1", "terra_2", "terra_3");
+		addSom("cascalho", "terra_1", "terra_2", "terra_3");
+		addSom("pedra", "pedra_1", "pedra_2");
+		addSom("folha", "terra_1", "terra_2", "terra_3");
+		addSom("tabua_madeira", "madeira_1", "madeira_2", "madeira_3");
+		addSom("tocha", "madeira_1", "madeira_2", "madeira_3");
 
 		AGUA = texIds.get("agua").tipo;
 	}
@@ -136,6 +190,8 @@ public class Bloco {
 		// bloco_estrutura
 		BlocoEstrutura.iniciar(texIds.get("bloco_estrutura"), base, fonte);
 		BlocoEstrutura.iniciarEventos(texIds.get("bloco_estrutura"));
+		// bau
+		BlocoBau.iniciar(texIds.get("bau"), fonte);
 	}
 
 	public static void addSom(String bloco, String... sonoros) {
@@ -171,17 +227,20 @@ public class Bloco {
 				b.ui = null;
 			}
 		}
-		Bloco.blocos.clear();
-		Bloco.numIds.clear();
-		Bloco.texIds.clear();
-		Bloco.sons.clear();
+		blocos.clear();
+		numIds.clear();
+		texIds.clear();
+		sons.clear();
 	}
 
 	public final String texturaId(int faceId) {
         switch(faceId) {
-            case 0: return topo;
-            case 1: return baixo;
-            default: return lados;
+            case 0: return textura.topo;
+            case 1: return textura.base;
+			case 2: return textura.leste;
+			case 3: return textura.oeste;
+			case 4: return textura.sul;
+            default: return textura.norte;
         }
     }
 }

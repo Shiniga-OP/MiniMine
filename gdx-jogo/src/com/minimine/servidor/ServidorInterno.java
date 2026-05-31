@@ -198,7 +198,7 @@ public class ServidorInterno {
 					if(yTeste > 1) {
 						jg.posicao.y = yTeste;
 						jg.nasceu = true;
-						final long chave = Chave.calcularChave(0, 0);
+						final long chave = Chave.gerar(0, 0);
 						final Chunk chunk = mundo.obterChunk(chave);
 						if(chunk != null) mundo.chunksMod.put(chave, chunk);
 						Gdx.app.log("[Jogo]", "jogador nasceu a "+yTeste+" blocos de altura");
@@ -439,7 +439,7 @@ public class ServidorInterno {
 		}
 		dis.readFully(chunk.luz);
 		for(int i = 0; i < chunk.meta.length; i++) chunk.meta[i] = dis.readShort();
-		chunk.chave = Chave.calcularChave(cx, cz);
+		chunk.chave = Chave.gerar(cx, cz);
 		chunk.dadosProntos = true;
 		chunk.att = true;
 		synchronized(chunksMod) {

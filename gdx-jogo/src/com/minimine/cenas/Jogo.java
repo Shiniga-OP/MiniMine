@@ -6,7 +6,6 @@ import com.minimine.audio.Musicas;
 import com.minimine.mundo.Mundo;
 import com.minimine.graficos.Render;
 import com.minimine.utils.ArquivosUtil;
-import com.minimine.mods.LuaAPI;
 import com.minimine.mundo.blocos.Bloco;
 import com.badlogic.gdx.Gdx;
 import com.minimine.graficos.Renderizador;
@@ -127,16 +126,12 @@ public class Jogo implements Screen {
 					if(musicas && tick % 20 == 0) Musicas.tocarAleatorio();
 				}
 			});
-		try {
-			LuaAPI.iniciar();
-		} catch(Exception e) {}
 	}
 
 	@Override
 	public void render(float delta) {
 		render.att(delta);
-		if(mundo.carregado) LuaAPI.att(delta);
-
+		
 		if(servidor.netCliente != null && jogadores.size() > 0) {
 			tempoPosicao += delta;
 			if(tempoPosicao >= INTERVALO_POS) {
@@ -162,7 +157,6 @@ public class Jogo implements Screen {
 	@Override
 	public void resize(int v, int h) {
 		render.ui.ajustar(v, h);
-		LuaAPI.ajustar(v, h);
 	}
 
 	@Override

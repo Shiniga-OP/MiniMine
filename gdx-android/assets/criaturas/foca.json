@@ -3,6 +3,11 @@
     "vida": 100000,
     "raridade": 0.2,
     "modelo": "modelos/foca.gltf",
+    
+    "visao": {
+        "alcance": 12,
+        "angulo": 360
+    },
 
     "hitbox": {
         "largura": 0.8,

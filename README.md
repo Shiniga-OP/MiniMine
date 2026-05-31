@@ -56,7 +56,8 @@ refeito com LibGDX.
 * Itens flutuantes.
 * Pontos de vista (primeira pessoa, segunda pessoa).
 * Modo Multijogador local (beta).
-* Sistema de combate.
+* Sistema de combate (beta.
+* Sistema de armazenamento em blocos.
 
 ## Modos de mundo:
 * Mundo Normal: biomas, estruturas, e formações naturais.
@@ -94,9 +95,10 @@ refeito com LibGDX.
 * Bloco de estrutura.
 * Bloco nulo.
 * Tulipa luminosa.
+* Baú.
 
 ## Itens:
-### Receitas:
+### Comuns:
 * Palito.
 
 ### Ferramentas:
@@ -105,7 +107,6 @@ refeito com LibGDX.
 * Machado de madeira: dano: 2, mineração: 0.15.
 
 ## Geração feita:
-
 * Mapa de ruído.
 * Umidade/temperatura/peso.
 * Camada de terreno base.
@@ -190,7 +191,7 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Windows XP.
 
 ## uso de mémoria testada:
-100 MBs do heap java & 16 MBs do heap nativo. (121 chunks ativas)
+100 MBs do heap java & 17.3 MBs do heap nativo. (121 chunks ativas)
 
 ## Adicionais:
 caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMine/debug/logs.txt*, onde logs são acumulados.
@@ -228,7 +229,7 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 ## Notebooks:
 * Modelo: Aspire ES 15.
 * Processador: Intel Celeron Quad Core N3450.
-* Memória RAM: 4GB DDR3 L.
+* Memória RAM: 4GB DDR3.
 * Armazenamento: HD 500 GBs.
 * Video: Intel HD Graphics.
 * OpenGL: 4.5.
@@ -238,7 +239,7 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 * **WASD**: controles de movimento.
 * **ESPAÇO**: pula/voa.
 * **SHIFT**: agacha/desce.
-* **DIREITA/ESQUERDA**: com o mouse quebra e coloca blocos.
+* **DIREITO/ESQUERDO**: no mouse ataca/faz uma ação.
 * **E**: abre o inventario.
 * **T**: abre o chat.
 * **F1**: abre o modo de debug.

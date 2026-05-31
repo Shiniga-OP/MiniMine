@@ -3,6 +3,11 @@
     "vida": 3,
     "raridade": 0.3,
     "modelo": "modelos/galinha.gltf",
+    
+    "visao": {
+        "alcance": 7,
+        "angulo": 120
+    },
 
     "hitbox": {
         "largura": 0.6,

@@ -108,7 +108,7 @@ public class Jogador extends Entidade {
 	public void morreu() {
 		posicao = new Vector3(0f, 0f, 0f);
 		Mundo.limparChunks(0, 0);
-		final long chave = Chave.calcularChave(0, 0);
+		final long chave = Chave.gerar(0, 0);
 		final com.minimine.mundo.chunks.Chunk mod = Mundo.chunksMod.get(chave);
 		if(mod != null) Mundo.chunks.put(chave, mod);
 		posicao.y = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
@@ -176,7 +176,7 @@ public class Jogador extends Entidade {
 			if(bloco != null) {
 				if(bloco.render == TipoRender.LIQUIDO || quebrar) {
 					// blocos instantaneos ou mão vazia: durabilidade 0 ou 1
-					if(bloco.durabilidade <= 1) {
+					if(bloco.dureza <= 1) {
 						if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
 						Bloco.tocarSom(bloco.nome);
 						if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
@@ -193,7 +193,7 @@ public class Jogador extends Entidade {
 						if(item.equals("ar")) tempoDano += mineracao;
 						else tempoDano += inv.itens[inv.slotSelecionado].mineracao;
 						
-						if(tempoDano >= bloco.durabilidade) {
+						if(tempoDano >= bloco.dureza) {
 							if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
 							Bloco.tocarSom(bloco.nome);
 							if(bloco.evento != null) bloco.evento.aoDestruir(x, y, z);
@@ -238,8 +238,8 @@ public class Jogador extends Entidade {
 	public float progressoMineracao() {
 		if(xAlvo == Integer.MIN_VALUE) return -1f;
 		final Bloco bloco = Bloco.numIds.get(Mundo.obterBlocoMundo(xAlvo, yAlvo, zAlvo));
-		if(bloco == null || bloco.durabilidade <= 0) return -1f;
-		return Math.min(1f, tempoDano / bloco.durabilidade);
+		if(bloco == null || bloco.dureza <= 0) return -1f;
+		return Math.min(1f, tempoDano / bloco.dureza);
 	}
 
 	@Override

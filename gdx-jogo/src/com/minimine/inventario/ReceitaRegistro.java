@@ -107,6 +107,15 @@ public class ReceitaRegistro {
 			"tabua_madeira", "palito", null,
 			null, "palito", null
 		}, "machado_madeira", 1);
+		registrar(new String[]{
+			"tabua_madeira", "tabua_madeira", "tabua_madeira",
+			"tabua_madeira", null, "tabua_madeira",
+			"tabua_madeira", "tabua_madeira", "tabua_madeira"
+		}, "bau", 1);
+		registrar(new String[]{
+			"areia", "areia", null,
+			"areia", "areia", null,
+			null, null, null
+		}, "arenito", 1);
     }
 }
-
