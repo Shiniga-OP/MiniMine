@@ -397,49 +397,14 @@ public class ServidorInterno {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
 		DataOutputStream dos = new DataOutputStream(baos);
 		dos.writeByte(Net.PACOTE_CHUNK);
-		dos.writeInt(chunk.x);
-		dos.writeInt(chunk.z);
-		dos.writeByte(chunk.usaPaleta ? 1 : 0);
-		dos.writeInt(chunk.paletaBits);
-		dos.writeInt(chunk.paletaTam);
-		int paletaTam = (chunk.usaPaleta && chunk.paleta != null) ? chunk.paletaTam : 0;
-		for(int i = 0; i < paletaTam; i++) dos.writeInt(chunk.paleta[i]);
-		dos.writeInt(chunk.bitsPorBloco);
-		dos.writeInt(chunk.blocosPorInt);
-		int tamBlocos = (chunk.blocos != null) ? chunk.blocos.length : 0;
-		dos.writeInt(tamBlocos);
-		for(int i = 0; i < tamBlocos; i++) dos.writeInt(chunk.blocos[i]);
-		dos.write(chunk.luz);
-		for(int i = 0; i < chunk.meta.length; i++) dos.writeShort(chunk.meta[i]);
+		Mundo.salvarChunk(chunk, dos);
 		dos.flush();
 		return baos.toByteArray();
 	}
 
 	// le PACOTE_CHUNK do stream e insere em chunksMod
 	public void lerChunk(DataInputStream dis) throws IOException {
-		int cx = dis.readInt();
-		int cz = dis.readInt();
-		boolean usaPaleta = dis.readByte() == 1;
-		int paletaBits = dis.readInt(); int paletaTam = dis.readInt();
-		Chunk chunk = new Chunk();
-		chunk.x = cx; chunk.z = cz;
-		chunk.usaPaleta = usaPaleta;
-		chunk.paletaBits = paletaBits;
-		chunk.paletaTam = paletaTam;
-		if(paletaTam > 0) {
-			chunk.paleta = new int[Math.max(1 << paletaBits, paletaTam)];
-			for(int i = 0; i < paletaTam; i++) chunk.paleta[i] = dis.readInt();
-		}
-		chunk.bitsPorBloco = dis.readInt();
-		chunk.blocosPorInt = dis.readInt();
-		int tamBlocos = dis.readInt();
-		if(tamBlocos > 0) {
-			chunk.blocos = new int[tamBlocos];
-			for(int i = 0; i < tamBlocos; i++) chunk.blocos[i] = dis.readInt();
-		}
-		dis.readFully(chunk.luz);
-		for(int i = 0; i < chunk.meta.length; i++) chunk.meta[i] = dis.readShort();
-		chunk.chave = Chave.gerar(cx, cz);
+		final Chunk chunk = Mundo.carregarChunk(dis);
 		chunk.dadosProntos = true;
 		chunk.att = true;
 		synchronized(chunksMod) {

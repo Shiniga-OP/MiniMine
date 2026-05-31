@@ -707,37 +707,8 @@ public class Mundo {
         // quantos chunks salvos
         dos.writeInt(chunksMod.size());
         for(Map.Entry<Long, Chunk> e : chunksMod.entrySet()) {
-            long chave = e.getKey();
             Chunk chunk = e.getValue();
-            int cx = TAM_CHUNK;
-            int cy = Y_CHUNK;
-            int cz = TAM_CHUNK;
-            dos.writeLong(chave);
-            int totalNaoAr = 0;
-            for(int x = 0; x < cx; x++) {
-                for(int y = 0; y < cy; y++) {
-                    for(int z = 0; z < cz; z++) {
-                        int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
-                        if(b != 0) totalNaoAr++;
-                    }
-                }
-            }
-            dos.writeInt(totalNaoAr);
-
-            for(int x = 0; x < cx; x++) {
-                for(int y = 0; y < cy; y++) {
-                    for(int z = 0; z < cz; z++) {
-                        int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
-                        if(b != 0) {
-                            dos.writeInt(x);
-                            dos.writeInt(y);
-                            dos.writeInt(z);
-                            dos.writeUTF(Bloco.numIds.get(b).nome);
-                        }
-                    }
-                }
-            }
-			for(int i = 0; i < chunk.meta.length; i++) dos.writeShort(chunk.meta[i]);
+            salvarChunk(chunk, dos);
         }
 		dos.writeBoolean(plano);
 		// baus
@@ -764,24 +735,9 @@ public class Mundo {
         final int totalChunks = dis.readInt();
 
         for(int i = 0; i < totalChunks; i++) {
-            final long chave = dis.readLong();
+            final Chunk chunk = carregarChunk(dis);
 
-            final Chunk chunk = chunkReuso.isEmpty() ? new Chunk() : chunkReuso.pop();
-            Chunk.zerar(chunk);
-            chunk.x = Chave.x(chave);
-            chunk.z = Chave.z(chave);
-            chunk.chave = chave;
-            ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
-
-            final int totalNaoAr = dis.readInt();
-            for(int k = 0; k < totalNaoAr; k++) {
-                ChunkProcesso.util.defBloco(
-					dis.readInt(), dis.readInt(), dis.readInt(), dis.readUTF(), chunk
-				);
-            }
-			for(int d = 0; d < chunk.meta.length; d++) chunk.meta[d] = dis.readShort();
-
-            chunksMod.put(chave, chunk);
+            chunksMod.put(chunk.chave, chunk);
             chunk.att = true;
 			chunk.dadosProntos = true;
         }
@@ -804,6 +760,58 @@ public class Mundo {
     }
 
 	// util:
+	public static Chunk carregarChunk(DataInputStream dis) throws IOException {
+		final long chave = dis.readLong();
+
+		final Chunk chunk = chunkReuso.isEmpty() ? new Chunk() : chunkReuso.pop();
+		Chunk.zerar(chunk);
+		chunk.x = Chave.x(chave);
+		chunk.z = Chave.z(chave);
+		chunk.chave = chave;
+		ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(chunk.maxIds), chunk);
+
+		final int totalNaoAr = dis.readInt();
+		for(int k = 0; k < totalNaoAr; k++) {
+			ChunkProcesso.util.defBloco(
+				dis.readInt(), dis.readInt(), dis.readInt(), dis.readUTF(), chunk
+			);
+		}
+		for(int d = 0; d < chunk.meta.length; d++) chunk.meta[d] = dis.readShort();
+		
+		return chunk;
+	}
+	
+	public static void salvarChunk(Chunk chunk, DataOutputStream dos) throws IOException {
+		int cx = TAM_CHUNK;
+		int cy = Y_CHUNK;
+		int cz = TAM_CHUNK;
+		dos.writeLong(chunk.chave);
+		int totalNaoAr = 0;
+		for(int x = 0; x < cx; x++) {
+			for(int y = 0; y < cy; y++) {
+				for(int z = 0; z < cz; z++) {
+					int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
+					if(b != 0) totalNaoAr++;
+				}
+			}
+		}
+		dos.writeInt(totalNaoAr);
+
+		for(int x = 0; x < cx; x++) {
+			for(int y = 0; y < cy; y++) {
+				for(int z = 0; z < cz; z++) {
+					int b = ChunkProcesso.util.obterBloco(x, y, z, chunk);
+					if(b != 0) {
+						dos.writeInt(x);
+						dos.writeInt(y);
+						dos.writeInt(z);
+						dos.writeUTF(Bloco.numIds.get(b).nome);
+					}
+				}
+			}
+		}
+		for(int i = 0; i < chunk.meta.length; i++) dos.writeShort(chunk.meta[i]);
+	}
 	public static boolean noRaioVisivel(Jogador jg, float x, float z) {
 		final int raio = RAIO_CHUNKS << 4;
 		if(Mat.abs((int)(jg.posicao.x - x)) > raio || Mat.abs((int)(jg.posicao.z - z)) > raio) {

@@ -1,7 +1,6 @@
 package com.minimine.mundo.chunks;
 
 import com.minimine.mundo.blocos.Bloco;
-import com.minimine.utils.MemNativa;
 
 public class ChunkUtil {
 	public static final int LOG2(final int i) {
@@ -336,4 +335,3 @@ public class ChunkUtil {
 		chunk.blocos = novos;
 	}
 }
-

@@ -97,7 +97,7 @@ public class Net {
 					public void run() {
 						conectarServidorTcp();
 					}
-			});
+				});
 		}
 	}
 
@@ -250,8 +250,8 @@ public class Net {
 							final OuvinteConexao oc = ouvinteConexao;
 							final Cliente clienteFinal = this;
 							Gdx.app.postRunnable(new Runnable() {
-								public void run() { oc.aoConectar(clienteFinal); }
-							});
+									public void run() { oc.aoConectar(clienteFinal); }
+								});
 						}
 					} else if(tipo == PACOTE_BLOCO) {
 						broadcast(pacote, null);
@@ -308,7 +308,7 @@ public class Net {
 	/*
 	 * le um pacote completo do stream e retorna como byte[] com o byte de tipo incluido no inicio
 	 * cada tipo tem tamanho fixo ou prefixado, sem delimitadores de texto
-	*/
+	 */
 	public static byte[] lerPacoteBruto(byte tipo, DataInputStream dis) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
 		DataOutputStream tmp = new DataOutputStream(baos);
@@ -351,33 +351,22 @@ public class Net {
 					break;
 				}
 			case PACOTE_CHUNK: {
-					int cx = dis.readInt();
-					int cz = dis.readInt();
-					byte usaPaleta = dis.readByte();
-					int paletaBits = dis.readInt();
-					int paletaTam = dis.readInt();
-					int[] paleta = new int[paletaTam];
-					for(int i = 0; i < paletaTam; i++) paleta[i] = dis.readInt();
-					int bitsPorBloco = dis.readInt(); int blocosPorInt = dis.readInt();
-					int tamBlocos = dis.readInt();
-					int[] blocos = new int[tamBlocos];
-					for(int i = 0; i < tamBlocos; i++) blocos[i] = dis.readInt();
-					byte[] luz = new byte[16*256*16];
-					dis.readFully(luz);
-					short[] meta = new short[16*256*16];
-					for(int i = 0; i < meta.length; i++) meta[i] = dis.readShort();
-					tmp.writeInt(cx); tmp.writeInt(cz); tmp.writeByte(usaPaleta);
-					tmp.writeInt(paletaBits); tmp.writeInt(paletaTam);
-					for(int i = 0; i < paletaTam; i++) tmp.writeInt(paleta[i]);
-					tmp.writeInt(bitsPorBloco); tmp.writeInt(blocosPorInt);
-					tmp.writeInt(tamBlocos);
-					for(int i = 0; i < tamBlocos; i++) tmp.writeInt(blocos[i]);
-					tmp.write(luz);
-					for(int i = 0; i < meta.length; i++) tmp.writeShort(meta[i]);
-				break;
-			}
+					long chave = dis.readLong();
+					int totalNaoAr = dis.readInt();
+					tmp.writeLong(chave);
+					tmp.writeInt(totalNaoAr);
+					for(int i = 0; i < totalNaoAr; i++) {
+						tmp.writeInt(dis.readInt()); // x
+						tmp.writeInt(dis.readInt()); // y
+						tmp.writeInt(dis.readInt()); // z
+						tmp.writeUTF(dis.readUTF()); // nome
+					}
+					// meta: TAM_CHUNK * Y_CHUNK * TAM_CHUNK = 16*256*16 = 65536 shorts
+					for(int i = 0; i < 65536; i++) tmp.writeShort(dis.readShort());
+					break;
+				}
 			case PACOTE_MUNDO_FIM:
-			break;
+				break;
 			case PACOTE_BLOCO: {
 					int x = dis.readInt();
 					int y = dis.readInt();
@@ -388,8 +377,8 @@ public class Net {
 					dis.readFully(item);
 					tmp.writeInt(x); tmp.writeInt(y); tmp.writeInt(z); tmp.writeInt(id);
 					tmp.writeShort(itemTam); tmp.write(item);
-				break;
-			}
+					break;
+				}
 			case PACOTE_ENTROU: {
 					int id = dis.readInt();
 					int iTam = dis.readShort() & 0xFFFF;
@@ -403,18 +392,18 @@ public class Net {
 					tmp.write(identidade);
 					tmp.writeShort(nTam);
 					tmp.write(nome);
-				break;
-			}
+					break;
+				}
 			case PACOTE_SAIU: {
 					int id = dis.readInt();
 					tmp.writeInt(id);
-				break;
-			}
+					break;
+				}
 			case PACOTE_ID: {
 					int id = dis.readInt();
 					tmp.writeInt(id);
-				break;
-			}
+					break;
+				}
 			default:
 				throw new IOException("tipo de pacote desconhecido: " + tipo);
 		}
@@ -471,8 +460,8 @@ public class Net {
 					Gdx.app.log(NOME + "-descoberta", "Ignorando interface " + iface.getDisplayName() + ": " + e.getMessage());
 				}
 			}
-			byte[] receBuffer = new byte[1024];
-			DatagramPacket pacoteRecebido = new DatagramPacket(receBuffer, receBuffer.length);
+			byte[] corridaBuffer = new byte[1024];
+			DatagramPacket pacoteRecebido = new DatagramPacket(corridaBuffer, corridaBuffer.length);
 			socket.receive(pacoteRecebido);
 			String resposta = new String(pacoteRecebido.getData(), 0, pacoteRecebido.getLength());
 			if(resposta.contains("servidor encontrado")) {
@@ -524,8 +513,8 @@ public class Net {
 									try {
 										DataInputStream dis = new DataInputStream(
 											new ByteArrayInputStream(new byte[]{
-												(byte)(idRecebido >> 24), (byte)(idRecebido >> 16),
-												(byte)(idRecebido >> 8), (byte)idRecebido
+													(byte)(idRecebido >> 24), (byte)(idRecebido >> 16),
+													(byte)(idRecebido >> 8), (byte)idRecebido
 											})
 										);
 										ov.aoReceber(PACOTE_ID, dis);
