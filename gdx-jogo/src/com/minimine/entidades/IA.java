@@ -1,6 +1,9 @@
 package com.minimine.entidades;
 
 import com.badlogic.gdx.math.MathUtils;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.DataInputStream;
 
 /*
  * rede neural com aprendizado por reforço(Policia de gradiente simplificado)
@@ -146,5 +149,57 @@ public class IA {
                 pesosEntrada[k][i] += alfa * gradOculta[i] * ultimasEntradas[k];
 			}
         }
+    }
+	
+	public static void salvarPesos(DataOutputStream dos, IA ia) throws IOException {
+        dos.writeInt(ia.ENTRADAS);
+        dos.writeInt(ia.OCULTAS);
+        dos.writeInt(ia.SAIDAS);
+        for(int i = 0; i < ia.ENTRADAS; i++) {
+            for(int j = 0; j < ia.OCULTAS; j++) {
+                dos.writeFloat(ia.pesosEntrada[i][j]);
+			}
+		}
+        for(int i = 0; i < ia.OCULTAS; i++) {
+            for(int j = 0; j < ia.SAIDAS; j++) {
+                dos.writeFloat(ia.pesosOculta[i][j]);
+			}
+		}
+        for(int i = 0; i < ia.OCULTAS; i++) dos.writeFloat(ia.viesOculta[i]);
+        for(int i = 0; i < ia.SAIDAS; i++) dos.writeFloat(ia.viesSaida[i]);
+        dos.writeFloat(ia.taxaAtual);
+        dos.writeFloat(ia.recompensaMedia);
+    }
+
+    // ia == null: apenas consome os bytes sem aplicar
+    public static void carregarPesos(DataInputStream dis, IA ia) throws IOException {
+        int entradas = dis.readInt();
+        int ocultas = dis.readInt();
+        int saidas = dis.readInt();
+        boolean aplicar = ia != null && ia.ENTRADAS == entradas && ia.OCULTAS == ocultas && ia.SAIDAS == saidas;
+        for(int i = 0; i < entradas; i++)
+            for(int j = 0; j < ocultas; j++) {
+                float v = dis.readFloat();
+                if(aplicar) ia.pesosEntrada[i][j] = v;
+            }
+        for(int i = 0; i < ocultas; i++)
+            for(int j = 0; j < saidas; j++) {
+                float v = dis.readFloat();
+                if(aplicar) ia.pesosOculta[i][j] = v;
+            }
+        for(int i = 0; i < ocultas; i++) {
+            float v = dis.readFloat();
+            if(aplicar) ia.viesOculta[i] = v;
+        }
+        for(int i = 0; i < saidas; i++) {
+            float v = dis.readFloat();
+            if(aplicar) ia.viesSaida[i] = v;
+        }
+        float taxa = dis.readFloat();
+        float media = dis.readFloat();
+        if(aplicar) {
+			ia.taxaAtual = taxa;
+			ia.recompensaMedia = media;
+		}
     }
 }

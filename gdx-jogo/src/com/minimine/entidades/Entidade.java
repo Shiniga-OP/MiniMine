@@ -12,6 +12,8 @@ import com.minimine.mundo.Chave;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInputStream;
+import java.util.Map;
+import com.badlogic.gdx.Gdx;
 
 public class Entidade {
 	public String nome;
@@ -322,4 +324,85 @@ public class Entidade {
 			agachado = false;
 		}
     }
+	
+	// tipos de entidade salvos
+    public static final byte TIPO_CRIATURA = 1;
+    public static final byte TIPO_ITEM = 2;
+	
+	public static void salvarEntidade(Entidade e, DataOutputStream dos) throws IOException {
+		if(e instanceof Criatura) {
+			Criatura c = (Criatura)e;
+			dos.writeByte(TIPO_CRIATURA);
+			dos.writeUTF(c.dados.nome);
+			dos.writeFloat(c.posicao.x);
+			dos.writeFloat(c.posicao.y);
+			dos.writeFloat(c.posicao.z);
+			dos.writeFloat(c.yaw);
+			dos.writeInt(c.vida);
+			// variaveis internas(sede, fome, etc)
+			dos.writeInt(c.variaveis.size());
+			for(Map.Entry<String, Float> v : c.variaveis.entrySet()) {
+				dos.writeUTF(v.getKey());
+				dos.writeFloat(v.getValue());
+			}
+			// pesos da IA(aprendizado acumulado)
+			IA.salvarPesos(dos, c.ia);
+		} else if(e instanceof ItemMundo) {
+			ItemMundo item = (ItemMundo)e;
+			dos.writeByte(TIPO_ITEM);
+			dos.writeUTF(item.nome);
+			dos.writeInt(item.quantidade);
+			dos.writeFloat(item.posicao.x);
+			dos.writeFloat(item.posicao.y);
+			dos.writeFloat(item.posicao.z);
+			dos.writeFloat(item.tempoVida);
+		}
+	}
+	
+	public static Entidade carregarEntidade(DataInputStream dis) throws IOException {
+		byte tipo = dis.readByte();
+		if(tipo == TIPO_CRIATURA) {
+			String nomeD = dis.readUTF();
+			float x = dis.readFloat(), y = dis.readFloat(), z = dis.readFloat();
+			float yaw = dis.readFloat();
+			int vida = dis.readInt();
+			DadosCriatura dados = Mundo.registroCriaturas != null ? Mundo.registroCriaturas.criaturas.get(nomeD) : null;
+			if(dados != null) {
+				Criatura c = new Criatura(dados, x, y, z);
+				c.yaw = yaw;
+				c.vida = vida;
+				int numVars = dis.readInt();
+				for(int v = 0; v < numVars; v++) {
+					String chave = dis.readUTF();
+					float val = dis.readFloat();
+					if(c.variaveis.containsKey(chave)) c.variaveis.put(chave, val);
+				}
+				// restaura pesos da IA
+				IA.carregarPesos(dis, c.ia);
+				return c;
+			} else {
+				// criatura desconhecida: consome os bytes e ignora
+				Gdx.app.log("ArquivosUtil", "[AVISO] criatura desconhecida: " + nomeD);
+				int numVars = dis.readInt();
+				for(int v = 0; v < numVars; v++) {
+					dis.readUTF();
+					dis.readFloat();
+				}
+				IA.carregarPesos(dis, null); // consome bytes da IA
+				return null;
+			}
+		} else if(tipo == TIPO_ITEM) {
+			String nomeI = dis.readUTF();
+			int qtd = dis.readInt();
+			float x = dis.readFloat(), y = dis.readFloat(), z = dis.readFloat();
+			float tempoVida = dis.readFloat();
+			ItemMundo item = new ItemMundo(nomeI, qtd, x, y, z);
+			item.tempoVida = tempoVida;
+			return item;
+		} else {
+			// tipo desconhecido: para de ler pra não corromper o stream
+			Gdx.app.log("ArquivosUtil", "[AVISO] tipo de entidade desconhecido: " + tipo);
+			return null;
+		}
+	}
 }
