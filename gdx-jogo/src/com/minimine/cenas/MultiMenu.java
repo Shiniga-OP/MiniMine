@@ -39,6 +39,7 @@ import com.micro.util.GerenciadorUI;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import com.minimine.ui.InterUtil;
 
 public class MultiMenu implements Screen, InputProcessor {
     public static String modoRede = null;
@@ -93,10 +94,8 @@ public class MultiMenu implements Screen, InputProcessor {
         pixelBranco = new Texture(px);
         px.dispose();
 
-        fonte = new BitmapFont();
-        fonte.getData().setScale(1.5f);
-        fonte.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-
+        fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt", 1.5f);
+        
         camera = new OrthographicCamera();
         vista = new ScreenViewport(camera);
         vista.apply(true);
@@ -425,7 +424,6 @@ public class MultiMenu implements Screen, InputProcessor {
 		}
         if(pincel != null) pincel.dispose();
         if(pincelFormas != null) pincelFormas.dispose();
-        if(fonte != null) fonte.dispose();
         if(pixelBranco != null) pixelBranco.dispose();
         gerenciadorUI.liberar();
     }

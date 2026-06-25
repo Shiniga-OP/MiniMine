@@ -118,7 +118,7 @@ public class Intro implements Screen {
 			}
 		}
 		sb = new SpriteBatch();
-        fonte = InterUtil.carregarFonte("fontes/pixel.ttf", 30);
+        fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt", 2f);
 		
 		String id = ArquivosUtil.ler(Inicio.externo + "/MiniMine/conta/identidade.mini");
 		if(id.equals("")) {

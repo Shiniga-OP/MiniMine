@@ -59,9 +59,7 @@ public class Menu implements Screen, InputProcessor {
     public void show() {
         pincel = new SpriteBatch();
         pincelFormas = new ShapeRenderer();
-        fonte = new BitmapFont();
-        fonte.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-
+        fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt");
         camera = new OrthographicCamera();
         vista = new ScreenViewport(camera);
         vista.apply(true);
@@ -144,7 +142,7 @@ public class Menu implements Screen, InputProcessor {
                 Inicio.defTela(Cenas.configuracoes);
             }
         };
-        Botao botaoConfig = new Botao("Configuracoes", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConfig);
+        Botao botaoConfig = new Botao("Configurações", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConfig);
         painelMenu.addAncorado(botaoConfig, Ancora.CENTRO, 0, -100);
 
         Acao acaoSair = new Acao() {
@@ -211,7 +209,6 @@ public class Menu implements Screen, InputProcessor {
     public void dispose() {
         pincel.dispose();
         pincelFormas.dispose();
-        fonte.dispose();
         gerenciadorUI.liberar();
     }
 

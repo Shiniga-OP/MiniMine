@@ -12,22 +12,32 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.minimine"
-    compileSdkVersion 34
+    compileSdkVersion 33
 
     defaultConfig {
         applicationId "com.minimine"
-        minSdkVersion 14
-        targetSdkVersion 26
+        minSdkVersion 21
+        targetSdkVersion 35
         versionCode 1
         versionName "0.0.1"
     }
-    
-    buildTypes {
-        release {                  
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+	/*
+	signingConfigs {
+        release {
+            storeFile file("../chave.keystore")
+            storePassword "123456"
+            keyAlias "chave"
+            keyPassword "123456"
         }
     }
+    */
+    buildTypes {
+		release {
+			signingConfig signingConfigs.release
+			minifyEnabled false
+			proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+		}
+	}
     
     sourceSets {
         main {

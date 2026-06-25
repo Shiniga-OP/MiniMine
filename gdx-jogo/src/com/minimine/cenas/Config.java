@@ -28,6 +28,7 @@ import com.micro.componentes.Botao;
 import com.micro.componentes.Rotulo;
 import com.micro.util.Ancora;
 import com.micro.util.Acao;
+import com.minimine.ui.InterUtil;
 
 public class Config implements Screen, InputProcessor {
     public SpriteBatch pincel;
@@ -58,14 +59,9 @@ public class Config implements Screen, InputProcessor {
         pincel = new SpriteBatch();
         pincelFormas = new ShapeRenderer();
 
-        fonteTitulo = new BitmapFont();
-        fonteTitulo.getData().setScale(2.0f);
-        fonteTitulo.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-
-        fonteTexto = new BitmapFont();
-        fonteTexto.getData().setScale(1.5f);
-        fonteTexto.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-
+        fonteTitulo = InterUtil.carregarFonte("fontes/pixel-16.fnt", 2f);
+        fonteTexto = InterUtil.carregarFonte("fontes/pixel-16.fnt", 1.5f);
+        
         camera = new OrthographicCamera();
         vista = new ScreenViewport(camera);
         vista.apply(true);
@@ -89,7 +85,7 @@ public class Config implements Screen, InputProcessor {
             visualBotao = new PainelFatiado(textura);
             criarInterface();
         } catch(Exception e) {
-            Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
+            Gdx.app.log("ERRO", "Recursos não encontrados: " + e.getMessage());
         }
         Gdx.input.setInputProcessor(this);
     }
@@ -98,7 +94,7 @@ public class Config implements Screen, InputProcessor {
         painelPrincipal = new Painel(visualJanela, -350, -350, 700, 700, escalaPixel);
         painelPrincipal.defEspaco(20, 30);
 
-        Rotulo titulo = new Rotulo("CONFIGURACOES", fonteTitulo, escalaPixel);
+        Rotulo titulo = new Rotulo("CONFIGURAÇÕES", fonteTitulo, escalaPixel);
         titulo.largura = 660;
         titulo.altura = 60;
         painelPrincipal.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
@@ -202,7 +198,7 @@ public class Config implements Screen, InputProcessor {
         // campo de visao
         itemPOV = ItemConfig.numerico(
             5, posItem(4, alturaItem, espacamento), larguraItem, alturaItem,
-            "Campo Visao:", String.valueOf(UI.pov),
+            "Campo Visão:", String.valueOf(UI.pov),
             fonteTexto, escalaItem, pixelBranco, visualBotao,
             new Acao() {
                 public void exec() {
@@ -342,8 +338,6 @@ public class Config implements Screen, InputProcessor {
     public void dispose() {
         if(pincel != null) pincel.dispose();
         if(pincelFormas != null) pincelFormas.dispose();
-        if(fonteTitulo != null) fonteTitulo.dispose();
-        if(fonteTexto != null) fonteTexto.dispose();
         if(pixelBranco != null) pixelBranco.dispose();
         gerenciadorUI.liberar();
     }

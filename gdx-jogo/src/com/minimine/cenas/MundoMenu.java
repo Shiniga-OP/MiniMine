@@ -37,6 +37,7 @@ import com.micro.janelas.PainelFatiado;
 import com.micro.util.GerenciadorUI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import com.minimine.ui.InterUtil;
 
 public class MundoMenu implements Screen, InputProcessor {
     public SpriteBatch pincel;
@@ -81,14 +82,8 @@ public class MundoMenu implements Screen, InputProcessor {
         pixelBranco = new Texture(pixmap);
         pixmap.dispose();
 
-        fonteTitulo = new BitmapFont();
-        fonteTitulo.getData().setScale(2.0f);
-        fonteTitulo.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-
-        fonteTexto = new BitmapFont();
-        fonteTexto.getData().setScale(1.5f);
-        fonteTexto.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-
+        fonteTitulo = InterUtil.carregarFonte("fontes/pixel-16.fnt", 2f);
+        fonteTexto = InterUtil.carregarFonte("fontes/pixel-16.fnt", 1.5f);
         camera = new OrthographicCamera();
         vista = new ScreenViewport(camera);
         vista.apply(true);
@@ -265,12 +260,12 @@ public class MundoMenu implements Screen, InputProcessor {
         dialogoCriar.definirTamanho(500, 440);
         dialogoCriar.centralizar(0, 0);
 
-        campoNome = new CampoTexto(visualBotao, fonteTexto, 50, 240, 400, 50, escalaPixel);
+        campoNome = new CampoTexto(visualBotao, fonteTexto, 50, 240, 400, 50, escalaPixel / 1.5f);
         campoNome.padrao = "Nome do Mundo";
         campoNome.limiteCaracteres = 30;
         dialogoCriar.add(campoNome);
 
-        campoSemente = new CampoTexto(visualBotao, fonteTexto, 50, 160, 400, 50, escalaPixel);
+        campoSemente = new CampoTexto(visualBotao, fonteTexto, 50, 160, 400, 50, escalaPixel / 1.5f);
         campoSemente.padrao = "Semente(opcional)";
         campoSemente.limiteCaracteres = 10;
         dialogoCriar.add(campoSemente);
@@ -312,7 +307,7 @@ public class MundoMenu implements Screen, InputProcessor {
         gerenciadorUI.addDialogo(dialogoCriar);
 
         // dialogo de confirmação de exclusão
-        dialogoConfirmarExcluir = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel, pincelFormas);
+        dialogoConfirmarExcluir = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel / 1.5f, pincelFormas);
         dialogoConfirmarExcluir.definirTamanho(460, 220);
 
         Acao acaoConfirmarExcluir = new Acao() {
@@ -425,8 +420,6 @@ public class MundoMenu implements Screen, InputProcessor {
 
         if(pincel != null) pincel.dispose();
         if(pincelFormas != null) pincelFormas.dispose();
-        if(fonteTitulo != null) fonteTitulo.dispose();
-        if(fonteTexto != null) fonteTexto.dispose();
         if(pixelBranco != null) pixelBranco.dispose();
         gerenciadorUI.liberar();
     }

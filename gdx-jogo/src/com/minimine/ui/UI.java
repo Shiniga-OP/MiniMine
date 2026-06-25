@@ -94,7 +94,7 @@ public class UI implements InputProcessor {
         camera = criarCamera();
 
         sb = new SpriteBatch();
-        fonte = InterUtil.carregarFonte("fontes/pixel.ttf");
+        fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt");
 
         this.jg = jogador;
         this.jg.camera = camera;

@@ -20,7 +20,7 @@ public class InicioActivity extends AndroidApplication {
         super.onCreate(s);
 		
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-		
+		/*
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if(!Environment.isExternalStorageManager()) {
                 Intent cache = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
@@ -32,8 +32,9 @@ public class InicioActivity extends AndroidApplication {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             }
         }
+		*/
         AndroidApplicationConfiguration cfg = new AndroidApplicationConfiguration();
         
-        initialize(new Inicio(Environment.getExternalStorageDirectory().getAbsolutePath()), cfg);
+        initialize(new Inicio(this.getFilesDir().getAbsolutePath()), cfg);
     }
 }

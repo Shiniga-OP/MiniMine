@@ -10,27 +10,33 @@ import java.util.HashMap;
 public class InterUtil {
 	public static Map<String, BitmapFont> fontes = new HashMap<>();
 	
-	public static BitmapFont carregarFonte(String caminho, int tamanho, boolean externo) {
-		if(fontes.containsKey(caminho)) fontes.get(caminho).dispose();
-		
-		FreeTypeFontGenerator gerador = new FreeTypeFontGenerator(externo ? Gdx.files.absolute(Inicio.externo+"/MiniMine/mods/"+caminho) : Gdx.files.internal(caminho));
-		FreeTypeFontGenerator.FreeTypeFontParameter args = new FreeTypeFontGenerator.FreeTypeFontParameter();
-		args.characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_?!π√×|§°←↑↓→€¥¢£+-/×%^*#$&|=,.:;!?(){}[]<>@\"'~áãâçéêèēóõôò";
-		if(tamanho != 0) args.size = tamanho;
-		BitmapFont fonte = gerador.generateFont(args);
-		gerador.dispose();
-		
+	public static BitmapFont carregarFonte(String caminho, float escala, boolean externo) {
+		if(fontes.containsKey(caminho)) {
+			BitmapFont fonte = fontes.get(caminho);
+			if(escala != 0f) fonte.getData().setScale(escala);
+			return fonte;
+		}
+		BitmapFont fonte = new BitmapFont(externo ? Gdx.files.absolute(Inicio.externo+"/MiniMine/mods/"+caminho) : Gdx.files.internal(caminho));
+		if(escala != 0f) fonte.getData().setScale(escala);
+		fonte.setUseIntegerPositions(true);
 		fontes.put(caminho, fonte);
 		
 		return fonte;
 	}
 	
 	public static BitmapFont carregarFonte(String caminho) {
-		return carregarFonte(caminho, 0, false);
+		return carregarFonte(caminho, 0f, false);
 	}
 	
-	public static BitmapFont carregarFonte(String caminho, int tamanho) {
-		return carregarFonte(caminho, tamanho, false);
+	public static BitmapFont carregarFonte(String caminho, float escala) {
+		return carregarFonte(caminho, escala, false);
+	}
+	
+	public static void liberarFonte(BitmapFont... fonte) {
+		for(int i = 0; i < fonte.length; i++) {
+			fontes.remove(fonte[i]);
+			fonte[i].dispose();
+		}
 	}
 	
 	public static void liberar() {
