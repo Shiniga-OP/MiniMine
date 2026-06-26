@@ -235,7 +235,7 @@ public class Entidade {
 		final long chave = Chave.gerar(_bx >> 4, _bz >> 4);
 
 		if(chunkCache == null || chave != chunkCache.chave) {
-			chunkCache = Mundo.chunks.get(chave);
+			chunkCache = Mundo.chunks.obter(_bx >> 4, _bz >> 4);
 		}
 		if(chunkCache != null && _by >= 0 && _by < Mundo.Y_CHUNK) {
 			final int _lx = _bx & 0xF, _lz = _bz & 0xF;

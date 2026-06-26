@@ -66,8 +66,9 @@ public class GerenciadorEntidades {
 	public static void tentarNascerEntidade(Jogador jogador, Mundo mundo) {
 		// pega um chunk carregado aleatório(estado 2 = malha pronta)
 		final List<Long> disponiveis = new ArrayList<>();
-		for(Chunk e : mundo.chunks.values()) {
-			if(e.estado == 4) disponiveis.add(e.chave);
+		for(int i = 0; i < mundo.chunks.tam(); i++) {
+			final Chunk e = mundo.chunks.obterIdc(i);
+			if(e != null && e.estado == 4) disponiveis.add(e.chave);
 		}
 		if(disponiveis.isEmpty()) return;
 

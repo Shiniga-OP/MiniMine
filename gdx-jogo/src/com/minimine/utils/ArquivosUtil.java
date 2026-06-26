@@ -478,7 +478,7 @@ public final class ArquivosUtil {
                 afetados.add(Chave.gerar(cx, cz - 1));
             }
             for(long chave : afetados) {
-                Chunk c = Mundo.chunks.get(chave);
+                Chunk c = Mundo.chunks.obter(Chave.x(chave), Chave.z(chave));
                 if(c != null) c.att = true;
             }
         }

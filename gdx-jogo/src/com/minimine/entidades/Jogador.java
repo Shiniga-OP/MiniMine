@@ -110,7 +110,7 @@ public class Jogador extends Entidade {
 		Mundo.limparChunks(0, 0);
 		final long chave = Chave.gerar(0, 0);
 		final com.minimine.mundo.chunks.Chunk mod = Mundo.chunksMod.get(chave);
-		if(mod != null) Mundo.chunks.put(chave, mod);
+		if(mod != null) Mundo.chunks.def(0, 0, mod);
 		posicao.y = Mundo.obterAlturaChao((int)posicao.x, (int)posicao.z);
 		Mundo.carregado = false;
 		velocidade.set(0, 0, 0);
@@ -192,7 +192,7 @@ public class Jogador extends Entidade {
 						}
 						if(item.equals("ar")) tempoDano += mineracao;
 						else tempoDano += inv.itens[inv.slotSelecionado].mineracao;
-						
+
 						if(tempoDano >= bloco.dureza) {
 							if(Jogo.servidor.netCliente != null) Jogo.servidor.enviarBloco(x, y, z, 0, bloco.nome);
 							Bloco.tocarSom(bloco.nome);
@@ -494,7 +494,8 @@ public class Jogador extends Entidade {
 		}
 		if(pessoa == 0) {
 			bracoDir.rotation.set(rotBracoDir);
-			bracoDir.rotation.mul(new Quaternion(Vector3.X, 100f));
+			rotTemp.set(Vector3.X, 100f);
+			bracoDir.rotation.mul(rotTemp);
 			instancia.calculateTransforms();
 		}
 		animCtr = new AnimationController(instancia);
@@ -515,8 +516,10 @@ public class Jogador extends Entidade {
 		// cabeça: tom no X + yaw relativo ao tronco no Y
 		cabeca.rotation.set(rotCabeca);
 
-		cabeca.rotation.mul(new Quaternion(Vector3.Y, diffYawPreso));
-		cabeca.rotation.mul(new Quaternion(Vector3.X, tomPreso));
+		rotTemp.set(Vector3.Y, diffYawPreso);
+		cabeca.rotation.mul(rotTemp);
+		rotTemp.set(Vector3.X, tomPreso);
+		cabeca.rotation.mul(rotTemp);
 
 		// braços e pernas: balançar ao andar(escala pela forcaMov, que ja depende de velo)
 		final float balanco = MathUtils.sin(tempoAnimacao) * forcaMov;
@@ -524,23 +527,24 @@ public class Jogador extends Entidade {
 		final float balancoPerna = balanco * 35f;
 
 		bracoDir.rotation.set(rotBracoDir);
-		bracoDir.rotation.mul(new Quaternion(Vector3.X, balancoBraco));
+		rotTemp.set(Vector3.X, balancoBraco);
+		bracoDir.rotation.mul(rotTemp);
 
 		bracoEsq.rotation.set(rotBracoEsq);
-		bracoEsq.rotation.mul(new Quaternion(Vector3.X, -balancoBraco));
+		rotTemp.set(Vector3.X, -balancoBraco);
+		bracoEsq.rotation.mul(rotTemp);
 
 		pernaDir.rotation.set(rotPernaDir);
-		pernaDir.rotation.mul(new Quaternion(Vector3.X, -balancoPerna));
+		rotTemp.set(Vector3.X, -balancoPerna);
+		pernaDir.rotation.mul(rotTemp);
 
 		pernaEsq.rotation.set(rotPernaEsq);
-		pernaEsq.rotation.mul(new Quaternion(Vector3.X, balancoPerna));
+		rotTemp.set(Vector3.X, balancoPerna);
+		pernaEsq.rotation.mul(rotTemp);
 
 		// agachamento
-		if(agachado) {
-			animCtr.setAnimation("agachar", -1);
-		} else {
-			animCtr.setAnimation(null, 0);
-		}
+		if(agachado) animCtr.setAnimation("agachar", -1);
+		else animCtr.setAnimation(null, 0);
 	}
 
 	public void salvarRotacoes() {

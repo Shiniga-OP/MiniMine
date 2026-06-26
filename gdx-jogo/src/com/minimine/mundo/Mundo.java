@@ -41,6 +41,7 @@ import com.minimine.utils.TarefasUtil;
 import com.minimine.mundo.chunks.Chunk;
 import com.minimine.mundo.chunks.ChunkMalha;
 import com.minimine.mundo.chunks.ChunkProcesso;
+import com.minimine.mundo.chunks.GradeChunk;
 import com.minimine.entidades.GerenciadorEntidades;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -67,7 +68,7 @@ public class Mundo {
     public static final List<Long> praRemover = new ArrayList<>();
     public static final ArrayDeque<Chunk> chunkReuso = new ArrayDeque<>();
 
-    public static Map<Long, Chunk> chunks = new ConcurrentHashMap<>();
+    public static GradeChunk chunks = new GradeChunk(5); // raio inicial; ajustado em iniciar() via verificarRaio
     public static Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 
 	public static final Chunk[] chunkCache = {
@@ -131,8 +132,8 @@ public class Mundo {
     public void att(Jogador jg) {
         attChunks((int)jg.posicao.x, (int)jg.posicao.z);
 
-        if(!carregado && chunks.size() >= 1) {
-            Chunk c = chunks.get(Chave.gerar((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4));
+        if(!carregado && chunks.tam() >= 1) {
+            Chunk c = chunks.obter((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4);
             if(c != null && c.estado == 4) {
 				carregado = true;
 			}
@@ -159,7 +160,9 @@ public class Mundo {
 
     // remove chunk do mapa e devolve ao pool APÓS liberar GPU na thread GL
     public static void removerChunk(final long chave) {
-        final Chunk c = chunks.remove(chave);
+        final int cx = Chave.x(chave), cz = Chave.z(chave);
+        final Chunk c = chunks.obter(cx, cz);
+        chunks.rm(cx, cz);
         filaEstrutura.remove(chave);
         filaTam.remove(chave);
         if(c == null || chunksMod.containsKey(chave)) return;
@@ -186,12 +189,14 @@ public class Mundo {
 
     // chamado em dispose
     public void liberar() {
-        for(Chunk chunk : chunks.values()) {
+        for(int _i = 0; _i < chunks.tam(); _i++) {
+            final Chunk chunk = chunks.obterIdc(_i);
+            if(chunk == null) continue;
             liberarGpu(chunk);
 		}
         for(Entidade e : entidades) e.liberar();
         chunksMod.clear();
-        chunks.clear();
+        chunks = new GradeChunk(RAIO_CHUNKS);
         filaEstrutura.clear();
         filaTam.clear();
         entidades.clear();
@@ -363,7 +368,7 @@ public class Mundo {
 				return cache[i];
 			}
 		}
-		final Chunk chunk = chunks.get(chave);
+		final Chunk chunk = chunks.obter(Chave.x(chave), Chave.z(chave));
 
 		final int indice = proximoCache.getAndIncrement();
 		final int slot = (indice & Integer.MAX_VALUE) % 9; 
@@ -378,6 +383,7 @@ public class Mundo {
 
     // === GERAÇÃO DE CHUNKS ===
     public void attChunks(int x, int z) {
+        chunks.verificarRaio(RAIO_CHUNKS);
         final int cx = x >> 4;
         final int cz = z >> 4;
         limparChunks(cx, cz);
@@ -397,14 +403,15 @@ public class Mundo {
     public static void limparChunks(int chunkX, int chunkZ) {
 		praRemover.clear();
 
-		for(Map.Entry<Long, Chunk> e : chunks.entrySet()) {
-			final long chave = e.getKey();
-			final int distX = Mat.abs(Chave.x(chave) - chunkX);
-			final int distZ = Mat.abs(Chave.z(chave) - chunkZ);
-			final Chunk chunk = e.getValue();
+		for(int _i = 0; _i < chunks.tam(); _i++) {
+			final Chunk chunk = chunks.obterIdc(_i);
+			if(chunk == null) continue;
+			final long chave = chunk.chave;
+			final int distX = Mat.abs(chunk.x - chunkX);
+			final int distZ = Mat.abs(chunk.z - chunkZ);
 
 			if(distX > RAIO_CHUNKS || distZ > RAIO_CHUNKS) {
-				if(chunk != null && chunk.fazendo) continue;
+				if(chunk.fazendo) continue;
 				praRemover.add(chave);
 			} else if(chunk.estado == 1 && vizinhosCom(chunk.x, chunk.z, DADOS_PRONTOS)) {
 				processarEstruturas(chave);
@@ -414,18 +421,20 @@ public class Mundo {
 		}
 		// propaga luz: cada chunk suja é enfileirada como tarefa de geração,
 		// saindo da thread GL, estado 13 = transitorio pra evitar disparo duplo
-		for(Map.Entry<Long, Chunk> e : chunks.entrySet()) {
-			final Chunk chunk = e.getValue();
+		for(int _i = 0; _i < chunks.tam(); _i++) {
+			final Chunk chunk = chunks.obterIdc(_i);
+			if(chunk == null) continue;
 
 			if(chunk.luzSuja && !chunk.luzFazendo && chunk.estado >= 3) {
 				chunk.luzFazendo = true;
 				ChunkProcesso.luz.attLuz(chunk);
 			}
 		}
-		// gera malha: só se a luz desta chunk e das vizinhas não está sendo processada
-		for(Map.Entry<Long, Chunk> e : chunks.entrySet()) {
-			final long chave = e.getKey();
-			final Chunk chunk = e.getValue();
+		// gera malha: so se a luz desta chunk e das vizinhas não está sendo processada
+		for(int _i = 0; _i < chunks.tam(); _i++) {
+			final Chunk chunk = chunks.obterIdc(_i);
+			if(chunk == null) continue;
+			final long chave = chunk.chave;
 
 			if(chunk.att && !chunk.fazendo && !chunk.luzFazendo && !chunk.luzSuja && chunk.estado >= 3) {
 				if(vizinhosCom(chunk.x, chunk.z, LUZ_PRONTA)) gerarMalha(chave);
@@ -440,7 +449,7 @@ public class Mundo {
 
     public void tentarGerarChunk(int x, int z) {
         final long chave = Chave.gerar(x, z);
-		final Chunk c = chunks.get(chave);
+		final Chunk c = chunks.obter(x, z);
         if(c != null) {
             if(c.estado == 1 && vizinhosCom(x, z, DADOS_PRONTOS)) {
                 processarEstruturas(chave);
@@ -454,7 +463,7 @@ public class Mundo {
         // chunk modificada pelo jogador: recarrega com luz recalculada
         final Chunk modificado = chunksMod.get(chave);
         if(modificado != null) {
-            chunks.put(chave, modificado);
+            chunks.def(x, z, modificado);
             ChunkProcesso.luz.calcularLuz(modificado);
             modificado.estado = LUZ_PRONTA; // dados + estruturas + luz prontos
             return;
@@ -466,20 +475,20 @@ public class Mundo {
 		novo.z = z;
 		novo.chave = Chave.gerar(x, z);
         ChunkProcesso.util.compactar(ChunkProcesso.util.bitsPraMaxId(novo.maxIds), novo);
-        chunks.put(chave, novo);
+        chunks.def(x, z, novo);
         gerarDados(chave);
     }
 
     // === VERIFICAÇÕES DE ESTADO DE VIZINHOS ===
     // 4 vizinhos cardinais com estado >= 1(dados prontos)
     public static boolean vizinhosCom(int cx, int cz, int estado) {
-		final Chunk c1 = chunks.get(Chave.gerar(cx + 1, cz));
+		final Chunk c1 = chunks.obter(cx + 1, cz);
 		final int e1 = c1 != null ? c1.estado : 0;
-		final Chunk c2= chunks.get(Chave.gerar(cx - 1, cz));
+		final Chunk c2 = chunks.obter(cx - 1, cz);
 		final int e2 = c2 != null ? c2.estado : 0;
-		final Chunk c3 = chunks.get(Chave.gerar(cx, cz + 1));
+		final Chunk c3 = chunks.obter(cx, cz + 1);
 		final int e3 = c3 != null ? c3.estado : 0;
-		final Chunk c4 = chunks.get(Chave.gerar(cx, cz - 1)); 
+		final Chunk c4 = chunks.obter(cx, cz - 1);
 		final int e4 = c4 != null ? c4.estado : 0;
 		return e1 >= estado &&
 			e2 >= estado &&
@@ -609,9 +618,9 @@ public class Mundo {
 					public void run() {
 						try {
 							// verifica pela chave capturada: se a chunk foi reutilizada,
-							// chunks.get retorna outro objeto, não este; evita deletar
+							// chunks.obter retorna outro objeto, não este; evita deletar
 							// buffers novos de uma chunk reaproveitada
-							final Chunk chunkAtual = chunks.get(chaveCapturada);
+							final Chunk chunkAtual = chunks.obter(Chave.x(chaveCapturada), Chave.z(chaveCapturada));
 							if(chunkAtual != chunk) {
 								chunk.fazendo = false;
 								return;
@@ -664,7 +673,7 @@ public class Mundo {
      *   recalcular luz e malha: o bloco chegou atrasado mas ainda pode ser corrigido
 	 */
     public static void enfileirarEstrutura(long chaveAlvo, EstruturaPendente pendente) {
-		final Chunk c = chunks.get(chaveAlvo);
+		final Chunk c = chunks.obter(Chave.x(chaveAlvo), Chave.z(chaveAlvo));
         final int estadoAlvo = c != null ? c.estado : 0;
         if(estadoAlvo >= 2) {
             // chunk alvo ja passou de processarEstruturas: aplica agora e marca suja
@@ -777,10 +786,10 @@ public class Mundo {
 			);
 		}
 		for(int d = 0; d < chunk.meta.length; d++) chunk.meta[d] = dis.readShort();
-		
+
 		return chunk;
 	}
-	
+
 	public static void salvarChunk(Chunk chunk, DataOutputStream dos) throws IOException {
 		int cx = TAM_CHUNK;
 		int cy = Y_CHUNK;
@@ -820,3 +829,4 @@ public class Mundo {
 		return true;
 	}
 }
+

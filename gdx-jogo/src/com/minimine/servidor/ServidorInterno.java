@@ -282,7 +282,7 @@ public class ServidorInterno {
 				}
 			case Net.PACOTE_MUNDO_FIM: {
 					mundo.chunksMod = chunksMod;
-					mundo.chunks.clear();
+					mundo.chunks = new com.minimine.mundo.chunks.GradeChunk(Mundo.RAIO_CHUNKS);
 					mundo.iniciar(true);
 					break;
 				}

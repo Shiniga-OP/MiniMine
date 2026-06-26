@@ -37,7 +37,7 @@ import com.badlogic.gdx.math.collision.BoundingBox;
 public class Render extends Renderizador {
     public static ShaderProgram shader;
     public static ShapeRenderer debugCaixas;
-	
+
     public static String vert = 
     "attribute float a_pos;\n" +
     "attribute vec2 a_texCoord;\n" +
@@ -117,7 +117,7 @@ public class Render extends Renderizador {
     public Render(List<Jogador> jogadores, Mundo mundo) {
         super(jogadores, mundo);
 	}
-	
+
 	@Override
 	public void iniciar() {
         super.iniciar();
@@ -130,26 +130,28 @@ public class Render extends Renderizador {
 
         // animação da água
         Animacoes2D.add("agua", new TextureRegion[]{
-			Texturas.atlas.get("agua_a1"), Texturas.atlas.get("agua_a2"),
-			Texturas.atlas.get("agua_a3"), Texturas.atlas.get("agua_a4")
-		}, 2.5f);  // 2.5 quadros por segundo
+							Texturas.atlas.get("agua_a1"), Texturas.atlas.get("agua_a2"),
+							Texturas.atlas.get("agua_a3"), Texturas.atlas.get("agua_a4")
+						}, 2.5f);  // 2.5 quadros por segundo
 
         // carrega as particulas
         gp = new GerenciadorParticulas(ui.jg);
 
         if(mundo.nuvens) NuvensUtil.iniciar(ui.jg.posicao);
-        
+
 		mb = new ModelBatch(new DefaultShaderProvider() {
+				public ShaderBranco instancia;
 				@Override
 				protected Shader createShader(Renderable r) {
-					return new ShaderBranco();
+					if(instancia == null) instancia = new ShaderBranco();
+					return instancia;
 				}
 			});
 		gpu = new GLProfiler(Gdx.graphics);
 		if(UI.debug) gpu.enable();
 		else gpu.disable();
     }
-	
+
 	@Override
     public void att(float delta) {
 		super.att(delta);
@@ -160,7 +162,7 @@ public class Render extends Renderizador {
 			Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
 			if(mundo.ciclo) mundo.diaNoite.att(ui.jg.camera, delta);
-			
+
 			shader.begin();
 
 			shader.setUniformMatrix("u_projPos", ui.jg.camera.combined);
@@ -177,7 +179,9 @@ public class Render extends Renderizador {
 			Gdx.gl.glDisable(GL20.GL_BLEND);
 
 			// 1. solidos:
-			for(final Chunk chunk : mundo.chunks.values()) {
+			for(int _i = 0; _i < mundo.chunks.tam(); _i++) {
+				final Chunk chunk = mundo.chunks.obterIdc(_i);
+				if(chunk == null) continue;
 				final boolean renderizar = frustrum(chunk, ui.jg) && chunk.gpuPronta;
 				if(renderizar && chunk.contaSolida > 0) {
 					shader.setUniformf("u_chunkPos", chunk.x << 4, 0, chunk.z << 4);
@@ -202,7 +206,7 @@ public class Render extends Renderizador {
 			if(ui.gui && ui.jg.pessoa != 0) ui.jg.render(mb, delta);
 			mb.render(gp);
 			mb.end();
-			
+
 			// restaura estado GL apos o mb
 			Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 			Gdx.gl.glEnable(GL20.GL_CULL_FACE);
@@ -219,7 +223,9 @@ public class Render extends Renderizador {
 			Gdx.gl.glEnable(GL20.GL_BLEND);
 			Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 
-			for(final Chunk chunk : mundo.chunks.values()) {
+			for(int _i = 0; _i < mundo.chunks.tam(); _i++) {
+				final Chunk chunk = mundo.chunks.obterIdc(_i);
+				if(chunk == null) continue;
 				final boolean renderizar = frustrum(chunk, ui.jg) && chunk.gpuPronta;
 				if(renderizar && chunk.contaTransp > 0) {
 					shader.setUniformf("u_chunkPos", chunk.x << 4, 0, chunk.z << 4);
@@ -248,7 +254,7 @@ public class Render extends Renderizador {
 				debugCaixas.setColor(1, 0, 0, 1); // vermelho pro jogador
 				debugCaixas.setProjectionMatrix(ui.jg.camera.combined);
 				debugCaixas.begin(ShapeRenderer.ShapeType.Line);
-				
+
 				for(int i = 0; i < jogadores.size(); i++) {
 					final Jogador jg = jogadores.get(i);
 					if(!frustrum(ui.jg, jg.hitbox)) continue;
@@ -316,7 +322,7 @@ public class Render extends Renderizador {
 					ui.jg.inv.slotSelecionado, ui.jg.item, ui.jg.noChao, ui.jg.naAgua, ui.jg.agachado, ui.jg.voando,
 					ui.jg.velo, ui.jg.altura,
 					ui.jg.direita, ui.jg.esquerda, ui.jg.frente, ui.jg.tras, ui.jg.cima, ui.jg.baixo, ui.jg.acao,
-					mundo.nome, bioma, mundo.RAIO_CHUNKS, mundo.chunks.size(),
+					mundo.nome, bioma, mundo.RAIO_CHUNKS, mundo.chunks.tam(),
 					mundo.chunksMod.size(), mundo.semente, mundo.diaNoite.tempo, mundo.diaNoite.tempo_velo, mundo.entidades.size());
 
 				Jogo.debug2 = String.format(
@@ -343,11 +349,11 @@ public class Render extends Renderizador {
 
 		return jogador.camera.frustum.boundsInFrustum(cx, 128f, cz, 16f, 256f, 16f);
 	}
-	
+
 	public static boolean frustrum(Jogador jg, BoundingBox caixa) {
 		return jg.camera.frustum.boundsInFrustum(caixa);
 	}
-	
+
 	public static void renderChunk(Chunk chunk, int iboId, int posIndices, int contaIndices, ShaderProgram shader) {
         Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, chunk.vboId);
         Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, iboId);
@@ -385,7 +391,7 @@ public class Render extends Renderizador {
         Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, 0);
         Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
-	
+
 	@Override
     public void liberar() {
 		super.liberar();
@@ -395,3 +401,4 @@ public class Render extends Renderizador {
 		Animacoes2D.liberar();
     }
 }
+
