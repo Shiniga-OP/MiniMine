@@ -62,6 +62,10 @@ public class ServidorInterno {
 	public final List<TarefaTick> tarefasLoop = new ArrayList<>();
 	public Jogador jgUi;
 
+	// buffers reutilizaveis para broadcast de posição no tick
+	public final ByteArrayOutputStream baosPosicao = new ByteArrayOutputStream(64);
+	public final DataOutputStream dosPosicao = new DataOutputStream(baosPosicao);
+
 	public Runnable attMundo = new Runnable() {
 		@Override
 		public void run() {
@@ -215,22 +219,21 @@ public class ServidorInterno {
 			for(Map.Entry<Integer, Jogador> e : jogadoresRede.entrySet()) {
 				final Jogador jg = e.getValue();
 				try {
-					ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
-					DataOutputStream dos = new DataOutputStream(baos);
-					dos.writeByte(Net.PACOTE_POS);
-					dos.writeInt(e.getKey());
-					dos.writeFloat(jg.posicao.x);
-					dos.writeFloat(jg.posicao.y);
-					dos.writeFloat(jg.posicao.z);
-					dos.writeFloat(jg.yaw);
-					dos.writeFloat(jg.tom);
+					baosPosicao.reset();
+					dosPosicao.writeByte(Net.PACOTE_POS);
+					dosPosicao.writeInt(e.getKey());
+					dosPosicao.writeFloat(jg.posicao.x);
+					dosPosicao.writeFloat(jg.posicao.y);
+					dosPosicao.writeFloat(jg.posicao.z);
+					dosPosicao.writeFloat(jg.yaw);
+					dosPosicao.writeFloat(jg.tom);
 					int marcas = (jg.frente ? 1 : 0) | (jg.tras ? 2 : 0)
 						| (jg.esquerda ? 4 : 0) | (jg.direita ? 8 : 0)
 						| (jg.voando ? 16 : 0) | (jg.agachado ? 32 : 0);
-					dos.writeInt(marcas);
-					Net.escreverUTF(dos, jg.item);
-					dos.flush();
-					netServidor.broadcastTodos(baos.toByteArray());
+					dosPosicao.writeInt(marcas);
+					Net.escreverUTF(dosPosicao, jg.item);
+					dosPosicao.flush();
+					netServidor.broadcastTodos(baosPosicao.toByteArray());
 				} catch(IOException ex) {
 					Gdx.app.error("[ServidorInterno]", "Erro no broadcast de posição: " + ex.getMessage());
 				}

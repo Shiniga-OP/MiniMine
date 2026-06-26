@@ -1,7 +1,6 @@
 package com.minimine.ui;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.Gdx;
 import com.minimine.Inicio;
 import java.util.Map;

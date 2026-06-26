@@ -55,6 +55,18 @@ public class Net {
 	public volatile int idLocal = 0;
 	public static int proximoId = 1;
 
+	// pool por thread: evita alocar ByteArrayOutputStream/DataOutputStream a cada pacote
+	private static final ThreadLocal<ByteArrayOutputStream> poolBaos = new ThreadLocal<ByteArrayOutputStream>() {
+		protected ByteArrayOutputStream initialValue() { return new ByteArrayOutputStream(4096); }
+	};
+	private static final ThreadLocal<DataOutputStream> poolDos = new ThreadLocal<DataOutputStream>() {
+		protected DataOutputStream initialValue() { return new DataOutputStream(poolBaos.get()); }
+	};
+	// buffer reutilizavel para leitura de strings UTF
+	private static final ThreadLocal<byte[]> poolBufUTF = new ThreadLocal<byte[]>() {
+		protected byte[] initialValue() { return new byte[256]; }
+	};
+
 	public interface OuvintePacote {
 		void aoReceber(byte tipo, DataInputStream dados) throws IOException;
 	}
@@ -186,9 +198,13 @@ public class Net {
 	// le String como short(tamanho) + bytes UTF-8
 	public static String lerUTF(DataInputStream dis) throws IOException {
 		int tam = dis.readShort() & 0xFFFF;
-		byte[] b = new byte[tam];
-		dis.readFully(b);
-		return new String(b, "UTF-8");
+		byte[] b = poolBufUTF.get();
+		if(tam > b.length) {
+			b = new byte[tam];
+			poolBufUTF.set(b);
+		}
+		dis.readFully(b, 0, tam);
+		return new String(b, 0, tam, "UTF-8");
 	}
 
 	public class Cliente implements Runnable {
@@ -310,9 +326,11 @@ public class Net {
 	 * cada tipo tem tamanho fixo ou prefixado, sem delimitadores de texto
 	 */
 	public static byte[] lerPacoteBruto(byte tipo, DataInputStream dis) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
-		DataOutputStream tmp = new DataOutputStream(baos);
+		ByteArrayOutputStream baos = poolBaos.get();
+		baos.reset();
+		DataOutputStream tmp = poolDos.get();
 		tmp.writeByte(tipo);
+		byte[] bufUTF = poolBufUTF.get();
 		switch(tipo) {
 			case PACOTE_POS: {
 					int id = dis.readInt();
@@ -323,8 +341,11 @@ public class Net {
 					float tom = dis.readFloat();
 					int marcas = dis.readInt();
 					int itemTam = dis.readShort() & 0xFFFF;
-					byte[] item = new byte[itemTam];
-					dis.readFully(item);
+					if(itemTam > bufUTF.length) {
+						bufUTF = new byte[itemTam];
+						poolBufUTF.set(bufUTF);
+					}
+					dis.readFully(bufUTF, 0, itemTam);
 					tmp.writeInt(id);
 					tmp.writeFloat(x);
 					tmp.writeFloat(y);
@@ -333,19 +354,22 @@ public class Net {
 					tmp.writeFloat(tom);
 					tmp.writeInt(marcas);
 					tmp.writeShort(itemTam);
-					tmp.write(item);
+					tmp.write(bufUTF, 0, itemTam);
 					break;
 				}
 			case PACOTE_MUNDO: {
 					float tempo = dis.readFloat();
 					int nomeTam = dis.readShort() & 0xFFFF;
-					byte[] nome = new byte[nomeTam];
-					dis.readFully(nome);
+					if(nomeTam > bufUTF.length) {
+						bufUTF = new byte[nomeTam];
+						poolBufUTF.set(bufUTF);
+					}
+					dis.readFully(bufUTF, 0, nomeTam);
 					long semente = dis.readLong();
 					byte plano = dis.readByte();
 					tmp.writeFloat(tempo);
 					tmp.writeShort(nomeTam);
-					tmp.write(nome);
+					tmp.write(bufUTF, 0, nomeTam);
 					tmp.writeLong(semente);
 					tmp.writeByte(plano);
 					break;
@@ -373,25 +397,36 @@ public class Net {
 					int z = dis.readInt();
 					int id = dis.readInt();
 					int itemTam = dis.readShort() & 0xFFFF;
-					byte[] item = new byte[itemTam];
-					dis.readFully(item);
+					if(itemTam > bufUTF.length) {
+						bufUTF = new byte[itemTam];
+						poolBufUTF.set(bufUTF);
+					}
+					dis.readFully(bufUTF, 0, itemTam);
 					tmp.writeInt(x); tmp.writeInt(y); tmp.writeInt(z); tmp.writeInt(id);
-					tmp.writeShort(itemTam); tmp.write(item);
+					tmp.writeShort(itemTam); tmp.write(bufUTF, 0, itemTam);
 					break;
 				}
 			case PACOTE_ENTROU: {
 					int id = dis.readInt();
 					int iTam = dis.readShort() & 0xFFFF;
+					if(iTam > bufUTF.length) {
+						bufUTF = new byte[iTam];
+						poolBufUTF.set(bufUTF);
+					}
+					dis.readFully(bufUTF, 0, iTam);
 					byte[] identidade = new byte[iTam];
-					dis.readFully(identidade);
+					System.arraycopy(bufUTF, 0, identidade, 0, iTam);
 					int nTam = dis.readShort() & 0xFFFF;
-					byte[] nome = new byte[nTam];
-					dis.readFully(nome);
+					if(nTam > bufUTF.length) {
+						bufUTF = new byte[nTam];
+						poolBufUTF.set(bufUTF);
+					}
+					dis.readFully(bufUTF, 0, nTam);
 					tmp.writeInt(id);
 					tmp.writeShort(iTam);
-					tmp.write(identidade);
+					tmp.write(identidade, 0, iTam);
 					tmp.writeShort(nTam);
-					tmp.write(nome);
+					tmp.write(bufUTF, 0, nTam);
 					break;
 				}
 			case PACOTE_SAIU: {
@@ -513,9 +548,9 @@ public class Net {
 									try {
 										DataInputStream dis = new DataInputStream(
 											new ByteArrayInputStream(new byte[]{
-													(byte)(idRecebido >> 24), (byte)(idRecebido >> 16),
-													(byte)(idRecebido >> 8), (byte)idRecebido
-											})
+																		 (byte)(idRecebido >> 24), (byte)(idRecebido >> 16),
+																		 (byte)(idRecebido >> 8), (byte)idRecebido
+																	 })
 										);
 										ov.aoReceber(PACOTE_ID, dis);
 									} catch(IOException e) {}
