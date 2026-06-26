@@ -6,7 +6,7 @@
 	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 	<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
 	
-    <application android:icon="@drawable/minimine" android:roundIcon="@drawable/minimine" android:label="@string/app_nome" android:screenOrientation="landscape" android:largeHeap="true" android:name=".Crash" android:allowAudioPlaybackCapture="true">
+    <application android:icon="@mipmap/minimine" android:roundIcon="@mipmap/minimine" android:label="@string/app_nome" android:screenOrientation="landscape" android:largeHeap="true" android:name=".Crash" android:allowAudioPlaybackCapture="true">
         <activity android:name=".InicioActivity" android:label="@string/app_nome" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

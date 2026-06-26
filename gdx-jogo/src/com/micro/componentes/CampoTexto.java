@@ -168,11 +168,4 @@ public class CampoTexto extends Componente {
         }
         fonte.getData().setScale(1.0f);
     }
-
-	@Override
-	public void liberar() {
-		super.liberar();
-		fonte.dispose();
-	}
 }
-

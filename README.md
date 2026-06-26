@@ -177,6 +177,8 @@ em log mesmo porque eu to com preguiça de ficar listando.
 * Renderização de entidades apenas no raio de visão do jogador.
 * Pré-computação de luz.
 * Economia de memória passando a semente do mundo como parâmetro para ruídos.
+* Buffer de posição no multijogador.
+* Acesso atômico a chunks.
 
 ## Ruídos utilitários:
 * OpenSimplex2.java
