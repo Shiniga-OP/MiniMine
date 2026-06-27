@@ -668,13 +668,11 @@ public class UI implements InputProcessor {
 				jg.atacar = true;
                 jg.item = jg.inv.itens[jg.inv.slotSelecionado] != null
 					? jg.inv.itens[jg.inv.slotSelecionado].nome : "ar";
-                return true;
             }
             if(b == Input.Buttons.RIGHT) {
                 jg.item = jg.inv.itens[jg.inv.slotSelecionado] != null ? jg.inv.itens[jg.inv.slotSelecionado].nome : "ar";
                 jg.acao = true;
 				jg.interagirBloco(false);
-                return true;
             }
         }
         // dpad
@@ -709,6 +707,7 @@ public class UI implements InputProcessor {
     @Override
     public boolean touchUp(int telaX, int telaY, int p, int b) {
         if(b == Input.Buttons.RIGHT) jg.acao = false;
+        if(b == Input.Buttons.LEFT) jg.atacar = false;
         final int y = telaH - telaY;
 
         gerenciador.processarToque(telaX, y, false);
@@ -797,8 +796,8 @@ public class UI implements InputProcessor {
         if(p == Input.Keys.S) jg.tras = true;
         if(p == Input.Keys.A) jg.esquerda = true;
         if(p == Input.Keys.D) jg.direita = true;
-		if(p == Input.Buttons.LEFT) jg.atacar = false;
-		if(p == Input.Buttons.RIGHT) jg.acao = false;
+		if(p == Input.Keys.LEFT) jg.atacar = true;
+		if(p == Input.Keys.RIGHT) jg.acao = true;
         if(p == Input.Keys.SPACE) {
 			jg.cima = true;
 			if(jg.modo == 1) { // so conta pulo se estava no chão
@@ -851,6 +850,8 @@ public class UI implements InputProcessor {
         if(p == Input.Keys.A) jg.esquerda = false;
         if(p == Input.Keys.D) jg.direita = false;
         if(p == Input.Keys.SPACE) jg.cima = false;
+        if(p == Input.Keys.LEFT) jg.atacar = false;
+		if(p == Input.Keys.RIGHT) jg.acao = false;
         if(p == Input.Keys.SHIFT_LEFT) jg.baixo = false;
         return true;
     }
@@ -906,4 +907,3 @@ public class UI implements InputProcessor {
         public void desenhar(SpriteBatch sb) { sprite.draw(sb); }
     }
 }
-
