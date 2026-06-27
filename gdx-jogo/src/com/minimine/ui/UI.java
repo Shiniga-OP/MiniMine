@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.ArrayList;
 
 import com.minimine.graficos.Texturas;
-import com.minimine.Debugador;
 import com.minimine.Logs;
 import com.minimine.mundo.Mundo;
 import com.minimine.mundo.blocos.Bloco;
@@ -94,7 +93,7 @@ public class UI implements InputProcessor {
         camera = criarCamera();
 
         sb = new SpriteBatch();
-        fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt");
+        fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt", 1.0f);
 
         this.jg = jogador;
         this.jg.camera = camera;

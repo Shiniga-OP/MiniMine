@@ -5,19 +5,22 @@ import com.badlogic.gdx.Gdx;
 import com.minimine.Inicio;
 import java.util.Map;
 import java.util.HashMap;
+import com.badlogic.gdx.graphics.Color;
 
 public class InterUtil {
 	public static Map<String, BitmapFont> fontes = new HashMap<>();
 	
 	public static BitmapFont carregarFonte(String caminho, float escala, boolean externo) {
 		if(fontes.containsKey(caminho)) {
-			BitmapFont fonte = fontes.get(caminho);
+			final BitmapFont fonte = fontes.get(caminho);
 			if(escala != 0f) fonte.getData().setScale(escala);
+			fonte.setColor(Color.WHITE);
 			return fonte;
 		}
-		BitmapFont fonte = new BitmapFont(externo ? Gdx.files.absolute(Inicio.externo+"/MiniMine/mods/"+caminho) : Gdx.files.internal(caminho));
+		final BitmapFont fonte = new BitmapFont(externo ? Gdx.files.absolute(Inicio.externo+"/MiniMine/mods/"+caminho) : Gdx.files.internal(caminho));
 		if(escala != 0f) fonte.getData().setScale(escala);
 		fonte.setUseIntegerPositions(true);
+		fonte.setColor(Color.WHITE);
 		fontes.put(caminho, fonte);
 		
 		return fonte;
@@ -31,11 +34,8 @@ public class InterUtil {
 		return carregarFonte(caminho, escala, false);
 	}
 	
-	public static void liberarFonte(BitmapFont... fonte) {
-		for(int i = 0; i < fonte.length; i++) {
-			fontes.remove(fonte[i]);
-			fonte[i].dispose();
-		}
+	public static void liberarFonte(BitmapFont fonte) {
+		fontes.remove(fonte).dispose();
 	}
 	
 	public static void liberar() {

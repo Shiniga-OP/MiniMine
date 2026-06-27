@@ -34,10 +34,19 @@ import com.minimine.cenas.Jogo;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 
-public class Render extends Renderizador {
+public class Render {
     public static ShaderProgram shader;
     public static ShapeRenderer debugCaixas;
-
+	
+	public static Mundo mundo;
+	public static UI ui;
+	public static boolean pause = false;
+	public static GerenciadorParticulas gp;
+    public static ModelBatch mb; // gerenciador de modelos 3D de entidades
+	public static int PASSO = 20;
+	public static List<Jogador> jogadores;
+	public static int fps;
+	
     public static String vert = 
     "attribute float a_pos;\n" +
     "attribute vec2 a_texCoord;\n" +
@@ -115,12 +124,18 @@ public class Render extends Renderizador {
 	public static GLProfiler gpu;
 
     public Render(List<Jogador> jogadores, Mundo mundo) {
-        super(jogadores, mundo);
+        this.jogadores = jogadores;
+        this.mundo = mundo;
 	}
 
-	@Override
 	public void iniciar() {
-        super.iniciar();
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());  
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glCullFace(GL20.GL_BACK);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+		Gdx.gl.glFrontFace(GL20.GL_CCW);
+		this.ui = new UI(jogadores.get(0));
 
         shader = new ShaderProgram(vert, frag);
 		ShaderProgram.pedantic = false;
@@ -152,9 +167,8 @@ public class Render extends Renderizador {
 		else gpu.disable();
     }
 
-	@Override
     public void att(float delta) {
-		super.att(delta);
+		fps = Gdx.graphics.getFramesPerSecond();
 		if(!pause) {
 			Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
 			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -392,9 +406,10 @@ public class Render extends Renderizador {
         Gdx.gl.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-	@Override
     public void liberar() {
-		super.liberar();
+		ui.liberar();
+		mb.dispose();
+        gp.liberar();
         shader.dispose();
         debugCaixas.dispose();
 		if(mundo.nuvens) NuvensUtil.liberar();

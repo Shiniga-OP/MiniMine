@@ -1,7 +1,7 @@
 package com.minimine.mundo.chunks;
 
 public class ChunkProcesso {
-	public static GeradorLuz luz;
+	public static ChunkLuz luz = new ChunkLuz();
 	public static ChunkUtil util = new ChunkUtil();
-	public static GeradorMalha malha;
+	public static ChunkMalha malha = new ChunkMalha();
 }

@@ -5,7 +5,7 @@ import com.minimine.graficos.TipoRender;
 import java.util.Arrays;
 import com.minimine.mundo.Mundo;
 
-public class ChunkLuz implements GeradorLuz {
+public class ChunkLuz {
     public static final int Y_MAX = Mundo.Y_CHUNK - 1;
     public static final int[] POS_X = {1, -1, 0, 0, 0, 0};
     public static final int[] POS_Y = {0, 0, 1, -1, 0, 0};
@@ -20,19 +20,16 @@ public class ChunkLuz implements GeradorLuz {
         @Override protected int[] initialValue() { return new int[TOTAL_BLOCOS * 6]; }
     };
 
-    @Override
     public void calcularLuz(Chunk chunk) {
         execProcesso(chunk, true);
     }
-
-    @Override
+    
     public void attLuz(Chunk chunk) {
         if(!chunk.luzSuja) return;
         chunk.luzSuja = false;
         execProcesso(chunk, false);
     }
-
-    @Override
+	
     public void recalcularLuz(Chunk chunk) {
         zerarLuzBlocoChunk(chunk);
 

@@ -67,8 +67,13 @@ public class Mundo {
 
     public static final List<Long> praRemover = new ArrayList<>();
     public static final ArrayDeque<Chunk> chunkReuso = new ArrayDeque<>();
+	
+	public static final int TAM_CHUNK = 16, Y_CHUNK = 256;
+    public static final int CHUNK_AREA = TAM_CHUNK * TAM_CHUNK;
+    public static long semente = 0;
+    public static int RAIO_CHUNKS = 5;
 
-    public static GradeChunk chunks = new GradeChunk(5); // raio inicial; ajustado em iniciar() via verificarRaio
+    public static GradeChunk chunks = new GradeChunk(RAIO_CHUNKS); // raio inicial; ajustado em iniciar() via verificarRaio
     public static Map<Long, Chunk> chunksMod = new ConcurrentHashMap<>();
 
 	public static final Chunk[] chunkCache = {
@@ -90,7 +95,7 @@ public class Mundo {
 	DADOS_PRONTOS = 1, ESTRUTURAS_PRONTAS = 2,
 	LUZ_PRONTA = 3, MALHA_PRONTA = 4;
 
-	private static class ChunkVazia {
+	private final static class ChunkVazia {
 		public static final int estado = 0;
 	}
 	public static final ChunkVazia chunkVazia = new ChunkVazia();
@@ -105,11 +110,6 @@ public class Mundo {
     public static final Map<Long, int[]> filaTam = new ConcurrentHashMap<>();
     public static final int FILA_CAMPOS = 5;
     public static final int FILA_CAP_INICIAL = 32; // entradas
-
-    public static final int TAM_CHUNK = 16, Y_CHUNK = 256;
-    public static final int CHUNK_AREA = TAM_CHUNK * TAM_CHUNK;
-    public static long semente = 0;
-    public static int RAIO_CHUNKS = 5;
 
     public static boolean carregado = false, ciclo = true, nuvens = true;
 
@@ -134,9 +134,7 @@ public class Mundo {
 
         if(!carregado && chunks.tam() >= 1) {
             Chunk c = chunks.obter((int)jg.posicao.x >> 4, (int)jg.posicao.z >> 4);
-            if(c != null && c.estado == 4) {
-				carregado = true;
-			}
+            if(c != null && c.estado == 4) carregado = true;
         }
     }
 
@@ -158,7 +156,7 @@ public class Mundo {
 			});
     }
 
-    // remove chunk do mapa e devolve ao pool APÓS liberar GPU na thread GL
+    // remove chunk do mapa e devolve pro reuso APOS liberar GPU na thread GL
     public static void removerChunk(final long chave) {
         final int cx = Chave.x(chave), cz = Chave.z(chave);
         final Chunk c = chunks.obter(cx, cz);
@@ -364,14 +362,13 @@ public class Mundo {
 		final Chunk[] cache = chunkCache;
 
 		for(int i = 0; i < 9; i++) {
-			if(cache[i] != null && cache[i].chave == chave) {
-				return cache[i];
-			}
+			final Chunk c = cache[i];
+			if(c != null && c.chave == chave) return c;
 		}
 		final Chunk chunk = chunks.obter(Chave.x(chave), Chave.z(chave));
 
 		final int indice = proximoCache.getAndIncrement();
-		final int slot = (indice & Integer.MAX_VALUE) % 9; 
+		final int slot = (indice & Integer.MAX_VALUE) % 9;
 		cache[slot] = chunk;
 
 		return chunk;
@@ -829,4 +826,3 @@ public class Mundo {
 		return true;
 	}
 }
-

@@ -28,7 +28,6 @@ import java.util.Iterator;
 import com.badlogic.gdx.math.MathUtils;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
-import com.minimine.Debugador;
 import com.badlogic.gdx.graphics.profiling.GLProfiler;
 import com.minimine.ui.UI;
 import com.minimine.Logs;
@@ -98,8 +97,6 @@ public class ServidorInterno {
 		} else {
 			Gdx.app.log("[Servidor]", "mundo "+mundo.nome+" não encontrado, criando novo");
 		}
-		if(mundo.ciclo) mundo.diaNoite.iniciar();
-
 		netServidor = new Net(Net.SERVIDOR_MODO);
 		netServidor.ouvinte = new Net.OuvintePacote() {
 			public void aoReceber(byte tipo, DataInputStream dados) throws IOException {

@@ -8,7 +8,7 @@ import com.minimine.graficos.TipoRender;
 import com.minimine.mundo.Mundo;
 import com.minimine.mundo.blocos.BlocoCubo;
 
-public class ChunkMalha implements GeradorMalha {
+public class ChunkMalha {
     // tamanho maximo de mascara necessaria(eixo X/Z: 16 * Y_CHUNK)
     // reutiliza array de mascara por thread
     public static final ThreadLocal<int[]> MASCARA_CACHE = new ThreadLocal<int[]>() {
@@ -16,7 +16,6 @@ public class ChunkMalha implements GeradorMalha {
     };
 	public static final boolean[] mascara2 = {true, false};
 
-	@Override
     public void attMalha(Chunk chunk, FloatArrayUtil verts, ShortArrayUtil idcSolidos, ShortArrayUtil idcTransp) {
 		Chunk cXP, cXN, cZP, cZN;
         cXP = Mundo.obterChunk(chunk.x + 1, chunk.z);
