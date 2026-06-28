@@ -8,8 +8,8 @@ import com.minimine.mundo.blocos.Bloco;
 import com.minimine.graficos.TipoRender;
 import java.util.ArrayDeque;
 /*
- * motor de propagação de fluídos por BFS, rodando no tick do servidor
- 
+ * motor de propagação de fluidos por BFS, rodando no tick do servidor
+
  * meta do bloco(short, 16 bits):
  *  bits 0-3 = nivel(1–8; 8 = fonte, 1 = minimo fluindo, 0 = vazio/ar)
  *  bit 8 = marca fonte(1 = fonte permanente, não some)
@@ -55,9 +55,8 @@ public class FluxoFluido {
 
 		// bloco sumiu(outro bloco foi colocado por cima)
 		final int blocoAtual = Mundo.obterBlocoMundo(x, y, z);
-		if(blocoAtual == 0 || Bloco.numIds.get(blocoAtual) == null) return;
 		final Bloco tipo = Bloco.numIds.get(blocoAtual);
-		if(tipo.render != TipoRender.LIQUIDO) return;
+		if(tipo == null || tipo.render != TipoRender.LIQUIDO) return;
 
 		// respeita viscosidade: so propaga nos ticks certos
 		if(numTick % tipo.viscosidade != 0) {
@@ -116,7 +115,7 @@ public class FluxoFluido {
 	public static void colocar(int x, int y, int z, int blocoId, int nivel, boolean fonte) {
 		final Chunk chunk = Mundo.obterChunk(x >> 4, z >> 4);
 		if(chunk == null) return;
-		
+
 		final int nivelAtual = ChunkProcesso.util.obterMeta(x & 0xF, y, z & 0xF, chunk) & MASCARA_NIVEL;
 
 		// so atualiza se o novo nivel for maior que o atual
@@ -124,9 +123,9 @@ public class FluxoFluido {
 
 		ChunkProcesso.util.defBloco(x & 0xF, y, z & 0xF, blocoId, chunk);
 		ChunkProcesso.util.defMeta(x & 0xF, y, z & 0xF, (short)nivel, chunk);
-		
+
 		chunk.att = true;
-		
+
 		fila.add(Chave.gerar3d(x, y, z));
 	}
 
@@ -139,7 +138,7 @@ public class FluxoFluido {
 
 		ChunkProcesso.util.defBloco(x & 0xF, y, z & 0xF, blocoId, chunk);
 		ChunkProcesso.util.defMeta(x & 0xF, y, z & 0xF, (short)nivel, chunk);
-		
+
 		fila.add(Chave.gerar3d(x, y, z));
 	}
 
@@ -147,7 +146,12 @@ public class FluxoFluido {
 	public static void colocarFonte(int x, int y, int z, String nomeFluido) {
 		final Bloco b = Bloco.texIds.get(nomeFluido);
 		if(b == null || b.render != TipoRender.LIQUIDO) return;
-		colocar(x, y, z, b.tipo, NIVEL_FONTE, true);
+		final Chunk chunk = Mundo.obterChunk(x >> 4, z >> 4);
+		if(chunk == null) return;
+		ChunkProcesso.util.defBloco(x & 0xF, y, z & 0xF, b.tipo, chunk);
+		ChunkProcesso.util.defMeta(x & 0xF, y, z & 0xF, (short)(MARCA_FONTE | NIVEL_FONTE), chunk);
+		chunk.att = true;
+		fila.add(Chave.gerar3d(x, y, z));
 	}
 
 	// remove um fluido do mundo(chamado ao quebrar fonte com balde vazio, etc)
