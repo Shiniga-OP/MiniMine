@@ -6,15 +6,16 @@ import com.minimine.mundo.Mundo;
 import com.minimine.utils.ruidos.OpenSimplex2;
 import com.minimine.mundo.blocos.Bloco;
 import com.minimine.mundo.chunks.ChunkProcesso;
+import com.minimine.mundo.fluidos.FluxoFluido;
 /*
  * orquestrador de geração de chunk
  * thread-segura: toda a geração opera sobre ContextoGeracao local por thread
- 
+
  * MotorGeracao, TerranoBase e GeradorRios são imutaveis após construção
  * contem apenas parametros e sementes
  * multiplas threads podem chamar gerarChunk() simultaneamente sem concorrencia
  * porque cada chamada usa seu proprio ContextoGeracao via ThreadLocal
- 
+
  * processo de estados:
  *   0 -> 1  gerarChunk: terreno + biomas + agua + vegetacao(so escrita local)
  *   1 -> 2  colocarEstruturas: estruturas proprias + aplica pendentes recebidas
@@ -22,7 +23,7 @@ import com.minimine.mundo.chunks.ChunkProcesso;
  *  vizinha outro est -> enfileira em Mundo.filaEstrutura
  *   2 -> 3  calcularLuz:  propagação de luz
  *   3 -> 4  gerarMalha: malha de renderização
-*/
+ */
 public final class MotorGeracao {
     public static final int NIVEL_MAR = 62;
 
@@ -146,7 +147,6 @@ public final class MotorGeracao {
                 for(int y = NIVEL_MAR; y >= 0; y--) {
                     if(ChunkProcesso.util.obterBloco(x, y, z, chunk) == 0) {
                         ChunkProcesso.util.defBloco(x, y, z, AGUA, chunk);
-                        ChunkProcesso.util.defMeta(x, y, z, (short)7, chunk);
                     }
                 }
             }
@@ -159,7 +159,7 @@ public final class MotorGeracao {
      * coloca vegetação de 1 bloco por coluna escrita puramente local, sem acessar vizinhas
      * chamado ao fim de gerarChunk(estado 0->1)
      * precalcula topoMapa para reuso em colocarEstruturas
-    */
+	 */
     public void colocarVegetacao(Chunk chunk, int chunkX, int chunkZ, ContextoGeracao ctx) {
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
@@ -229,11 +229,11 @@ public final class MotorGeracao {
     }
     /*
      * coloca uma estrutura a partir da ancora(ox, oy, oz) em coordenadas locais do chunk
-     
+
      * regra de escrita para blocos que extrapolam:
      *   vizinha em estado 1 exatamente -> escreve direto(ainda na janela de dados)
      *   vizinha em qualquer outro estado -> enfileira em Mundo.filaEstrutura
-     
+
      * chunks modificadas pelo jogador (chunksMod) nunca recebem escrita de geração
      */
     public void colocarEstrutura(DadosBioma.EntradaEstrutura e, int ox, int oy, int oz, Chunk chunk) {
@@ -254,7 +254,7 @@ public final class MotorGeracao {
                 vizinhoMod[idc] = Mundo.chunksMod.containsKey(chave);
                 if(!vizinhoMod[idc]) {
                     final Chunk c  = Mundo.obterChunk(chave);
-                    
+
                     if(c != null && c.estado == 1) {
                         // vizinha ainda na janela de dados: escreve direto
                         vizinhos[idc] = c;
@@ -310,7 +310,7 @@ public final class MotorGeracao {
             }
         }
     }
-	
+
 	public static void gerarPlano(Chunk chunk) {
 		final int TERRA = Bloco.texIds.get("terra").tipo;
 		final int GRAMA = Bloco.texIds.get("grama").tipo;
@@ -330,7 +330,7 @@ public final class MotorGeracao {
 
     // === UTIL ===
     public void calcular2D(long sem, float espalhar, int oct, float persist, float lac,
-	int origemX, int origemZ, float[] saida) {
+						   int origemX, int origemZ, float[] saida) {
         final float freq = 1.0f / espalhar;
         for(int z = 0; z < 16; z++) {
             for(int x = 0; x < 16; x++) {
@@ -354,11 +354,11 @@ public final class MotorGeracao {
     public final  String obterBioma(int mx, int mz) {
         final int alt = terreno.calcularAlturaPonto(mx, mz);
         final float cal = Math.max(0f, Math.min(1f,
-		OpenSimplex2.ruido2Fractal(semCalor, mx / espalharCalor, mz / espalharCalor,
-		octCalor, perCalor, 2.0f) * 0.5f + 0.5f - ((alt - NIVEL_MAR) * 0.004f)));
+												OpenSimplex2.ruido2Fractal(semCalor, mx / espalharCalor, mz / espalharCalor,
+																		   octCalor, perCalor, 2.0f) * 0.5f + 0.5f - ((alt - NIVEL_MAR) * 0.004f)));
         final float umi = Math.max(0f, Math.min(1f,
-		OpenSimplex2.ruido2Fractal(semUmidade, mx / espalharUmidade, mz / espalharUmidade,
-		octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
+												OpenSimplex2.ruido2Fractal(semUmidade, mx / espalharUmidade, mz / espalharUmidade,
+																		   octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
         return registro.selecionar(cal, umi, alt).nome;
     }
 
@@ -372,11 +372,11 @@ public final class MotorGeracao {
                     int mx = origemX + dx, mz = origemZ + dz;
                     int alt = terreno.calcularAlturaPonto(mx, mz);
                     float cal = Math.max(0f, Math.min(1f,
-					OpenSimplex2.ruido2Fractal(semCalor, mx / espalharCalor, mz / espalharCalor,
-					octCalor, perCalor, 2.0f) * 0.5f + 0.5f - ((alt - NIVEL_MAR) * 0.004f)));
+													  OpenSimplex2.ruido2Fractal(semCalor, mx / espalharCalor, mz / espalharCalor,
+																				 octCalor, perCalor, 2.0f) * 0.5f + 0.5f - ((alt - NIVEL_MAR) * 0.004f)));
                     float umi = Math.max(0f, Math.min(1f,
-					OpenSimplex2.ruido2Fractal(semUmidade, mx / espalharUmidade, mz / espalharUmidade,
-					octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
+													  OpenSimplex2.ruido2Fractal(semUmidade, mx / espalharUmidade, mz / espalharUmidade,
+																				 octUmidade, perUmidade, 2.0f) * 0.5f + 0.5f));
                     if(registro.selecionar(cal, umi, alt).chave.equals(chave)) return new int[]{mx, mz};
                 }
             }
@@ -384,4 +384,3 @@ public final class MotorGeracao {
         return new int[]{0, 0};
     }
 }
-

@@ -1,19 +1,37 @@
 package com.minimine.mundo;
 
-public class Chave {
-	public static final long gerar(final int x, final int z) {
-		return ((long)x << 32) | (z & 0xFFFFFFFFL);
-	}
-	
-	public static final long gerar(final int x, final int y, final int z) {
-		return ((long)(x & 0xFFFFF)) | (((long)(y & 0xFF)) << 20) | (((long)(z & 0xFFFFF)) << 28);
-	}
+public final class Chave {
+    public static final int MASCARA_Y = 0xFFFF;
 
-	public static final int x(final long chave) {
-		return (int)(chave >> 32);
-	}
+    // chave 2D
+    public static final long gerar(final int x, final int z) {
+        return ((long)x << 32) | (z & 0xFFFFFFFFL);
+    }
 
-	public static final int z(final long chave) {
-		return (int)chave;
-	}
+    // chave 3D: X nos bits 63-32, Z nos bits 31-16, Y nos bits 15-0
+    public static final long gerar3d(final int x, final int y, final int z) {
+        return ((long)x << 32) | ((z & 0xFFFFL) << 16) | (y & MASCARA_Y);
+    }
+
+    // extratores 2D
+    public static final int x(final long chave) {
+        return (int)(chave >> 32);
+    }
+
+    public static final int z(final long chave) {
+        return (int)chave;
+    }
+
+    // extratores 3D
+    public static final int x3d(final long chave) {
+        return (int)(chave >> 32);
+    }
+
+    public static final int y3d(final long chave) {
+        return (int)(chave & MASCARA_Y);
+    }
+
+    public static final int z3d(final long chave) {
+        return (short)((chave >> 16) & 0xFFFF);
+    }
 }

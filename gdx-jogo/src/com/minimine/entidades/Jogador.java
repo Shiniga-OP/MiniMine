@@ -130,7 +130,7 @@ public class Jogador extends Entidade {
 		final float dirY = raio.direction.y;
 		final float dirZ = raio.direction.z;
 
-		// tenta atacar criatura se quebrar == true e cooldown zerado
+		// tenta atacar criatura se quebrar == true e tempo zerado
 		if(quebrar && tempoAtaque <= 0f) {
 			Criatura alvo = null;
 			float menorDist = Float.MAX_VALUE;
@@ -161,7 +161,7 @@ public class Jogador extends Entidade {
 				final float forca = 8f;
 				alvo.velocidade.x = dirX * forca;
 				alvo.velocidade.z = dirZ * forca;
-				alvo.velocidade.y = 4f;
+				alvo.velocidade.y = 5f;
 				tempoAtaque = intervaloAtaque;
 				return;
 			}
@@ -265,14 +265,13 @@ public class Jogador extends Entidade {
 		super.att(delta);
 
 		// coleta deixados proximos
-		final java.util.Iterator<Entidade> deixados = Mundo.entidades.iterator();
-		while(deixados.hasNext()) {
-			final Entidade e = deixados.next();
+		for(int i = Mundo.entidades.size() - 1; i >= 0; i--) {
+			final Entidade e = Mundo.entidades.get(i);
 			if(!(e instanceof ItemMundo)) continue;
 			final ItemMundo deixado = (ItemMundo)e;
 
 			if(deixado.tempoVida <= 0f) {
-				deixados.remove();
+				Mundo.entidades.remove(i);
 				continue;
 			}
 			final float dist = posicao.dst(deixado.posicao);
@@ -285,7 +284,7 @@ public class Jogador extends Entidade {
 			// coleta efetiva
 			if(dist < ItemMundo.RAIO_COLETA) {
 				inv.addItem(deixado.nome, deixado.quantidade);
-				deixados.remove();
+				Mundo.entidades.remove(i);
 			}
 		}
 		frenteV.x = camera.direction.x;
