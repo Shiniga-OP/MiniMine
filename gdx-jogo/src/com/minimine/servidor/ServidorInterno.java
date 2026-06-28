@@ -284,17 +284,21 @@ public class ServidorInterno {
 					break;
 				}
 			case Net.PACOTE_BLOCO: {
-					int x = dis.readInt();
-					int y = dis.readInt();
-					int z = dis.readInt();
-					int id = dis.readInt();
-					String item = Net.lerUTF(dis);
-					mundo.defBlocoMundo(x, y, z, id);
-					if(!item.equals("ar")) {
-						mundo.entidades.add(new ItemMundo(item, 1, x + 0.5f, y + 0.5f, z + 0.5f));
-					}
-					break;
-				}
+                    int x = dis.readInt();
+                    int y = dis.readInt();
+                    int z = dis.readInt();
+                    int id = dis.readInt();
+                    String item = Net.lerUTF(dis);
+                    mundo.defBlocoMundo(x, y, z, id);
+
+                    // ACORDAR OS FLUIDOS ADJACENTES (IGUAL AO LUANTI)
+                    com.minimine.mundo.fluidos.FluxoFluido.notificarVizinhos(x, y, z);
+
+                    if(!item.equals("ar")) {
+                        mundo.entidades.add(new ItemMundo(item, 1, x + 0.5f, y + 0.5f, z + 0.5f));
+                    }
+                    break;
+                }
 			case Net.PACOTE_ENTROU: {
 					int id = dis.readInt();
 					String identidade = Net.lerUTF(dis);

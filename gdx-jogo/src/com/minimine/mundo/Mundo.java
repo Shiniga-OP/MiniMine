@@ -67,7 +67,7 @@ public class Mundo {
 
     public static final List<Long> praRemover = new ArrayList<>();
     public static final ArrayDeque<Chunk> chunkReuso = new ArrayDeque<>();
-	
+
 	public static final int TAM_CHUNK = 16, Y_CHUNK = 256;
     public static final int CHUNK_AREA = TAM_CHUNK * TAM_CHUNK;
     public static long semente = 0;
@@ -242,7 +242,12 @@ public class Mundo {
 			FluxoFluido.colocarFonte(x, y, z, novoBlocoObj.nome);
 			return;
 		}
-        if(blocoAntigoId != 0) {
+		// bloco antigo era liquido(fonte ou fluxo) e ta sendo substituido por algo
+		// que nao e liquido: remove via FluxoFluido pra notificar os vizinhos e
+		// reagendar o tick deles, senao ficam travados no ultimo estado processado
+		final boolean blocoAntigoEhLiquido = blocoObj != null && blocoObj.render == TipoRender.LIQUIDO;
+		
+        if(blocoAntigoId != 0 && !blocoAntigoEhLiquido) {
             Render.gp.criar(x, y, z, Texturas.atlas.get(blocoObj.textura.sul));
         }
         ChunkProcesso.util.defBloco(localX, y, localZ, bloco, chunk);
@@ -295,6 +300,7 @@ public class Mundo {
             if(chunkAdj != null) chunkAdj.att = true;
         }
         chunksMod.put(chave, chunk);
+		FluxoFluido.notificarVizinhos(x, y, z);
     }
 
     public static void defLuzMundo(int x, int y, int z, byte novaLuz) {
@@ -826,3 +832,4 @@ public class Mundo {
 		return true;
 	}
 }
+
