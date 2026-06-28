@@ -226,10 +226,12 @@ public class Jogo implements Screen {
 		srCarregamento.setColor(0.5f, 0.5f, 0.55f, 1f);
 		srCarregamento.rect(xBarra, yBarra, largBarra, altBarra);
 		srCarregamento.end();
-
+		
 		sbCarregamento.begin();
+		fonteCarregamento.getData().setScale(2.0f);
 		fonteCarregamento.setColor(1f, 1f, 1f, 1f);
 		fonteCarregamento.draw(sbCarregamento, "Carregando mundo...", xBarra, yBarra + altBarra + 48f);
+		fonteCarregamento.getData().setScale(1.5f);
 		fonteCarregamento.setColor(0.7f, 0.7f, 0.75f, 1f);
 		fonteCarregamento.draw(sbCarregamento, msgBarra, xBarra, yBarra - 10f);
 		sbCarregamento.end();

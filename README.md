@@ -255,7 +255,7 @@ caso o jogo crashe ou você não tenha visão completa dos logs, visite *MiniMin
 **Programação**:
 * Shiniga-OP
 * Green
-* Xaniim
+* Egacyer
 * Dorganhozo
 
 **Musicas**:
