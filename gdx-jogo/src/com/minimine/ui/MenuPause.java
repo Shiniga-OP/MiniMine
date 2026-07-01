@@ -9,14 +9,13 @@ import com.minimine.graficos.Render;
 import com.minimine.Inicio;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.cenas.Jogo;
-import com.minimine.Cenas;
 
 import com.micro.util.GerenciadorUI;
 import com.micro.janelas.Painel;
 import com.micro.janelas.PainelFatiado;
 import com.micro.componentes.Botao;
 import com.micro.util.Ancora;
-import com.micro.util.Acao;
+import com.minimine.cenas.Menu;
 
 public class MenuPause {
     public static GerenciadorUI gerenciador;
@@ -34,8 +33,8 @@ public class MenuPause {
     public static float ESCALA_PIXEL = 3f;
 
     public static void iniciar() {
-        gerenciador = new GerenciadorUI();
-
+        gerenciador = new GerenciadorUI(false); // não usa camera propria
+		
         // base dos botões
         visualBotao = new PainelFatiado(Texturas.base);
 
@@ -48,9 +47,9 @@ public class MenuPause {
         // === botão voltar ===
         Botao botaoVoltar = new Botao("Voltar", visualBotao, UI.fonte,
 			0, 0, LARGURA_BOTAO, ALTURA_BOTAO, ESCALA_PIXEL,
-			new Acao() {
+			new Runnable() {
 				@Override
-				public void exec() {
+				public void run() {
 					fecharMenu();
 				}
 			});
@@ -59,9 +58,9 @@ public class MenuPause {
         // === botão salvar ===
         Botao botaoSalvar = new Botao("Salvar", visualBotao, UI.fonte,
 			0, 0, LARGURA_BOTAO, ALTURA_BOTAO, ESCALA_PIXEL,
-			new Acao() {
+			new Runnable() {
 				@Override
-				public void exec() {
+				public void run() {
 					ArquivosUtil.svMundo(Jogo.mundo, Jogo.jogadores);
 					fecharMenu();
 					UI.abrirDialogo("Jogo salvo!", null);
@@ -72,12 +71,12 @@ public class MenuPause {
         // === botão sair ===
         Botao botaoSair = new Botao("Sair", visualBotao, UI.fonte,
 			0, 0, LARGURA_BOTAO, ALTURA_BOTAO, ESCALA_PIXEL,
-			new Acao() {
+			new Runnable() {
 				@Override
-				public void exec() {
+				public void run() {
 					ArquivosUtil.svMundo(Jogo.mundo, Jogo.jogadores);
 					fecharMenu();
-					Inicio.defTela(Cenas.menu);
+					Inicio.tela.setScreen(new Menu());
 				}
 			});
         painelMenu.addAncorado(botaoSair, Ancora.INFERIOR_CENTRO, 0, 0);
@@ -147,4 +146,3 @@ public class MenuPause {
         if(gerenciador != null) gerenciador.liberar();
     }
 }
-

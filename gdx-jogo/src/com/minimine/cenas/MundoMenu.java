@@ -15,7 +15,6 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import com.minimine.Inicio;
-import com.minimine.Cenas;
 import com.minimine.mundo.Mundo;
 import com.minimine.utils.ArquivosUtil;
 
@@ -23,39 +22,32 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.micro.util.Acao;
 import com.micro.janelas.Painel;
 import com.micro.componentes.Botao;
 import com.micro.componentes.Rotulo;
 import com.micro.util.Ancora;
-import com.micro.componentes.ItemBotao;
-import com.micro.componentes.ItemLinha;
 import com.micro.componentes.CampoTexto;
-import com.micro.janelas.PainelRolavel;
 import com.micro.componentes.CaixaDialogo;
 import com.micro.janelas.PainelFatiado;
 import com.micro.util.GerenciadorUI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import com.minimine.ui.InterUtil;
+import com.micro.janelas.Lista;
 
-public class MundoMenu implements Screen, InputProcessor {
+public class MundoMenu implements Screen {
     public SpriteBatch pincel;
-    public ShapeRenderer pincelFormas;
     public BitmapFont fonteTitulo;
     public BitmapFont fonteTexto;
-    public OrthographicCamera camera;
-    public Viewport vista;
-    public Vector3 toqueAuxiliar;
-
+    
     public GerenciadorUI gerenciadorUI;
     public PainelFatiado visualJanela;
     public PainelFatiado visualBotao;
-    public Texture pixelBranco;
+    public Texture pixelBranco, texturaUi;
     public float escalaPixel;
 
     public Painel painelPrincipal;
-    public PainelRolavel painelMundos;
+    public Lista painelMundos;
     public CaixaDialogo dialogoCriar;
     public CaixaDialogo dialogoConfirmarExcluir;
     public CampoTexto campoNome;
@@ -63,7 +55,6 @@ public class MundoMenu implements Screen, InputProcessor {
 
     public List<String> nomesMundos;
     public boolean recarregarInterface, mundoEscolhido;
-    public static boolean liberado = false;
 
     // nome pendente de exclusão, preenchido quando o dialogo de confirmação abre
     public String mundoPendenteExcluir = null;
@@ -74,8 +65,7 @@ public class MundoMenu implements Screen, InputProcessor {
         ArquivosUtil.debug = true;
 
         pincel = new SpriteBatch();
-        pincelFormas = new ShapeRenderer();
-
+        
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(1, 1, 1, 1);
         pixmap.fill();
@@ -84,11 +74,7 @@ public class MundoMenu implements Screen, InputProcessor {
 
         fonteTitulo = InterUtil.carregarFonte("fontes/pixel-16.fnt", 2f);
         fonteTexto = InterUtil.carregarFonte("fontes/pixel-16.fnt", 1.5f);
-        camera = new OrthographicCamera();
-        vista = new ScreenViewport(camera);
-        vista.apply(true);
-
-        toqueAuxiliar = new Vector3();
+        
         escalaPixel = 4.0f;
         nomesMundos = new ArrayList<String>();
         recarregarInterface = false;
@@ -96,19 +82,17 @@ public class MundoMenu implements Screen, InputProcessor {
         gerenciadorUI = new GerenciadorUI();
 
         try {
-            Texture textura = new Texture(Gdx.files.internal("texturas/ui/base.png"));
-            textura.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-            visualJanela = new PainelFatiado(textura);
-            visualBotao = new PainelFatiado(textura);
+            texturaUi = new Texture(Gdx.files.internal("texturas/ui/base.png"));
+            visualJanela = new PainelFatiado(texturaUi);
+            visualBotao = new PainelFatiado(texturaUi);
 
             carregarMundos();
             criarInterface();
         } catch(Exception e) {
             Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
         }
-        Gdx.input.setInputProcessor(this);
+        Gdx.input.setInputProcessor(gerenciadorUI);
         mundoEscolhido = false;
-        liberado = false;
     }
 
     public void carregarMundos() {
@@ -139,8 +123,8 @@ public class MundoMenu implements Screen, InputProcessor {
 
         Painel painelBotoes = new Painel(null, 20, 80, 760, 80, 0);
 
-        Acao acaoNovoMundo = new Acao() {
-            public void exec() {
+        Runnable acaoNovoMundo = new Runnable() {
+            public void run() {
                 mundoEscolhido = false;
                 abrirDialogoCriar();
             }
@@ -150,7 +134,7 @@ public class MundoMenu implements Screen, InputProcessor {
         painelPrincipal.add(painelBotoes);
 
         // lista de mundos
-        painelMundos = new PainelRolavel(20, 170, 760, 420);
+        painelMundos = new Lista(visualJanela, 20, 170, 760, 420, escalaPixel, pixelBranco);
         painelMundos.defEspaco(0.5f);
 
         if(nomesMundos.isEmpty()) {
@@ -179,7 +163,7 @@ public class MundoMenu implements Screen, InputProcessor {
                     throw new RuntimeException("[ERRO]: nome de mundo invalido "+e);
                 }
                 float y = 5 + (i * (alturaLinha + espacamento));
-                ItemLinha linha = new ItemLinha(5, y, 750, alturaLinha, pixelBranco);
+                Painel linha = new Painel(visualJanela, 5, y, 750, alturaLinha, escalaPixel);
 
                 // rotulo do nome do mundo, alinhado verticalmente no centro
                 final Rotulo rotuloNome = new Rotulo(nomeMundo, fonteTexto, escalaPixel * 0.75f);
@@ -187,53 +171,53 @@ public class MundoMenu implements Screen, InputProcessor {
                 rotuloNome.y = margemV;
                 rotuloNome.largura = larguraNome - 10;
                 rotuloNome.altura = alturaItemInterno;
-                linha.addFilho(rotuloNome);
+                linha.add(rotuloNome);
 
                 // botao jogar
                 float xJogar = larguraNome;
-                Acao acaoJogar = new Acao() {
-                    public void exec() {
+                Runnable acaoJogar = new Runnable() {
+                    public void run() {
                         if(mundoEscolhido) return;
                         Mundo.nome = nomeMundo;
                         mundoEscolhido = true;
-                        Inicio.defTela(Cenas.jogo);
+                        Inicio.tela.setScreen(new Jogo());
                     }
                 };
-                ItemBotao botaoJogar = new ItemBotao(
+                Botao botaoJogar = new Botao(
                     xJogar, margemV, larguraBotaoAcao, alturaItemInterno,
                     "Jogar", fonteTexto, escalaPixel * 0.6f, pixelBranco, acaoJogar
                 );
-                linha.addFilho(botaoJogar);
+                linha.add(botaoJogar);
 
                 // botao editar
                 float xEditar = larguraNome + larguraBotaoAcao + 5;
-                Acao acaoEditar = new Acao() {
-                    public void exec() {
+                Runnable acaoEditar = new Runnable() {
+                    public void run() {
                         abrirDialogoEditar(nomeMundo, nomeArquivo);
                     }
                 };
-                ItemBotao botaoEditar = new ItemBotao(
+                Botao botaoEditar = new Botao(
                     xEditar, margemV, larguraBotaoAcao, alturaItemInterno,
                     "Editar", fonteTexto, escalaPixel * 0.6f, pixelBranco, acaoEditar
                 );
                 botaoEditar.corNormal.set(0.35f, 0.45f, 0.35f, 1f);
                 botaoEditar.corPressionado.set(0.45f, 0.6f, 0.45f, 1f);
-                linha.addFilho(botaoEditar);
+                linha.add(botaoEditar);
 
                 // botao excluir
                 float xExcluir = larguraNome + (larguraBotaoAcao + 5) * 2;
-                Acao acaoExcluir = new Acao() {
-                    public void exec() {
+                Runnable acaoExcluir = new Runnable() {
+                    public void run() {
                         abrirDialogoConfirmarExcluir(nomeMundo, nomeArquivo);
                     }
                 };
-                ItemBotao botaoExcluir = new ItemBotao(
+                Botao botaoExcluir = new Botao(
                     xExcluir, margemV, larguraBotaoAcao, alturaItemInterno,
                     "Excluir", fonteTexto, escalaPixel * 0.6f, pixelBranco, acaoExcluir
                 );
                 botaoExcluir.corNormal.set(0.5f, 0.25f, 0.25f, 1f);
                 botaoExcluir.corPressionado.set(0.7f, 0.3f, 0.3f, 1f);
-                linha.addFilho(botaoExcluir);
+                linha.add(botaoExcluir);
 
                 painelMundos.add(linha);
             }
@@ -241,9 +225,9 @@ public class MundoMenu implements Screen, InputProcessor {
         painelMundos.calcularAlturaConteudo();
         painelPrincipal.add(painelMundos);
 
-        Acao acaoVoltar = new Acao() {
-            public void exec() {
-                Inicio.defTela(Cenas.menu);
+        Runnable acaoVoltar = new Runnable() {
+            public void run() {
+                Inicio.tela.setScreen(new Menu());
             }
         };
         Botao botaoVoltar = new Botao("VOLTAR", visualBotao, fonteTexto, 0, 0, 200, 60, escalaPixel, acaoVoltar);
@@ -256,13 +240,14 @@ public class MundoMenu implements Screen, InputProcessor {
 
     public void criarDialogos() {
         // dialogo de criação de mundo
-        dialogoCriar = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel, pincelFormas);
-        dialogoCriar.definirTamanho(500, 440);
+        dialogoCriar = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel);
+        dialogoCriar.defTam(500, 440);
         dialogoCriar.centralizar(0, 0);
 
         campoNome = new CampoTexto(visualBotao, fonteTexto, 50, 240, 400, 50, escalaPixel / 1.5f);
         campoNome.padrao = "Nome do Mundo";
         campoNome.limiteCaracteres = 30;
+		campoNome.defTexto("Novo mundo");
         dialogoCriar.add(campoNome);
 
         campoSemente = new CampoTexto(visualBotao, fonteTexto, 50, 160, 400, 50, escalaPixel / 1.5f);
@@ -270,14 +255,14 @@ public class MundoMenu implements Screen, InputProcessor {
         campoSemente.limiteCaracteres = 10;
         dialogoCriar.add(campoSemente);
 
-        Acao acaoSobrevivencia = new Acao() {
-            public void exec() { entrarNoMundo(2); }
+        Runnable acaoSobrevivencia = new Runnable() {
+            public void run() { entrarNoMundo(2); }
         };
-        Acao acaoCriativo = new Acao() {
-            public void exec() { entrarNoMundo(1); }
+        Runnable acaoCriativo = new Runnable() {
+            public void run() { entrarNoMundo(1); }
         };
-        Acao acaoEspectador = new Acao() {
-            public void exec() { entrarNoMundo(0); }
+		Runnable acaoEspectador = new Runnable() {
+            public void run() { entrarNoMundo(0); }
         };
         // 3 botões de modo de jogo em linha única
         float largBotaoModo = 148f;
@@ -286,32 +271,32 @@ public class MundoMenu implements Screen, InputProcessor {
         float yLinhaMundo = 5f;
         float xModo = 21f; // (500 - (3*148 + 2*7)) / 2 = 21, centraliza os 3 botões
         dialogoCriar.addBotaoManual("Sobrevivencia", visualBotao,
-		xModo, yLinhaModo, largBotaoModo, altBotaoModo, acaoSobrevivencia);
+									xModo, yLinhaModo, largBotaoModo, altBotaoModo, acaoSobrevivencia);
         dialogoCriar.addBotaoManual("Criativo", visualBotao,
-		xModo + largBotaoModo + 7f, yLinhaModo, largBotaoModo, altBotaoModo, acaoCriativo);
+									xModo + largBotaoModo + 7f, yLinhaModo, largBotaoModo, altBotaoModo, acaoCriativo);
         dialogoCriar.addBotaoManual("Espectador", visualBotao,
-		xModo + (largBotaoModo + 7f) * 2, yLinhaModo, largBotaoModo, altBotaoModo, acaoEspectador);
+									xModo + (largBotaoModo + 7f) * 2, yLinhaModo, largBotaoModo, altBotaoModo, acaoEspectador);
 
         final Botao[] modoMundo = {null};
 
-        Acao acaoMundo = new Acao() {
-            public void exec() {
+        Runnable acaoMundo = new Runnable() {
+            public void run() {
                 Mundo.plano = !Mundo.plano;
                 if(Mundo.plano) modoMundo[0].rotulo.texto = "Mundo Plano";
                 else modoMundo[0].rotulo.texto = "Mundo Normal";
             }
         };
         modoMundo[0] = dialogoCriar.addBotaoManual("Mundo Normal", visualBotao,
-		xModo + (largBotaoModo + 7f) * 2, yLinhaMundo, largBotaoModo, altBotaoModo, acaoMundo);
+												   xModo + (largBotaoModo + 7f) * 2, yLinhaMundo, largBotaoModo, altBotaoModo, acaoMundo);
 
-        gerenciadorUI.addDialogo(dialogoCriar);
+        gerenciadorUI.add(dialogoCriar);
 
         // dialogo de confirmação de exclusão
-        dialogoConfirmarExcluir = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel / 1.5f, pincelFormas);
-        dialogoConfirmarExcluir.definirTamanho(460, 220);
+        dialogoConfirmarExcluir = new CaixaDialogo(visualJanela, fonteTexto, escalaPixel / 1.5f);
+        dialogoConfirmarExcluir.defTam(460, 220);
 
-        Acao acaoConfirmarExcluir = new Acao() {
-            public void exec() {
+        Runnable acaoConfirmarExcluir = new Runnable() {
+            public void run() {
                 if(mundoPendenteExcluir != null) {
                     excluirMundo(mundoPendenteExcluir);
                     mundoPendenteExcluir = null;
@@ -319,8 +304,8 @@ public class MundoMenu implements Screen, InputProcessor {
                 dialogoConfirmarExcluir.fechar(false);
             }
         };
-        Acao acaoCancelarExcluir = new Acao() {
-            public void exec() {
+        Runnable acaoCancelarExcluir = new Runnable() {
+            public void run() {
                 mundoPendenteExcluir = null;
                 dialogoConfirmarExcluir.fechar(false);
             }
@@ -328,14 +313,14 @@ public class MundoMenu implements Screen, InputProcessor {
         dialogoConfirmarExcluir.addBotao("Excluir", visualBotao, Ancora.INFERIOR_ESQUERDO, 10, acaoConfirmarExcluir);
         dialogoConfirmarExcluir.addBotao("Cancelar", visualBotao, Ancora.INFERIOR_DIREITO, -10, acaoCancelarExcluir);
 
-        gerenciadorUI.addDialogo(dialogoConfirmarExcluir);
+        gerenciadorUI.add(dialogoConfirmarExcluir);
     }
 
     public void abrirDialogoCriar() {
         campoNome.texto = "";
         campoSemente.texto = "";
         dialogoCriar.mostrar("Novo Mundo", "", new CaixaDialogo.Fechar() {
-				public void aoFechar(boolean confirmou) {
+				public void confirmou(boolean confirmou) {
 					if(!confirmou) {
 						campoNome.texto = "";
 						campoSemente.texto = "";
@@ -385,7 +370,7 @@ public class MundoMenu implements Screen, InputProcessor {
         dialogoCriar.fechar(false);
         Gdx.input.setOnscreenKeyboardVisible(false);
         mundoEscolhido = true;
-        Inicio.defTela(Cenas.jogo);
+        Inicio.tela.setScreen(new Jogo());
     }
 
     @Override
@@ -399,10 +384,6 @@ public class MundoMenu implements Screen, InputProcessor {
         Gdx.gl.glClearColor(0.2f, 0.2f, 0.3f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        camera.update();
-        pincel.setProjectionMatrix(camera.combined);
-        pincelFormas.setProjectionMatrix(camera.combined);
-
         pincel.begin();
         gerenciadorUI.desenhar(pincel, delta);
         pincel.end();
@@ -410,16 +391,12 @@ public class MundoMenu implements Screen, InputProcessor {
 
     @Override
     public void resize(int v, int h) {
-        vista.update(v, h);
+        gerenciadorUI.ajustar(v, h);
     }
 
     @Override
     public void dispose() {
-        if(liberado) return;
-        liberado = true;
-
         if(pincel != null) pincel.dispose();
-        if(pincelFormas != null) pincelFormas.dispose();
         if(pixelBranco != null) pixelBranco.dispose();
         gerenciadorUI.liberar();
     }
@@ -429,50 +406,6 @@ public class MundoMenu implements Screen, InputProcessor {
         dispose();
     }
 
-    @Override
-    public boolean touchDown(int x, int y, int p, int b) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, true);
-        return true;
-    }
-
-    @Override
-    public boolean touchUp(int x, int y, int p, int b) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, false);
-        return true;
-    }
-
-    @Override
-    public boolean touchDragged(int x, int y, int p) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarArraste(toqueAuxiliar.x, toqueAuxiliar.y);
-        return true;
-    }
-
-    @Override
-    public boolean keyDown(int c) {
-        return gerenciadorUI.processarTecla(c);
-    }
-
-    @Override
-    public boolean keyTyped(char c) {
-        return gerenciadorUI.processarCaractere(c);
-    }
-
     @Override public void pause() {}
     @Override public void resume() {}
-
-    @Override
-    public boolean keyUp(int k) {
-        return false;
-    }
-    @Override
-    public boolean mouseMoved(int x, int y) {
-        return false;
-    }
-    @Override
-    public boolean scrolled(float a, float b) {
-        return false;
-    }
 }

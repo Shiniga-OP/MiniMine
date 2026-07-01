@@ -15,7 +15,6 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import com.minimine.Inicio;
-import com.minimine.Cenas;
 import com.minimine.mundo.Mundo;
 import com.minimine.servidor.Net;
 import com.minimine.utils.ArquivosUtil;
@@ -24,15 +23,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.micro.util.Acao;
 import com.micro.janelas.Painel;
 import com.micro.componentes.Botao;
 import com.micro.componentes.Rotulo;
 import com.micro.util.Ancora;
-import com.micro.componentes.ItemBotao;
-import com.micro.componentes.ItemLinha;
 import com.micro.componentes.CampoTexto;
-import com.micro.janelas.PainelRolavel;
 import com.micro.componentes.CaixaDialogo;
 import com.micro.janelas.PainelFatiado;
 import com.micro.util.GerenciadorUI;
@@ -40,26 +35,23 @@ import com.micro.util.GerenciadorUI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import com.minimine.ui.InterUtil;
+import com.micro.janelas.Lista;
 
-public class MultiMenu implements Screen, InputProcessor {
+public class MultiMenu implements Screen {
     public static String modoRede = null;
     public static Net netClientePronto = null;
 
     public SpriteBatch pincel;
-    public ShapeRenderer pincelFormas;
     public BitmapFont fonte;
-    public OrthographicCamera camera;
-    public Viewport vista;
-    public Vector3 toqueAuxiliar;
 
     public GerenciadorUI gerenciadorUI;
     public PainelFatiado visualJanela;
     public PainelFatiado visualBotao;
-    public Texture pixelBranco;
+    public Texture pixelBranco, texturaUi;
     public float escalaPixel;
 
     public Painel painelPrincipal;
-    public PainelRolavel painelMundos;
+    public Lista painelMundos;
 
     public Rotulo rotuloStatus;
 
@@ -86,8 +78,7 @@ public class MultiMenu implements Screen, InputProcessor {
         tela = "inicio";
 
         pincel = new SpriteBatch();
-        pincelFormas = new ShapeRenderer();
-
+        
         Pixmap px = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         px.setColor(1, 1, 1, 1);
         px.fill();
@@ -96,27 +87,21 @@ public class MultiMenu implements Screen, InputProcessor {
 
         fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt", 1.5f);
         
-        camera = new OrthographicCamera();
-        vista = new ScreenViewport(camera);
-        vista.apply(true);
-
-        toqueAuxiliar = new Vector3();
         escalaPixel = 4.0f;
         nomesMundos = new ArrayList<String>();
 
         gerenciadorUI = new GerenciadorUI();
 
         try {
-            Texture textura = new Texture(Gdx.files.internal("texturas/ui/base.png"));
-            textura.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-            visualJanela = new PainelFatiado(textura);
-            visualBotao = new PainelFatiado(textura);
+            texturaUi = new Texture(Gdx.files.internal("texturas/ui/base.png"));
+            visualJanela = new PainelFatiado(texturaUi);
+            visualBotao = new PainelFatiado(texturaUi);
 
             criarPainelInicio();
         } catch(Exception e) {
             Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
         }
-        Gdx.input.setInputProcessor(this);
+        Gdx.input.setInputProcessor(gerenciadorUI);
     }
 
     public void criarPainelInicio() {
@@ -132,8 +117,8 @@ public class MultiMenu implements Screen, InputProcessor {
         float larguraBotao = 400;
         float alturaBotao = 70;
 
-        Acao acaoHostedar = new Acao() {
-            public void exec() {
+        Runnable acaoHostedar = new Runnable() {
+            public void run() {
                 gerenciadorUI.limpar();
                 criarPainelMundos();
                 gerenciadorUI.add(painelPrincipal);
@@ -142,8 +127,8 @@ public class MultiMenu implements Screen, InputProcessor {
         Botao botaoHostedar = new Botao("Hospedar Mundo", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoHostedar);
         painelPrincipal.addAncorado(botaoHostedar, Ancora.CENTRO, 0, 50);
 
-        Acao acaoEntrar = new Acao() {
-            public void exec() {
+        Runnable acaoEntrar = new Runnable() {
+            public void run() {
                 gerenciadorUI.limpar();
                 criarPainelBuscando();
                 gerenciadorUI.add(painelPrincipal);
@@ -153,8 +138,8 @@ public class MultiMenu implements Screen, InputProcessor {
         Botao botaoEntrar = new Botao("Entrar em Jogo", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoEntrar);
         painelPrincipal.addAncorado(botaoEntrar, Ancora.CENTRO, 0, -50);
 
-        Acao acaoConectarIP = new Acao() {
-            public void exec() {
+        Runnable acaoConectarIP = new Runnable() {
+            public void run() {
                 gerenciadorUI.limpar();
                 criarPainelConectarIP();
                 gerenciadorUI.add(painelPrincipal);
@@ -163,9 +148,9 @@ public class MultiMenu implements Screen, InputProcessor {
         Botao botaoConectarIP = new Botao("Conectar por IP", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConectarIP);
         painelPrincipal.addAncorado(botaoConectarIP, Ancora.CENTRO, 0, -130);
 
-        Acao acaoVoltar = new Acao() {
-            public void exec() {
-                Inicio.defTela(Cenas.menu);
+        Runnable acaoVoltar = new Runnable() {
+            public void run() {
+                Inicio.tela.setScreen(new Menu());
             }
         };
         Botao botaoVoltar = new Botao("VOLTAR", visualBotao, fonte, 0, 0, 200, 60, escalaPixel, acaoVoltar);
@@ -179,14 +164,14 @@ public class MultiMenu implements Screen, InputProcessor {
         carregarMundos();
 
         painelPrincipal = new Painel(visualJanela, -400, -350, 800, 700, escalaPixel);
-        painelPrincipal.defEspaco(20, 30);
+        painelPrincipal.defEspaco(20f, 30f);
 
         Rotulo titulo = new Rotulo("ESCOLHER MUNDO", fonte, escalaPixel * 1.2f);
         titulo.largura = 760;
         titulo.altura = 60;
         painelPrincipal.addAncorado(titulo, Ancora.SUPERIOR_CENTRO, 0, 0);
 
-        painelMundos = new PainelRolavel(20, 170, 760, 420);
+        painelMundos = new Lista(visualJanela, 20, 170, 760, 420, escalaPixel, pixelBranco);
         painelMundos.defEspaco(0.5f);
 
         if(nomesMundos.isEmpty()) {
@@ -213,36 +198,36 @@ public class MultiMenu implements Screen, InputProcessor {
                     throw new RuntimeException("[ERRO]: nome de mundo invalido " + e);
                 }
                 float y = 5 + (i * (alturaLinha + espacamento));
-                ItemLinha linha = new ItemLinha(5, y, 750, alturaLinha, pixelBranco);
+                Painel linha = new Painel(visualJanela, 5, y, 750, alturaLinha, escalaPixel);
 
                 Rotulo rotuloNome = new Rotulo(nomeMundo, fonte, escalaPixel * 0.75f);
                 rotuloNome.x = 10;
                 rotuloNome.y = margemV;
                 rotuloNome.largura = larguraNome - 10;
                 rotuloNome.altura = alturaItemInterno;
-                linha.addFilho(rotuloNome);
+                linha.add(rotuloNome);
 
-                Acao acaoHostear = new Acao() {
-                    public void exec() {
+                Runnable acaoHostear = new Runnable() {
+                    public void run() {
                         hospedarMundo(nomeMundo);
                     }
                 };
-                ItemBotao botaoHostear = new ItemBotao(
+                Botao botaoHostear = new Botao(
                     larguraNome, margemV, larguraBotaoAcao, alturaItemInterno,
                     "Hospedar", fonte, escalaPixel * 0.6f, pixelBranco, acaoHostear
                 );
                 botaoHostear.corNormal.set(0.25f, 0.4f, 0.55f, 1f);
                 botaoHostear.corPressionado.set(0.35f, 0.55f, 0.75f, 1f);
-                linha.addFilho(botaoHostear);
+                linha.add(botaoHostear);
 
-                painelMundos.add(linha);
+                painelMundos.addItem(linha);
             }
         }
         painelMundos.calcularAlturaConteudo();
         painelPrincipal.add(painelMundos);
 
-        Acao acaoVoltar = new Acao() {
-            public void exec() {
+        Runnable acaoVoltar = new Runnable() {
+            public void run() {
                 gerenciadorUI.limpar();
                 criarPainelInicio();
             }
@@ -271,7 +256,7 @@ public class MultiMenu implements Screen, InputProcessor {
         final CampoTexto campoIP = new CampoTexto(visualBotao, fonte, 0, 0, 480, 70, escalaPixel);
         campoIP.padrao = "Ex: 192.168.0.10 ou VPN IP";
         campoIP.limiteCaracteres = 39;
-        campoIP.gerenciador = gerenciadorUI;
+        
         campoIP.defTexto(ipDigitado);
         campoIP.mudanca = new CampoTexto.Texto() {
             public void aoMudar(String novoTexto) {
@@ -280,8 +265,8 @@ public class MultiMenu implements Screen, InputProcessor {
         };
         painelPrincipal.addAncorado(campoIP, Ancora.CENTRO, 0, -10);
 
-        Acao acaoConectar = new Acao() {
-            public void exec() {
+        Runnable acaoConectar = new Runnable() {
+            public void run() {
                 String ip = ipDigitado.trim();
                 if(ip.isEmpty()) return;
                 conectarPorIP(ip);
@@ -290,8 +275,8 @@ public class MultiMenu implements Screen, InputProcessor {
         Botao botaoConectar = new Botao("CONECTAR", visualBotao, fonte, 0, 0, 250, 65, escalaPixel, acaoConectar);
         painelPrincipal.addAncorado(botaoConectar, Ancora.CENTRO, 0, -90);
 
-        Acao acaoVoltar = new Acao() {
-            public void exec() {
+        Runnable acaoVoltar = new Runnable() {
+            public void run() {
                 gerenciadorUI.limpar();
                 criarPainelInicio();
             }
@@ -332,8 +317,8 @@ public class MultiMenu implements Screen, InputProcessor {
         rotuloStatus.altura = 80;
         painelPrincipal.addAncorado(rotuloStatus, Ancora.CENTRO, 0, 20);
 
-        Acao acaoCancelar = new Acao() {
-            public void exec() {
+        Runnable acaoCancelar = new Runnable() {
+            public void run() {
                 if(buscaNet != null) { buscaNet.liberar(); buscaNet = null; }
                 gerenciadorUI.limpar();
                 criarPainelInicio();
@@ -346,7 +331,7 @@ public class MultiMenu implements Screen, InputProcessor {
     public void hospedarMundo(String nomeMundo) {
         Mundo.nome = nomeMundo;
         modoRede = Net.SERVIDOR_MODO;
-        Inicio.defTela(Cenas.jogo);
+        Inicio.tela.setScreen(new Jogo());
     }
 
     public void iniciarBuscaServidor() {
@@ -376,7 +361,6 @@ public class MultiMenu implements Screen, InputProcessor {
             gerenciadorUI.limpar();
             criarPainelInicio();
         }
-
         if(tela.equals("buscando") && buscaNet != null) {
             tempoBusca += delta;
             if(buscaNet.IP != null && buscaNet.conectado) {
@@ -384,7 +368,7 @@ public class MultiMenu implements Screen, InputProcessor {
                 Net.ultimoIP = buscaNet.IP;
                 MultiMenu.netClientePronto = buscaNet; // Jogo vai pegar isso no show()
                 buscaNet = null; // desvincula sem liberar
-                Inicio.defTela(Cenas.jogo);
+                Inicio.tela.setScreen(new Jogo());
             } else if(conectandoPorIP && buscaNet.IP != null && !buscaNet.conectado && tempoBusca >= 6f) {
                 // conexão direta falhou
                 buscaNet.liberar();
@@ -400,10 +384,6 @@ public class MultiMenu implements Screen, InputProcessor {
         Gdx.gl.glClearColor(0.2f, 0.2f, 0.3f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        camera.update();
-        pincel.setProjectionMatrix(camera.combined);
-        pincelFormas.setProjectionMatrix(camera.combined);
-
         pincel.begin();
         gerenciadorUI.desenhar(pincel, delta);
         pincel.end();
@@ -411,7 +391,7 @@ public class MultiMenu implements Screen, InputProcessor {
 
     @Override
     public void resize(int v, int h) {
-        vista.update(v, h);
+        gerenciadorUI.ajustar(v, h);
     }
 
     @Override
@@ -423,36 +403,12 @@ public class MultiMenu implements Screen, InputProcessor {
 			buscaNet = null;
 		}
         if(pincel != null) pincel.dispose();
-        if(pincelFormas != null) pincelFormas.dispose();
         if(pixelBranco != null) pixelBranco.dispose();
         gerenciadorUI.liberar();
+		texturaUi.dispose();
     }
 
     @Override public void hide() { dispose(); }
     @Override public void pause() {}
     @Override public void resume() {}
-
-    @Override
-    public boolean touchDown(int x, int y, int p, int b) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, true);
-        return true;
-    }
-    @Override
-    public boolean touchUp(int x, int y, int p, int b) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, false);
-        return true;
-    }
-    @Override
-    public boolean touchDragged(int x, int y, int p) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarArraste(toqueAuxiliar.x, toqueAuxiliar.y);
-        return true;
-    }
-    @Override public boolean keyDown(int c) { return gerenciadorUI.processarTecla(c); }
-    @Override public boolean keyTyped(char c) { return gerenciadorUI.processarCaractere(c); }
-    @Override public boolean keyUp(int k) { return false; }
-    @Override public boolean mouseMoved(int x, int y) { return false; }
-    @Override public boolean scrolled(float a, float b) { return false; }
 }

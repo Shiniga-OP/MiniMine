@@ -16,14 +16,12 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import com.minimine.Inicio;
-import com.minimine.Cenas;
 import com.minimine.ui.UI;
 import com.minimine.ui.InterUtil;
 import com.minimine.servidor.Net;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.mundo.Mundo;
 
-import com.micro.util.Acao;
 import com.micro.componentes.Botao;
 import com.micro.janelas.Painel;
 import com.micro.componentes.Rotulo;
@@ -34,14 +32,10 @@ import com.micro.util.GerenciadorUI;
 import com.minimine.audio.Musicas;
 import com.minimine.graficos.Render;
 
-public class Menu implements Screen, InputProcessor {
+public class Menu implements Screen {
     public SpriteBatch pincel;
-    public ShapeRenderer pincelFormas;
     public BitmapFont fonte;
-    public OrthographicCamera camera;
-    public Viewport vista;
-    public Vector3 toqueAuxiliar = new Vector3();
-
+    
     public GerenciadorUI gerenciadorUI;
     public PainelFatiado visualJanela;
     public PainelFatiado visualBotao;
@@ -50,34 +44,28 @@ public class Menu implements Screen, InputProcessor {
     public Painel painelMenu;
     public CaixaDialogo dialogoSair;
 
-    public static Preferences prefs;
-
-    public static boolean atualizar = false;
-    public static String novaVersao, tipo;
+    public Preferences prefs;
+	
+	public Texture texturaUi;
 
     @Override
     public void show() {
         pincel = new SpriteBatch();
-        pincelFormas = new ShapeRenderer();
         fonte = InterUtil.carregarFonte("fontes/pixel-16.fnt");
-        camera = new OrthographicCamera();
-        vista = new ScreenViewport(camera);
-        vista.apply(true);
 
         gerenciadorUI = new GerenciadorUI();
 
         prefs = Gdx.app.getPreferences("MiniConfig");
 
         try {
-            Texture textura = new Texture(Gdx.files.internal("texturas/ui/base.png"));
-            textura.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-            visualJanela = new PainelFatiado(textura);
-            visualBotao = new PainelFatiado(textura);
+            texturaUi = new Texture(Gdx.files.internal("texturas/ui/base.png"));
+            visualJanela = new PainelFatiado(texturaUi);
+            visualBotao = new PainelFatiado(texturaUi);
             criarInterface();
         } catch(Exception e) {
             Gdx.app.log("ERRO", "Recursos nao encontrados: " + e.getMessage());
         }
-        Gdx.input.setInputProcessor(this);
+        Gdx.input.setInputProcessor(gerenciadorUI);
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glCullFace(GL20.GL_BACK);
@@ -121,34 +109,34 @@ public class Menu implements Screen, InputProcessor {
         float larguraBotao = 400;
         float alturaBotao = 70;
 
-        Acao acaoJogar = new Acao() {
-            public void exec() {
-                Inicio.defTela(Cenas.selecao);
+        Runnable acaoJogar = new Runnable() {
+            public void run() {
+                Inicio.tela.setScreen(new MundoMenu());
             }
         };
         Botao botaoJogar = new Botao("Um Jogador", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoJogar);
         painelMenu.addAncorado(botaoJogar, Ancora.CENTRO, 0, 100);
 
-        Acao acaoMulti = new Acao() {
-            public void exec() {
-                Inicio.defTela(Cenas.multiMenu);
+        Runnable acaoMulti = new Runnable() {
+            public void run() {
+                Inicio.tela.setScreen(new MultiMenu());
             }
         };
         Botao botaoMulti = new Botao("Multijogador", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoMulti);
         painelMenu.addAncorado(botaoMulti, Ancora.CENTRO, 0, 0);
 
-        Acao acaoConfig = new Acao() {
-            public void exec() {
-                Inicio.defTela(Cenas.configuracoes);
+        Runnable acaoConfig = new Runnable() {
+            public void run() {
+                Inicio.tela.setScreen(new Config());
             }
         };
         Botao botaoConfig = new Botao("Configurações", visualBotao, fonte, 0, 0, larguraBotao, alturaBotao, escalaPixel, acaoConfig);
         painelMenu.addAncorado(botaoConfig, Ancora.CENTRO, 0, -100);
 
-        Acao acaoSair = new Acao() {
-            public void exec() {
+        Runnable acaoSair = new Runnable() {
+            public void run() {
                 dialogoSair.mostrar("Sair", "Deseja sair do jogo?", new CaixaDialogo.Fechar() {
-						public void aoFechar(boolean confirmou) {
+						public void confirmou(boolean confirmou) {
 							if(confirmou) Gdx.app.exit();
 						}
 					});
@@ -159,10 +147,10 @@ public class Menu implements Screen, InputProcessor {
     }
 
     public void criarDialogos() {
-        dialogoSair = new CaixaDialogo(visualJanela, fonte, escalaPixel, pincelFormas);
+        dialogoSair = new CaixaDialogo(visualJanela, fonte, escalaPixel);
         dialogoSair.addOk(visualBotao);
         dialogoSair.addCancelar(visualBotao);
-        gerenciadorUI.addDialogo(dialogoSair);
+        gerenciadorUI.add(dialogoSair);
     }
 
     @Override
@@ -170,46 +158,21 @@ public class Menu implements Screen, InputProcessor {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         Gdx.gl.glDisable(GL20.GL_CULL_FACE);
 
-        camera.update();
-        pincel.setProjectionMatrix(camera.combined);
-        pincelFormas.setProjectionMatrix(camera.combined);
-
         pincel.begin();
         gerenciadorUI.desenhar(pincel, delta);
         pincel.end();
     }
 
     @Override
-    public boolean touchDown(int x, int y, int p, int b) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, true);
-        return true;
-    }
-
-    @Override
-    public boolean touchUp(int x, int y, int p, int b) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarToque(toqueAuxiliar.x, toqueAuxiliar.y, false);
-        return true;
-    }
-
-    @Override
-    public boolean touchDragged(int x, int y, int p) {
-        camera.unproject(toqueAuxiliar.set(x, y, 0));
-        gerenciadorUI.processarArraste(toqueAuxiliar.x, toqueAuxiliar.y);
-        return true;
-    }
-
-    @Override
     public void resize(int v, int h) {
-        vista.update(v, h);
+        gerenciadorUI.ajustar(v, h);
     }
 
     @Override
     public void dispose() {
         pincel.dispose();
-        pincelFormas.dispose();
         gerenciadorUI.liberar();
+		texturaUi.dispose();
     }
 
     @Override
@@ -219,10 +182,4 @@ public class Menu implements Screen, InputProcessor {
 
     @Override public void pause() {}
     @Override public void resume() {}
-    public boolean keyDown(int c) { return false; }
-    public boolean keyUp(int c) { return false; }
-    public boolean keyTyped(char c) { return false; }
-    public boolean mouseMoved(int x, int y) { return false; }
-    public boolean scrolled(float a, float b) { return false; }
 }
-

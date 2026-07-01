@@ -15,15 +15,16 @@ import com.minimine.audio.Musicas;
 import com.minimine.graficos.Modelos;
 import com.minimine.ui.InterUtil;
 import com.minimine.cenas.Jogo;
+import com.minimine.cenas.Intro;
 
 public class Inicio extends Game {
 	public static String externo;
-	public static boolean telaNova = false;
-	public static Screen telaAtual;
+	public static Game tela;
 	public static Logs log = new Logs();
 	
 	public Inicio(String externo) {
 		Inicio.externo = externo;
+		tela = this;
 	}
 
 	@Override
@@ -37,21 +38,7 @@ public class Inicio extends Game {
 		Musicas.iniciar();
 		Texturas.iniciar();
 		
-		defTela(Cenas.intro);
-	}
-
-	public static void defTela(Screen tela) {
-		telaAtual = tela;
-		telaNova = true;
-	}
-
-	@Override
-	public void render() {
-		super.render();
-		if(telaNova) {
-			setScreen(telaAtual);
-			telaNova = false;
-		}
+		setScreen(new Intro());
 	}
 
 	@Override

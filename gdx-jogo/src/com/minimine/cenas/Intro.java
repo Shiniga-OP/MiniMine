@@ -23,7 +23,6 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.minimine.Cenas;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.Inicio;
 import com.minimine.ui.UI;
@@ -54,7 +53,7 @@ public class Intro implements Screen {
 	public Sprite texturaToda;
 
 	// esferas bolhas
-	public class Bolha {
+	public final class Bolha {
 		ModelInstance modelo;
 		Vector3 posicao;
 		float velocidade;
@@ -153,7 +152,7 @@ public class Intro implements Screen {
 			else mensagem = "Carregando";
 
 			if(contagem >= 100) {
-				Inicio.defTela(Cenas.menu);
+				Inicio.tela.setScreen(new Menu());
 			}
 		}
 		if(frame2 % 1 == 0) {

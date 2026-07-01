@@ -34,7 +34,6 @@ import com.micro.componentes.CaixaDialogo;
 import com.micro.componentes.CampoTexto;
 import com.micro.componentes.Rotulo;
 import com.micro.janelas.PainelFatiado;
-import com.micro.util.Acao;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.profiling.GLProfiler;
 import com.minimine.cenas.Jogo;
@@ -98,7 +97,8 @@ public class UI implements InputProcessor {
         this.jg = jogador;
         this.jg.camera = camera;
 
-        gerenciador = new GerenciadorUI();
+        gerenciador = new GerenciadorUI(false); // não usa camera propria
+		
         visualBase = new PainelFatiado(Texturas.base);
 
         criarDialogos();
@@ -119,7 +119,7 @@ public class UI implements InputProcessor {
     // cria o diálogo de chat e os dialogos de alerta simples
     public void criarDialogos() {
         // dialogo de chat
-        dialogoChat = new CaixaDialogo(visualBase, fonte, 3f, new ShapeRenderer()); // ShapeRenderer proprio do dialogo
+        dialogoChat = new CaixaDialogo(visualBase, fonte, 3f);
         dialogoChat.largura = 500;
         dialogoChat.altura  = 200;
 
@@ -128,8 +128,8 @@ public class UI implements InputProcessor {
         campoChatTexto.limiteCaracteres = 128;
         dialogoChat.add(campoChatTexto);
 
-        Acao acaoEnviar = new Acao() {
-            @Override public void exec() {
+        Runnable acaoEnviar = new Runnable() {
+            @Override public void run() {
                 String msg = campoChatTexto.texto.trim();
                 if(!msg.isEmpty()) {
                     ultimaMensagem = msg;
@@ -143,8 +143,8 @@ public class UI implements InputProcessor {
                 Gdx.input.setCursorCatched(true);
             }
         };
-        Acao acaoCancelar = new Acao() {
-            @Override public void exec() {
+        Runnable acaoCancelar = new Runnable() {
+            @Override public void run() {
                 campoChatTexto.texto = "";
                 dialogoChat.fechar(false);
                 chatAberto = false;
@@ -152,10 +152,10 @@ public class UI implements InputProcessor {
                 Gdx.input.setCursorCatched(true);
             }
         };
-        dialogoChat.addBotao("Enviar",   visualBase, Ancora.CENTRO_DIREITO,  -10, acaoEnviar);
+        dialogoChat.addBotao("Enviar", visualBase, Ancora.CENTRO_DIREITO,  -10, acaoEnviar);
         dialogoChat.addBotao("Cancelar", visualBase, Ancora.CENTRO_ESQUERDO,  10, acaoCancelar);
 
-        gerenciador.addDialogo(dialogoChat);
+        gerenciador.add(dialogoChat);
     }
 
     // chat
@@ -172,7 +172,7 @@ public class UI implements InputProcessor {
 
         dialogoChat.mostrar("Chat", "", new CaixaDialogo.Fechar() {
 				@Override
-				public void aoFechar(boolean confirmou) {
+				public void confirmou(boolean confirmou) {
 					chatAberto = false;
 					modoTexto = false;
 					Gdx.input.setCursorCatched(true);
@@ -182,15 +182,15 @@ public class UI implements InputProcessor {
 
     // abre um dialogo de aviso com padrão ao fechar
     public static void abrirDialogo(String titulo, final CaixaDialogo.Fechar fechar) {
-        final CaixaDialogo alerta = new CaixaDialogo(visualBase, fonte, 3f, new ShapeRenderer());
+        final CaixaDialogo alerta = new CaixaDialogo(visualBase, fonte, 3f);
         alerta.largura = 400;
         alerta.altura = 160;
         alerta.x = Gdx.graphics.getWidth() / 2f - alerta.largura / 2f;
         alerta.y = Gdx.graphics.getHeight() / 2f - alerta.altura  / 2f;
         alerta.addOk(visualBase);
-        gerenciador.addDialogo(alerta);
+        gerenciador.add(alerta);
 		Gdx.input.setCursorCatched(false);
-        alerta.mostrar(titulo, "", fechar != null ? fechar : new CaixaDialogo.Fechar(){@Override public void aoFechar(boolean c){Gdx.input.setCursorCatched(true);}});
+        alerta.mostrar(titulo, "", fechar != null ? fechar : new CaixaDialogo.Fechar(){@Override public void confirmou(boolean c){Gdx.input.setCursorCatched(true);}});
     }
 
     // dpad(sprites, texturas direcionais não fazem sentido na Micro)

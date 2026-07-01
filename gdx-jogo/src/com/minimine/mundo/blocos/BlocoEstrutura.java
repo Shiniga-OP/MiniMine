@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.micro.componentes.CaixaDialogo;
 import com.micro.componentes.CampoTexto;
 import com.micro.janelas.PainelFatiado;
-import com.micro.util.Acao;
 import com.micro.util.Ancora;
 import com.minimine.utils.ArquivosUtil;
 import com.minimine.mundo.Mundo;
@@ -163,43 +162,43 @@ public class BlocoEstrutura {
         if(blocoEstrutura == null) return;
 
         final CaixaDialogo dialogo = new CaixaDialogo(
-			base, fonte, 3f, new ShapeRenderer());
-        dialogo.largura = 440;
-        dialogo.altura  = 320;
+			base, fonte, 3f);
+        dialogo.largura = 500;
+        dialogo.altura  = 500;
 
         // nome da estrutura
-        final CampoTexto campoNome = new CampoTexto(base, fonte, 20, 280, 400, 44, 3f);
+        final CampoTexto campoNome = new CampoTexto(base, fonte, 20, 280, 400, 50, 3f);
         campoNome.padrao = "Nome da estrutura";
         campoNome.limiteCaracteres = 48;
         dialogo.add(campoNome);
 
         // dimensões
-        final CampoTexto campoLarg = new CampoTexto(base, fonte,  20, 228, 80, 40, 3f);
+        final CampoTexto campoLarg = new CampoTexto(base, fonte,  20, 228, 100, 50, 3f);
         campoLarg.padrao = "Larg"; campoLarg.limiteCaracteres = 4;
         dialogo.add(campoLarg);
 
-        final CampoTexto campoAlt = new CampoTexto(base, fonte, 110, 228, 80, 40, 3f);
+        final CampoTexto campoAlt = new CampoTexto(base, fonte, 110, 228, 100, 50, 3f);
         campoAlt.padrao  = "Alt";  campoAlt.limiteCaracteres  = 4;
         dialogo.add(campoAlt);
 
-        final CampoTexto campoProf = new CampoTexto(base, fonte, 200, 228, 80, 40, 3f);
+        final CampoTexto campoProf = new CampoTexto(base, fonte, 200, 228, 100, 50, 3f);
         campoProf.padrao = "Prof"; campoProf.limiteCaracteres = 4;
         dialogo.add(campoProf);
 
         // posição da bcaixa
-        final CampoTexto campoCX = new CampoTexto(base, fonte,  20, 176, 80, 40, 3f);
-        campoCX.padrao = "CX"; campoCX.limiteCaracteres = 5;
+        final CampoTexto campoCX = new CampoTexto(base, fonte,  20, 176, 100, 50, 3f);
+        campoCX.padrao = "X"; campoCX.limiteCaracteres = 5;
         dialogo.add(campoCX);
 
-        final CampoTexto campoCY = new CampoTexto(base, fonte, 110, 176, 80, 40, 3f);
-        campoCY.padrao = "CY"; campoCY.limiteCaracteres = 5;
+        final CampoTexto campoCY = new CampoTexto(base, fonte, 110, 176, 100, 50, 3f);
+        campoCY.padrao = "Y"; campoCY.limiteCaracteres = 5;
         dialogo.add(campoCY);
 
-        final CampoTexto campoCZ = new CampoTexto(base, fonte, 200, 176, 80, 40, 3f);
-        campoCZ.padrao = "CZ"; campoCZ.limiteCaracteres = 5;
+        final CampoTexto campoCZ = new CampoTexto(base, fonte, 200, 176, 100, 50, 3f);
+        campoCZ.padrao = "Z"; campoCZ.limiteCaracteres = 5;
         dialogo.add(campoCZ);
 
-        com.minimine.ui.UI.gerenciador.addDialogo(dialogo);
+        com.minimine.ui.UI.gerenciador.add(dialogo);
 
         blocoEstrutura.ui = new InterfaceBloco() {
             boolean aberta = false;
@@ -237,7 +236,7 @@ public class BlocoEstrutura {
                     "Bloco de Estrutura (" + x + ", " + y + ", " + z + ")",
                     "",
                     new CaixaDialogo.Fechar() {
-                        @Override public void aoFechar(boolean confirmou) { fechar(); }
+                        @Override public void confirmou(boolean confirmou) { fechar(); }
                     });
             }
 
@@ -274,22 +273,22 @@ public class BlocoEstrutura {
             @Override public void liberar() { dialogo.liberar(); }
         };
         // botão salvar
-        dialogo.addBotao("Salvar", base, Ancora.CENTRO_DIREITO, -10, new Acao() {
-				@Override public void exec() {
+        dialogo.addBotao("Salvar", base, Ancora.CENTRO_DIREITO, -10, new Runnable() {
+				@Override public void run() {
 					salvar(blocoEstrutura.ui,
 						   campoNome, campoLarg, campoAlt, campoProf,
 						   campoCX, campoCY, campoCZ);
 				}
 			});
         // botão carregar
-        dialogo.addBotao("Carregar", base, Ancora.CENTRO, 0, new Acao() {
-				@Override public void exec() {
+        dialogo.addBotao("Carregar", base, Ancora.CENTRO, 0, new Runnable() {
+				@Override public void run() {
 					carregar(blocoEstrutura.ui, campoNome);
 				}
 			});
         // botão fechar
-        dialogo.addBotao("Fechar", base, Ancora.CENTRO_ESQUERDO, 10, new Acao() {
-				@Override public void exec() { blocoEstrutura.ui.fechar(); }
+        dialogo.addBotao("Fechar", base, Ancora.CENTRO_ESQUERDO, 10, new Runnable() {
+				@Override public void run() { blocoEstrutura.ui.fechar(); }
 			});
     }
 
